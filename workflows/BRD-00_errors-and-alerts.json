@@ -1,0 +1,266 @@
+{
+  "name": "BRD-00 Errors & Support Alerts",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b7de767e-17b5-4270-993b-4fc90e720e1a",
+      "name": "On workflow error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "a8180523-a423-415d-aba4-bfdfe816d753",
+      "name": "Handled error (from workflows)",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "477da452-40da-447a-a70c-b88e56c20304",
+              "name": "ERRORS_SHEET_ID",
+              "value": "__CFG_LOGS_SHEET_ID__",
+              "type": "string"
+            },
+            {
+              "id": "6569ad36-34ff-43b3-8799-e2d36705ac76",
+              "name": "ERRORS_SHEET_TAB",
+              "value": "errors",
+              "type": "string"
+            },
+            {
+              "id": "c58d5846-15f1-4b22-a9df-9f10bb13d7f1",
+              "name": "SUPPORT_CHAT_ID",
+              "value": "__CFG_SUPPORT_CHAT_ID__",
+              "type": "string"
+            },
+            {
+              "id": "5b59f5be-043a-43af-aa4a-caf7bbed8c99",
+              "name": "N8N_BASE_URL",
+              "value": "__CFG_N8N_BASE_URL__",
+              "type": "string"
+            },
+            {
+              "id": "7a3c7a94-07be-4e91-bbd3-37fb03fdcef7",
+              "name": "ALERT_DEDUP_MINUTES",
+              "value": 15,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "03422bae-2a6b-4af5-b189-da7aa04ff2bc",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Config').first().json;\nconst base = String(cfg.N8N_BASE_URL || '').replace(/\\/$/, '');\nconst cut = (s, n) => String(s == null ? '' : s).slice(0, n);\nreturn $input.all().map((it) => {\n  const j = it.json || {};\n  let r;\n  if (j.execution || j.trigger) {\n    // Error Trigger: необработанное падение любого воркфлоу, у которого BRD-00 указан как Error workflow\n    const ex = j.execution || {};\n    const err = ex.error || (j.trigger && j.trigger.error) || {};\n    const wf = j.workflow || {};\n    r = {\n      source: 'unhandled', severity: 'critical',\n      workflow: wf.name || '', workflow_id: wf.id || '',\n      node: ex.lastNodeExecuted || (err.node && err.node.name) || '',\n      component: wf.name || '',\n      message: cut(err.message || 'Unknown error', 1000),\n      details: cut(err.description || err.stack || '', 1500),\n      chat_id: '', execution_id: ex.id || '', execution_url: ex.url || '', alert: true,\n    };\n  } else {\n    // Обработанная ошибка, присланная другим воркфлоу через Execute Workflow\n    const sev = j.severity || 'error';\n    r = {\n      source: 'handled', severity: sev,\n      workflow: j.workflow || '', workflow_id: j.workflow_id || '',\n      node: j.node || '', component: j.component || '',\n      message: cut(j.message, 1000),\n      details: cut(typeof j.details === 'string' ? j.details : JSON.stringify(j.details || ''), 1500),\n      chat_id: j.chat_id ? String(j.chat_id) : '',\n      execution_id: j.execution_id || '',\n      execution_url: j.execution_url || '',\n      alert: j.alert !== false && ['error', 'critical'].includes(sev),\n    };\n  }\n  if (!r.execution_url && r.execution_id && r.workflow_id && base && !base.startsWith('__')) {\n    r.execution_url = `${base}/workflow/${r.workflow_id}/executions/${r.execution_id}`;\n  }\n  r.timestamp = new Date().toISOString();\n  return { json: r };\n});"
+      },
+      "id": "f8c870a9-608e-42d2-8c2a-34e93e8a6a86",
+      "name": "Normalize error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.ERRORS_SHEET_ID }}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ $('Config').first().json.ERRORS_SHEET_TAB }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "handlingExtraData": "ignoreIt"
+        }
+      },
+      "id": "cc6e0fbc-3b46-46e3-b0d2-4018b97fe139",
+      "name": "Append to errors sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        720,
+        100
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "__CRED_GSHEETS__",
+          "name": "Google Sheets OAuth2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Алерт в чат саппорта. Одинаковые ошибки (workflow + узел + текст) не чаще раза в ALERT_DEDUP_MINUTES.\nconst cfg = $('Config').first().json;\nconst sd = $getWorkflowStaticData('global');\nsd.alerts = sd.alerts || {};\nconst now = Date.now();\nconst win = (Number(cfg.ALERT_DEDUP_MINUTES) || 15) * 60000;\nfor (const k of Object.keys(sd.alerts)) if (now - sd.alerts[k].ts > win * 4) delete sd.alerts[k];\nconst rows = $('Normalize error').all().map((i) => i.json);\nconst out = [];\nfor (const r of rows) {\n  if (!r.alert) continue;\n  const key = `${r.workflow}|${r.node}|${String(r.message).slice(0, 120)}`;\n  const prev = sd.alerts[key];\n  if (prev && now - prev.ts < win) { prev.suppressed = (prev.suppressed || 0) + 1; continue; }\n  const suppressed = prev ? (prev.suppressed || 0) : 0;\n  sd.alerts[key] = { ts: now, suppressed: 0 };\n  const lines = [\n    r.severity === 'critical' ? '🚨 СБОЙ WORKFLOW (необработанная ошибка)' : '⚠️ Ошибка в работе BRD-агента',\n    `Workflow: ${r.workflow || '—'}`,\n    `Узел: ${r.node || '—'}`,\n    `Компонент: ${r.component || '—'}`,\n    `Ошибка: ${r.message}`,\n  ];\n  if (r.chat_id) lines.push(`Чат заказчика: ${r.chat_id}`);\n  if (r.execution_url) lines.push(`Execution: ${r.execution_url}`);\n  else if (r.execution_id) lines.push(`Execution ID: ${r.execution_id}`);\n  if (suppressed) lines.push(`(+${suppressed} таких же ошибок подавлено за ${cfg.ALERT_DEDUP_MINUTES} мин)`);\n  lines.push(`Время (UTC): ${r.timestamp}`);\n  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n  out.push({ json: { chat_id: String(cfg.SUPPORT_CHAT_ID), text: esc(lines.join('\\n').slice(0, 3800)) } });\n}\nreturn out;"
+      },
+      "id": "8e85b582-b7f0-445f-b426-77b09e74ec46",
+      "name": "Format alert (with dedup)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "05b48693-f668-4af0-bbd1-6498dcfb72ad",
+      "name": "Alert support chat",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "__CRED_TELEGRAM__",
+          "name": "Telegram BRD bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "content": "## BRD-00 — ошибки и алерты саппорту\n**Два входа:**\n• **Error Trigger** — любое необработанное падение воркфлоу BRD-01…06 (у них в Settings → Error workflow указан этот воркфлоу).\n• **Execute Workflow Trigger** — обработанные ошибки, которые воркфлоу присылают сами (поля `component, node, severity, message, details, chat_id, alert`).\n\n**Дальше:** строка в Google Sheet `errors` для анализа и алерт в Telegram-чат саппорта (`severity` error/critical). Одинаковые алерты подавляются на 15 минут.\n\nTelegram отправляется напрямую, а не через BRD-02, чтобы не возникло петли, если сломан сам Notify.",
+        "width": 620,
+        "height": 300,
+        "color": 3
+      },
+      "id": "6edf1267-e217-4b0e-8f0b-0646f75ae6ad",
+      "name": "Note 7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -340
+      ]
+    }
+  ],
+  "connections": {
+    "On workflow error": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handled error (from workflows)": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Normalize error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize error": {
+      "main": [
+        [
+          {
+            "node": "Append to errors sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to errors sheet": {
+      "main": [
+        [
+          {
+            "node": "Format alert (with dedup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format alert (with dedup)": {
+      "main": [
+        [
+          {
+            "node": "Alert support chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Moscow",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

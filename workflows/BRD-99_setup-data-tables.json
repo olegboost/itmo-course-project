@@ -1,0 +1,209 @@
+{
+  "name": "BRD-99 Setup (create data tables)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "2ed40105-2489-4848-bfdd-827653019021",
+      "name": "Run once",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "brd_sessions",
+        "columns": {
+          "column": [
+            {
+              "name": "session_id",
+              "type": "string"
+            },
+            {
+              "name": "chat_id",
+              "type": "string"
+            },
+            {
+              "name": "user_id",
+              "type": "string"
+            },
+            {
+              "name": "username",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "history",
+              "type": "string"
+            },
+            {
+              "name": "turn_count",
+              "type": "number"
+            },
+            {
+              "name": "started_at",
+              "type": "string"
+            },
+            {
+              "name": "last_activity_at",
+              "type": "string"
+            },
+            {
+              "name": "reminder_count",
+              "type": "number"
+            },
+            {
+              "name": "last_reminder_at",
+              "type": "string"
+            },
+            {
+              "name": "brd_title",
+              "type": "string"
+            },
+            {
+              "name": "brd_url",
+              "type": "string"
+            },
+            {
+              "name": "error",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "bae1d4eb-c06d-443d-a6a1-30ee60285668",
+      "name": "Create brd_sessions",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        220,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "kb_files",
+        "columns": {
+          "column": [
+            {
+              "name": "file_id",
+              "type": "string"
+            },
+            {
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "name": "mime_type",
+              "type": "string"
+            },
+            {
+              "name": "doc_code",
+              "type": "string"
+            },
+            {
+              "name": "modified_time",
+              "type": "string"
+            },
+            {
+              "name": "web_link",
+              "type": "string"
+            },
+            {
+              "name": "chunk_count",
+              "type": "number"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "error",
+              "type": "string"
+            },
+            {
+              "name": "ingested_at",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "44861531-7dea-4fda-852c-aa5b2b9d12bb",
+      "name": "Create kb_files",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "content": "## BRD-99 — разовая настройка\nЗапустите один раз вручную: создаёт Data Tables **brd_sessions** (состояние интервью) и **kb_files** (состояние базы знаний). Если таблицы уже есть, они не пересоздаются.",
+        "width": 560,
+        "height": 170,
+        "color": 7
+      },
+      "id": "23cb05b3-af78-40bf-9d5e-e0287790e6ec",
+      "name": "Note 3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -220
+      ]
+    }
+  ],
+  "connections": {
+    "Run once": {
+      "main": [
+        [
+          {
+            "node": "Create brd_sessions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create brd_sessions": {
+      "main": [
+        [
+          {
+            "node": "Create kb_files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Moscow",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

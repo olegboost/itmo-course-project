@@ -1,0 +1,306 @@
+{
+  "name": "BRD-02 Notify (Telegram)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "df3b5c14-db5a-4ac3-8aca-4aa7fd3fe61d",
+      "name": "When called by another workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "fbbe1c09-d785-406f-8b52-18eeec08ae04",
+      "name": "Manual test",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1cca54d-ae3a-4bab-8586-a7b4f426e2c4",
+              "name": "audience",
+              "value": "team",
+              "type": "string"
+            },
+            {
+              "id": "0cb8f8dc-23e1-4412-b834-16991d255b9e",
+              "name": "kind",
+              "value": "info",
+              "type": "string"
+            },
+            {
+              "id": "541872c9-903d-4156-812c-80be78d2ea64",
+              "name": "title",
+              "value": "Тест уведомлений",
+              "type": "string"
+            },
+            {
+              "id": "77c55821-0798-47e0-a6fa-5eab0096d251",
+              "name": "text",
+              "value": "Если вы видите это сообщение — BRD-02 Notify настроен правильно.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "46701239-fe4f-40b4-9db7-87282a0e0e9d",
+      "name": "Test message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5b742a47-11c3-4228-b6c8-bd788287f731",
+              "name": "TEAM_CHAT_ID",
+              "value": "__CFG_TEAM_CHAT_ID__",
+              "type": "string"
+            },
+            {
+              "id": "af6b6a04-2e38-49f1-a765-d9670a6719eb",
+              "name": "SUPPORT_CHAT_ID",
+              "value": "__CFG_SUPPORT_CHAT_ID__",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "4eda84d1-5bd8-4b67-9622-035fc7578b4d",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Вход (по одному item на сообщение):\n//   audience: team | support | customer   — кому\n//   chat_id:  явный чат (обязателен для customer)\n//   kind:     info | reminder | success | warning | alert | report\n//   title, text\nconst cfg = $('Config').first().json;\nconst ICON = { info: 'ℹ️', reminder: '⏰', success: '✅', warning: '⚠️', alert: '🚨', report: '📊' };\nconst MAX = 3900;\nconst out = [];\nfor (const it of $input.all()) {\n  const j = it.json || {};\n  const audience = j.audience || 'team';\n  let chat_id = j.chat_id;\n  if (!chat_id) chat_id = audience === 'support' ? cfg.SUPPORT_CHAT_ID : (audience === 'team' ? cfg.TEAM_CHAT_ID : '');\n  if (!chat_id || String(chat_id).startsWith('__')) throw new Error(`Notify: не задан chat_id для audience=${audience}`);\n  const icon = ICON[j.kind] || '';\n  const head = j.title ? `${icon ? icon + ' ' : ''}${j.title}` : '';\n  let s = [head, j.text || ''].filter(Boolean).join('\\n\\n').trim();\n  if (!head && icon) s = `${icon} ${s}`;\n  if (!s) s = '(пустое сообщение)';\n  const parts = [];\n  while (s.length > MAX) {\n    let c = s.lastIndexOf('\\n', MAX);\n    if (c < MAX * 0.5) c = MAX;\n    parts.push(s.slice(0, c));\n    s = s.slice(c).replace(/^\\s+/, '');\n  }\n  parts.push(s);\n  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n  parts.forEach((p, i) => out.push({ json: {\n    chat_id: String(chat_id), text: esc(p), audience, kind: j.kind || 'info', source: j.source || '',\n    part: i + 1, parts: parts.length,\n  } }));\n}\nreturn out;"
+      },
+      "id": "b67abd49-e941-4580-a3d4-5ca7df95b4c7",
+      "name": "Prepare messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "2c824871-efbf-4f0c-9c6b-21ee6a997799",
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        880,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "__CRED_TELEGRAM__",
+          "name": "Telegram BRD bot"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "id": "c50cca3e-882c-4a6c-9ac0-78d2fd0dcdd4",
+      "name": "Sent",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'notify',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'Send to Telegram',\n    severity: 'error',\n    alert: true,\n    chat_id: String($('Prepare messages').all()[0]?.json.chat_id || ''),\n    message: String('Не удалось отправить уведомление в Telegram: ' + errText(j) || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String($('Prepare messages').all()[0]?.json.text || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
+      },
+      "id": "9a90204d-4d1c-4a90-8954-e6e209e4a3d1",
+      "name": "Error payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "__WF_ERRORS__",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "3d11e4d0-6730-425e-a24b-95706f854d20",
+      "name": "Log via BRD-00",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## BRD-02 — уведомления в Telegram\nЕдиная точка отправки сообщений. Вызывается из BRD-01/04/05/06 через **Execute Workflow**.\n\n**Вход:** `audience` (team | support | customer), `chat_id` (для customer), `kind` (info, reminder, success, warning, alert, report), `title`, `text`.\n\nЧаты команды и саппорта задаются в узле **Config**. Длинные сообщения режутся на части по 3900 символов.\n**Manual test** — проверить бота и чат команды.",
+        "width": 640,
+        "height": 280,
+        "color": 4
+      },
+      "id": "5e8ae574-e8c2-4957-9be4-d93895816ba6",
+      "name": "Note 9",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -330
+      ]
+    }
+  ],
+  "connections": {
+    "When called by another workflow": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual test": {
+      "main": [
+        [
+          {
+            "node": "Test message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test message": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Prepare messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare messages": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Telegram": {
+      "main": [
+        [
+          {
+            "node": "Sent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error payload": {
+      "main": [
+        [
+          {
+            "node": "Log via BRD-00",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Moscow",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "__WF_ERRORS__"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
