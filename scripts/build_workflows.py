@@ -52,14 +52,15 @@ LIMITS = {
     "BRD_MAX_ITERATIONS": 6,         # шагов агента за часть BRD: 2–4 запроса к KB + ответ = 5, +1 запас
     "MAX_TURNS": 40,                 # ответов в интервью: ~6 мин на ответ × 40 ≈ 240 мин работы человека
     "SESSION_BUDGET_USD": 1.0,       # оценка расхода на сессию: ~6 прогонов × ~$0.17
-    "INTERVIEW_TIMEOUT_SEC": 180,    # таймаут LLM 120 с + Telegram/KB
-    "BRD_TIMEOUT_SEC": 900,          # норма генерации 3–5 мин ×3 запас
+    "INTERVIEW_TIMEOUT_SEC": 180,    # таймаут LLM 120 с + Telegram/KB; это и максимум тарифа n8n Cloud (3 мин)
+    # BRD-04: таймаут воркфлоу на тарифе не больше 3 мин, а норма генерации 3–5 мин — поэтому сторож в BRD-05.
+    "GENERATION_STUCK_MIN": 20,      # норма 3–5 мин × 4; дольше в generating — прогон потерян
     "BRD_ATTEMPTS_PER_SESSION": 2,   # первая попытка + один повтор после сбоя; дальше — человек
     "BRD_PER_CHAT_PER_DAY": 2,       # BRD от одного заказчика за 24 ч
     "BRD_PER_DAY": 5,                # BRD за 24 ч всего = недельная норма (5 в неделю)
 }
 # Цена модели (USD за 1M токенов) — для оценки расхода; задаётся в .env вместе с моделью.
-CHARS_PER_TOKEN = 3  # грубая оценка для русского текста; сверяется с фактом OpenRouter в cost-attack
+CHARS_PER_TOKEN = 2  # русский текст; калибровка cost-attack 2026-10-11: на Claude факт ≈ 2.2 симв./токен, 3 занижало оценку на ~30%
 
 # Общий JS: распознавание пределов и оценка расхода. Вставляется в Code-узлы.
 LIMIT_JS = r"""
@@ -1266,7 +1267,7 @@ const raw = String($json.output ?? $json.text ?? '').trim();
 const now = new Date().toISOString();
 // Расход прогона (оценка сверху) копится в сессии — это бюджет сессии.
 const run = estimateRun({len(INTERVIEW_PROMPT)}, String(r.prompt || '').length, raw, $json.intermediateSteps,
-  Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 3);
+  Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 2);
 const spent = (Number(r.session.cost_usd) || 0) + run.usd;
 const budget = Number(cfg.SESSION_BUDGET_USD);
 const LIMIT_REPLY = '{LIMIT_REPLY}';
@@ -1451,7 +1452,7 @@ return [{ json: { ...t.limit, workflow: $workflow.name, workflow_id: $workflow.i
 # ===========================================================================
 # BRD-04 — генерация BRD и публикация в Google Drive
 def build_brd_generator():
-    w = WF("BRD-04 BRD Generator & Publisher", timeout=LIMITS["BRD_TIMEOUT_SEC"])
+    w = WF("BRD-04 BRD Generator & Publisher")  # без executionTimeout: максимум тарифа (3 мин) короче нормы
     w.add("When called by BRD-03", "n8n-nodes-base.executeWorkflowTrigger", 1.1, {"inputSource": "passthrough"}, (0, 0))
     w.add("Manual test", "n8n-nodes-base.manualTrigger", 1, {}, (0, 200))
     w.add("Test input", "n8n-nodes-base.set", 3.4, p_set({"session_id": "PASTE_SESSION_ID_FROM_brd_sessions"}),
@@ -1559,7 +1560,7 @@ const prompts = $('Build BRD request').all().map((i) => String(i.json.prompt || 
 let usd = 0, stopped = null;
 items.forEach((it, k) => {{
   const run = estimateRun({len(BRD_WRITER_PROMPT)}, prompts[k] || 0, outs[k], it.json.intermediateSteps,
-    Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 3);
+    Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 2);
   usd += run.usd;
   if (!stopped && STOP_RE.test(outs[k])) stopped = {{ part: k + 1, steps: run.steps }};
 }});
@@ -1768,7 +1769,7 @@ return [{{ json: {{ session_row: row, limit: l, session: s,
 4. Строка в реестре BRD (Google Sheet, лист brd_registry), сессия → `completed`.
 5. Ссылка заказчику и в чат команды (через BRD-02).
 **Сбой** → сессия в `active`, заказчик может повторить /done (вторая попытка); саппорт получает алерт.
-**Потолок** (шаги, попытки, число BRD, бюджет, лимит ключа 402/403) → **Limit stop**: сессия `needs_review`, сообщение заказчику, ручная очередь **BRD-07**. Повтора нет. Таймаут прогона — Settings → Timeout {LIMITS["BRD_TIMEOUT_SEC"]} с (зависшие `generating` подбирает BRD-05).""",
+**Потолок** (шаги, попытки, число BRD, бюджет, лимит ключа 402/403) → **Limit stop**: сессия `needs_review`, сообщение заказчику, ручная очередь **BRD-07**. Повтора нет. Потолок времени — сторож в BRD-05: > {LIMITS["GENERATION_STUCK_MIN"]} мин в `generating` → ручная очередь (таймаут воркфлоу на тарифе ≤ 3 мин, короче нормы генерации).""",
            (-40, -620), w=820, h=500, color=4)
     w.dump("BRD-04_brd-generator.json")
 
@@ -1786,8 +1787,8 @@ def build_reminders():
         "CLOSE_AFTER_HOURS": 72,
         "WORK_HOUR_FROM": 9,
         "WORK_HOUR_TO": 20,
-        # потолок времени генерации: таймаут BRD-04 + 5 мин запаса; дольше в generating — прогон потерян
-        "GENERATION_STUCK_MIN": LIMITS["BRD_TIMEOUT_SEC"] // 60 + 5,
+        # потолок времени генерации BRD-04 (обоснование — LIMITS)
+        "GENERATION_STUCK_MIN": LIMITS["GENERATION_STUCK_MIN"],
     }), (220, 90))
     w.add("Load active sessions", "n8n-nodes-base.dataTable", 1,
           dt_get(SESSIONS_TABLE, [("status", "active"), ("status", "generating")], match="anyCondition"),

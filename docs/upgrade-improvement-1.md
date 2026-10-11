@@ -34,10 +34,12 @@ BRD-01 и BRD-02 по логике не менялись, их переимпо�
 
 | Credential | Тип | Настройка |
 |---|---|---|
-| `OpenRouter (key with limit)` | **OpenRouter API** | API Key — ключ из шага 1 |
+| `OpenRouter (key with limit)` | **OpenRouter** | API Key — ключ из шага 1, без префикса `Bearer` |
 | `OpenRouter API key (header)` | **Header Auth** | Name `Authorization`, Value `Bearer <ключ из шага 1>` |
 
 *Зачем:* первая credential нужна моделям агентов. Вторая нужна дайджесту: он читает расход и остаток лимита через `GET /api/v1/key`.
+
+Кнопка **Test** у credential «OpenRouter» обращается к `GET /api/v1/key`. «Unauthorized» значит, что OpenRouter не принял ключ: ключ скопирован не целиком, вставлен с `Bearer`, это provisioning key вместо обычного API-ключа или ключ выключен.
 
 ID каждой credential (из URL открытой credential) впишите в `.env`: `CRED_OPENROUTER` и `CRED_HTTP_OPENROUTER`. Если оставить пустыми, credentials можно будет выбрать в узлах вручную (шаг 7). Старая credential DeepSeek больше не используется, её можно оставить.
 
@@ -97,12 +99,12 @@ python3 scripts/deploy.py --dry-run     # подставляет .env → build/
 |---|---|---|---|
 | 1 | BRD-07 Manual Queue (limits) | `BRD-07_manual-queue.json` | credential Google Sheets в *Append to manual_queue*; Settings → Error workflow = BRD-00 |
 | 2 | BRD-00 Errors & Support Alerts | `BRD-00_errors-and-alerts.json` | credentials Sheets и Telegram |
-| 3 | BRD-04 BRD Generator & Publisher | `BRD-04_brd-generator.json` | *LLM (BRD)* → credential OpenRouter, модель `deepseek/deepseek-v4.1-flash`; Settings → **Timeout Workflow: 15 мин**; Error workflow = BRD-00 |
-| 4 | BRD-03 Interview Agent | `BRD-03_interview-agent.json` | *LLM (interview)* → credential OpenRouter; в *Interview agent* → Options: **Max Iterations = 4**, **Return Intermediate Steps = on**; Settings → **Timeout Workflow: 3 мин**; Error workflow = BRD-00 |
+| 3 | BRD-04 BRD Generator & Publisher | `BRD-04_brd-generator.json` | *LLM (BRD)* → credential OpenRouter, модель `deepseek/deepseek-v4.1-flash`; Settings → **Timeout Workflow: выключен** (тариф разрешает максимум 3 минуты, а генерация идёт 3–5 минут; потолок времени держит сторож в BRD-05); Error workflow = BRD-00 |
+| 4 | BRD-03 Interview Agent | `BRD-03_interview-agent.json` | *LLM (interview)* → credential OpenRouter; в *Interview agent* → Options: **Max Iterations = 4**, **Return Intermediate Steps = on**; Settings → **Timeout Workflow: вкл, 3 мин** (это максимум тарифа); Error workflow = BRD-00 |
 | 5 | BRD-05 Reminders | `BRD-05_reminders.json` | Error workflow = BRD-00 |
 | 6 | BRD-06 Daily Digest | `BRD-06_daily-digest.json` | *OpenRouter key usage* → credential Header Auth OpenRouter; Error workflow = BRD-00 |
 
-*Зачем проверять Settings вручную:* импорт из файла в существующий воркфлоу может не перенести настройки воркфлоу. В JSON таймаут и Error workflow есть (`settings.executionTimeout`, `settings.errorWorkflow`), но надёжнее посмотреть глазами. В n8n 2.x подворкфлоу и Error workflow работают только опубликованными, поэтому после каждой правки BRD-07, 00 и 04 их нужно публиковать заново.
+*Зачем выставлять Settings вручную:* на n8n Cloud при импорте из файла в существующий воркфлоу **настройки воркфлоу не переносятся**, переносятся только узлы и связи. Это проверено на BRD-07. Таймаут и Error workflow в JSON есть (`settings.executionTimeout`, `settings.errorWorkflow`), но в n8n их нужно поставить руками. Воркфлоу, которые уже были настроены раньше, сохраняют свой прежний Error workflow, а новый таймаут всё равно ставится вручную. В n8n 2.x подворкфлоу и Error workflow работают только опубликованными, поэтому после каждой правки BRD-07, 00 и 04 их нужно публиковать заново.
 
 ## Шаг 8. Проверка
 
