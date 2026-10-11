@@ -12,7 +12,7 @@
           ]
         }
       },
-      "id": "3b32427c-0432-4fc1-89d7-85324a4b668d",
+      "id": "0f2a6454-2fa0-4517-a4d8-c1463fea63fc",
       "name": "Daily 03:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -23,7 +23,7 @@
     },
     {
       "parameters": {},
-      "id": "007be76e-91c7-4a61-83a0-c726c47dbaf1",
+      "id": "e7401f21-ea90-45ee-b883-061eef3515f5",
       "name": "Manual run",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -37,79 +37,79 @@
         "assignments": {
           "assignments": [
             {
-              "id": "f69fc914-6c57-4ea8-9bd3-d3d9e896e09b",
+              "id": "68c66760-5b37-4299-974c-0a591d0ebc3b",
               "name": "KB_FOLDER_ID",
               "value": "__CFG_KB_FOLDER_ID__",
               "type": "string"
             },
             {
-              "id": "71d900eb-fc2b-41d1-90ac-9bd4666a3377",
+              "id": "7fb7575d-d48f-402f-8a30-7ff0e56960f4",
               "name": "KB_EXCLUDE_REGEX",
               "value": "^(_|~)",
               "type": "string"
             },
             {
-              "id": "41cb3b9f-51c5-42d4-ac13-7477806043e4",
+              "id": "82f15f7b-114b-4d07-88b5-98ca5af26b1d",
               "name": "KB_LOG_SHEET_ID",
               "value": "__CFG_KB_LOG_SHEET_ID__",
               "type": "string"
             },
             {
-              "id": "ffa8f87f-bb9b-47b3-af64-7eb278d1b483",
+              "id": "5d5f3300-dd93-4e46-9f98-af3db84a1897",
               "name": "KB_LOG_SHEET_TAB",
               "value": "kb_sync_log",
               "type": "string"
             },
             {
-              "id": "09411226-fd2e-48bf-bf9b-c13f47d5dfe7",
+              "id": "a2809378-6951-42cb-860e-45283ea3376a",
               "name": "PINECONE_INDEX_HOST",
               "value": "__CFG_PINECONE_INDEX_HOST__",
               "type": "string"
             },
             {
-              "id": "4ebeb3e5-c7f9-4803-89a4-365c6171ba73",
+              "id": "45db9650-2c43-40e7-9dcb-3074e95533ac",
               "name": "PINECONE_NAMESPACE",
               "value": "__CFG_PINECONE_NAMESPACE__",
               "type": "string"
             },
             {
-              "id": "226e060b-d291-4ceb-b3cf-90a2c32cc615",
+              "id": "dd9d8452-0675-4626-99fa-af68db84aab8",
               "name": "PINECONE_API_VERSION",
               "value": "2024-10",
               "type": "string"
             },
             {
-              "id": "da1f16c3-40b4-4fbf-83b7-4fbcbe5bd09d",
+              "id": "c4260d9d-aac0-460f-bb74-e10616fefbb0",
               "name": "EMBEDDING_URL",
               "value": "__CFG_EMBEDDING_URL__",
               "type": "string"
             },
             {
-              "id": "bc2aa551-129d-4b80-9edb-a92796bf0215",
+              "id": "9c01c6e4-5fdf-4341-9084-8d06a0225215",
               "name": "EMBEDDING_MODEL",
               "value": "__CFG_EMBEDDING_MODEL__",
               "type": "string"
             },
             {
-              "id": "b0fad954-35f4-49a4-90d8-2b50d8034927",
+              "id": "92f02292-e976-4aee-99af-367b6abc937b",
               "name": "EMBED_BATCH_SIZE",
               "value": 48,
               "type": "number"
             },
             {
-              "id": "6afa77da-13db-4f80-86ef-1e224dd35400",
+              "id": "4207c1f4-6b79-4ab9-83d9-83457a55b653",
               "name": "CHUNK_SIZE_TOKENS",
               "value": 500,
               "type": "number"
             },
             {
-              "id": "5b98fe40-af4c-4f52-9aad-88a23fb70eca",
+              "id": "37ee735f-2524-4370-b5e0-06fb83b68aad",
               "name": "CHUNK_OVERLAP_TOKENS",
               "value": 100,
               "type": "number"
             },
             {
-              "id": "8de5d411-ba84-48d3-9d09-daddbe83a22b",
+              "id": "b6902c59-eba8-49f6-8d08-44f632324d52",
               "name": "CHARS_PER_TOKEN",
               "value": 2.5,
               "type": "number"
@@ -118,7 +118,7 @@
         },
         "options": {}
       },
-      "id": "2f532292-1b2e-47f9-9498-c17afb54682a",
+      "id": "72205300-879e-4794-bfbe-ecbe10afff4f",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -141,7 +141,7 @@
           ]
         }
       },
-      "id": "93035227-52c0-44dd-a692-c5bef0719bde",
+      "id": "e8e5b885-09ea-477e-8884-5b75ee843adf",
       "name": "List files in KB folder",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
@@ -168,7 +168,7 @@
         },
         "returnAll": true
       },
-      "id": "c1b05222-ce00-428a-bfba-5c99758fa4b6",
+      "id": "baeee7ae-22d3-4010-8bff-d1d4040b42ec",
       "name": "Load KB state",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -183,7 +183,7 @@
       "parameters": {
         "jsCode": "// Сравниваем содержимое папки с состоянием в Data Table kb_files:\n// новые / изменённые (modifiedTime) / удалённые / без изменений / неподдерживаемые.\nconst cfg = $('Config').first().json;\nconst exclude = cfg.KB_EXCLUDE_REGEX ? new RegExp(cfg.KB_EXCLUDE_REGEX) : null;\nconst files = $('List files in KB folder').all().map((i) => i.json).filter((f) => f && f.id);\nconst state = {};\nfor (const r of $('Load KB state').all().map((i) => i.json)) if (r && r.file_id) state[r.file_id] = r;\n\nconst KIND = {\n  'application/vnd.google-apps.document': 'gdoc',\n  'application/vnd.google-apps.spreadsheet': 'gsheet',\n  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'office',\n  'application/msword': 'office',\n  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'office',\n  'application/vnd.ms-excel': 'office',\n  'application/pdf': 'pdf',\n  'text/plain': 'text', 'text/markdown': 'text', 'text/x-markdown': 'text', 'text/csv': 'csv',\n};\nconst officeTarget = (m) => (/sheet|excel/.test(m) ? 'application/vnd.google-apps.spreadsheet' : 'application/vnd.google-apps.document');\n\nconst to_process = [], unchanged = [], unsupported = [], excluded = [];\nconst seen = new Set();\nfor (const f of files) {\n  if (exclude && exclude.test(f.name)) { excluded.push(f.name); continue; }\n  const kind = KIND[f.mimeType] || (/\\.(md|txt)$/i.test(f.name) ? 'text' : null);\n  if (!kind) { unsupported.push({ file_id: f.id, name: f.name, mime_type: f.mimeType, link: f.webViewLink || '' }); continue; }\n  seen.add(f.id);\n  const prev = state[f.id];\n  const changed = !prev || prev.modified_time !== f.modifiedTime || prev.status !== 'ok';\n  if (!changed) { unchanged.push(f.name); continue; }\n  to_process.push({\n    file_id: f.id, name: f.name, mime_type: f.mimeType, kind,\n    office_target: kind === 'office' ? officeTarget(f.mimeType) : '',\n    modified_time: f.modifiedTime || '', web_link: f.webViewLink || '',\n    doc_code: ((f.name.match(/DOC-\\d+/i) || [''])[0]).toUpperCase(),\n    action: prev ? (prev.status === 'ok' ? 'updated' : 'retried') : 'added',\n    prev_chunk_count: Number(prev && prev.chunk_count) || 0,\n  });\n}\nconst to_delete = Object.values(state).filter((r) => !seen.has(r.file_id)).map((r) => {\n  const n = Math.max(1, Number(r.chunk_count) || 0);\n  return { file_id: r.file_id, name: r.name || '', prev_chunk_count: Number(r.chunk_count) || 0,\n           ids: Array.from({ length: n }, (_, k) => `${r.file_id}#${String(k).padStart(4, '0')}`) };\n});\nreturn [{ json: {\n  run_id: $execution.id, started_at: new Date().toISOString(),\n  to_process, to_delete, unchanged, unsupported, excluded,\n} }];"
       },
-      "id": "19f5ada2-2b5d-4ce3-b663-6acd124bc08f",
+      "id": "4957f0e4-53d7-40b5-843b-4654beae46e0",
       "name": "Plan changes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -203,7 +203,7 @@
           },
           "conditions": [
             {
-              "id": "aee04ca6-430e-4ddf-abf1-e4d40b229e9e",
+              "id": "e86d8daa-f99c-4ae5-9c3c-ae30da4ed6f2",
               "leftValue": "={{ $json.to_delete.length > 0 }}",
               "rightValue": "",
               "operator": {
@@ -218,7 +218,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "e1671c28-1746-4046-9626-3c09445a4a06",
+      "id": "6232bcff-01df-4c3d-ac48-4883f0e366b0",
       "name": "Any removed files?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -231,7 +231,7 @@
       "parameters": {
         "jsCode": "return $('Plan changes').first().json.to_delete.map((d) => ({ json: d }));"
       },
-      "id": "846245d4-0bec-408c-9f75-a91e11f34d3f",
+      "id": "85044d6b-0033-487f-b064-a9e0ebfef057",
       "name": "Explode removed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -260,7 +260,7 @@
         "jsonBody": "={{ JSON.stringify({ ids: $json.ids, namespace: $('Config').first().json.PINECONE_NAMESPACE }) }}",
         "options": {}
       },
-      "id": "73e38e28-dfd2-4db9-bfb1-828d667d8f81",
+      "id": "2e322da1-99df-4d26-9976-b696ef5e9175",
       "name": "Pinecone: delete removed",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -297,7 +297,7 @@
         },
         "options": {}
       },
-      "id": "3aa5fd59-b829-41cb-9506-22de31b7b3c1",
+      "id": "012bed0f-57f9-4523-88c6-00bb122375d4",
       "name": "Forget removed",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -311,7 +311,7 @@
       "parameters": {
         "jsCode": "return [$('Plan changes').first()];"
       },
-      "id": "4f677950-a2bc-4b4c-a8c3-6708949358cc",
+      "id": "eb1cccec-5998-42be-8e90-84f857130269",
       "name": "Back to plan",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -331,7 +331,7 @@
           },
           "conditions": [
             {
-              "id": "1e97e22f-2aba-41e0-9fe5-1df0c665bf8b",
+              "id": "c8d0e0a2-2f99-4831-9d74-0554efd77d6b",
               "leftValue": "={{ $('Plan changes').first().json.to_process.length > 0 }}",
               "rightValue": "",
               "operator": {
@@ -346,7 +346,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "acbe7321-86ee-4333-8977-d87eada93ac4",
+      "id": "1f16af38-ef4b-4107-b69d-2db5b442e3a4",
       "name": "Anything to index?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -359,7 +359,7 @@
       "parameters": {
         "jsCode": "return $('Plan changes').first().json.to_process.map((f) => ({ json: f }));"
       },
-      "id": "03860ee6-f456-4aa7-a89f-e996059f9176",
+      "id": "5df399ab-37f7-40f6-82cc-89c1a9bf0c25",
       "name": "Explode files",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -372,7 +372,7 @@
       "parameters": {
         "options": {}
       },
-      "id": "cbcec7ae-0a90-458a-a1a0-9686ffe67119",
+      "id": "a28f42da-599a-4466-9a8b-da362b0a309e",
       "name": "For each file",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
@@ -392,7 +392,7 @@
           },
           "conditions": [
             {
-              "id": "039725b8-2f35-4328-9b05-97877e65a6e3",
+              "id": "c396b6a7-646b-4902-a199-b43d377b83cc",
               "leftValue": "={{ $json.kind === 'office' }}",
               "rightValue": "",
               "operator": {
@@ -407,7 +407,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "8f5af956-5692-4c9f-9257-351b102ea7c6",
+      "id": "0e45c7c3-dc1f-4c97-aedd-629e6c689518",
       "name": "Office file?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -427,7 +427,7 @@
         "jsonBody": "={{ JSON.stringify({ name: '_tmp_convert_' + $json.name, mimeType: $json.office_target }) }}",
         "options": {}
       },
-      "id": "9d304beb-2db1-434e-abe4-508952925565",
+      "id": "f56732c3-15a4-4a42-8b93-74d1cd87fb63",
       "name": "Convert to Google format (temp copy)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -447,7 +447,7 @@
       "parameters": {
         "jsCode": "const f = $('For each file').first().json;\nconst isOffice = f.kind === 'office';\nconst export_id = isOffice ? $json.id : f.file_id;\nconst kind = isOffice ? (f.office_target.includes('spreadsheet') ? 'gsheet' : 'gdoc') : f.kind;\nreturn [{ json: { ...f, kind, export_id, tmp_copy_id: isOffice ? $json.id : '' } }];"
       },
-      "id": "138d3925-b580-4e33-a539-590e005bd31a",
+      "id": "1021d074-f98c-4e56-a158-0eccab05d051",
       "name": "Prepare export",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -474,7 +474,7 @@
           }
         }
       },
-      "id": "12aa2352-af58-4888-a2f6-26b5040e5c04",
+      "id": "c8c62367-14fd-4edb-a4fc-7e2449538895",
       "name": "Download / export text",
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
@@ -501,7 +501,7 @@
           },
           "conditions": [
             {
-              "id": "e3c781a4-9c62-4d03-bb3f-43df4876a1f4",
+              "id": "4434ec82-49c7-49ed-90e4-64828ef82924",
               "leftValue": "={{ $('Prepare export').first().json.kind === 'pdf' }}",
               "rightValue": "",
               "operator": {
@@ -516,7 +516,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "c28d9f57-7fab-442a-bc7a-081a174d888b",
+      "id": "60fbb155-75f7-49ea-8c69-d78c30ca6b66",
       "name": "PDF?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -533,7 +533,7 @@
           "joinPages": true
         }
       },
-      "id": "b7934ae0-583b-4165-aeeb-fd2f3bce92ea",
+      "id": "da4833fa-984a-4062-9e81-5980cda64bda",
       "name": "Extract PDF text",
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1,
@@ -547,7 +547,7 @@
       "parameters": {
         "jsCode": "let text = '';\nconst items = $input.all();\nfor (let i = 0; i < items.length; i++) {\n  const it = items[i];\n  if (it.json && typeof it.json.text === 'string') text += it.json.text + '\\n';\n  else if (it.binary && it.binary.data) text += (await this.helpers.getBinaryDataBuffer(i, 'data')).toString('utf-8') + '\\n';\n}\ntext = text.replace(/^\\uFEFF/, '');\nreturn [{ json: { text, length: text.length } }];"
       },
-      "id": "a6f9cd66-490f-4df5-b471-3a99645eb629",
+      "id": "c6ad631d-2203-4f6e-918c-adfc1ada96f1",
       "name": "Collect text",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -567,7 +567,7 @@
           },
           "conditions": [
             {
-              "id": "8dbfaf37-b48a-4ed4-a9fa-2797bee54464",
+              "id": "4b8697ad-75d1-4834-b6ff-ee07a656bc32",
               "leftValue": "={{ !!$('Prepare export').first().json.tmp_copy_id }}",
               "rightValue": "",
               "operator": {
@@ -582,7 +582,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "ce8d92ea-223d-4d57-9fc6-e39a91ad7c1a",
+      "id": "897092fe-91d9-4b23-abf8-ce345f75c0f6",
       "name": "Temp copy to remove?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -599,7 +599,7 @@
         "nodeCredentialType": "googleDriveOAuth2Api",
         "options": {}
       },
-      "id": "29a066ed-aa15-4c4c-af6a-8855fae0e92f",
+      "id": "95b69864-2dd3-4116-bb84-cf019b2ff700",
       "name": "Delete temp copy",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -619,7 +619,7 @@
       "parameters": {
         "jsCode": "// Нарезка текста на фрагменты ~CHUNK_SIZE токенов с перекрытием (по границам пунктов/абзацев).\n// Google Sheets / CSV режем по строкам таблицы: «Колонка: значение; ...».\nconst cfg = $('Config').first().json;\nconst f = $('Prepare export').first().json;\nconst CHUNK = Number(cfg.CHUNK_SIZE_TOKENS) || 500;\nconst OVERLAP = Number(cfg.CHUNK_OVERLAP_TOKENS) || 100;\nconst CPT = Number(cfg.CHARS_PER_TOKEN) || 2.5;\nconst est = (s) => Math.max(1, Math.ceil(s.length / CPT));\nlet text = String($('Collect text').first().json.text || '');\nconst isTable = f.kind === 'gsheet' || f.kind === 'csv';\n\nfunction parseCsv(src) {\n  const rows = []; let row = []; let cur = ''; let q = false;\n  for (let i = 0; i < src.length; i++) {\n    const c = src[i];\n    if (q) {\n      if (c === '\"' && src[i + 1] === '\"') { cur += '\"'; i++; }\n      else if (c === '\"') q = false;\n      else cur += c;\n    } else if (c === '\"') q = true;\n    else if (c === ',') { row.push(cur); cur = ''; }\n    else if (c === '\\n') { row.push(cur); rows.push(row); row = []; cur = ''; }\n    else if (c !== '\\r') cur += c;\n  }\n  if (cur || row.length) { row.push(cur); rows.push(row); }\n  return rows.filter((r) => r.some((v) => String(v).trim()));\n}\n\nlet blocks = [];\nif (isTable) {\n  const rows = parseCsv(text);\n  const head = (rows.shift() || []).map((h) => String(h).trim());\n  blocks = rows.map((r) => r.map((v, k) => (String(v).trim() ? `${head[k] || 'Колонка ' + (k + 1)}: ${String(v).trim()}` : ''))\n    .filter(Boolean).join('; '));\n} else {\n  text = text.replace(/\\r\\n/g, '\\n').replace(/ /g, ' ').replace(/[ \\t]+\\n/g, '\\n').replace(/\\n{3,}/g, '\\n\\n').trim();\n  const isBoundary = (l) => /^\\s*\\d+(\\.\\d+){0,3}[.)]?\\s+\\S/.test(l) || /^\\s*#{1,6}\\s+\\S/.test(l) ||\n    /^\\s*(Часть|Раздел|Приложение|Глава)\\b/i.test(l) || /^\\s*В:\\s/.test(l);\n  let cur = [];\n  for (const l of text.split('\\n')) {\n    if (isBoundary(l) && cur.join('').trim()) { blocks.push(cur.join('\\n').trim()); cur = []; }\n    cur.push(l);\n  }\n  if (cur.join('').trim()) blocks.push(cur.join('\\n').trim());\n  if (blocks.length < 3) blocks = text.split(/\\n{2,}/);\n}\nblocks = blocks.map((b) => String(b).trim()).filter(Boolean);\n\nconst chunks = [];\nlet buf = []; let tok = 0;\nconst flush = () => {\n  if (!buf.length) return;\n  chunks.push(buf.join('\\n\\n'));\n  const keep = []; let t = 0;\n  for (let i = buf.length - 1; i >= 0 && t < OVERLAP && !isTable; i--) { keep.unshift(buf[i]); t += est(buf[i]); }\n  buf = keep.length === buf.length ? [] : keep; tok = buf.reduce((x, b) => x + est(b), 0);\n};\nfor (const b of blocks) {\n  const parts = est(b) > CHUNK ? b.split(/(?<=[.!?…;])\\s+|\\n/).filter((s) => s.trim()) : [b];\n  for (const p of parts) {\n    if (tok + est(p) > CHUNK && buf.length) flush();\n    buf.push(p); tok += est(p);\n  }\n}\nif (buf.length) chunks.push(buf.join('\\n\\n'));\n\nconst header = `[${f.doc_code ? f.doc_code + ' — ' : ''}${f.name}]`;\nif (!chunks.length) return [{ json: { _empty: true } }];\nreturn chunks.map((c, i) => ({ json: {\n  id: `${f.file_id}#${String(i).padStart(4, '0')}`,\n  text: `${header}\\n${c}`,\n  metadata: {\n    source_id: f.file_id, doc_code: f.doc_code, title: f.name, mime_type: f.mime_type,\n    source_url: f.web_link, modified_time: f.modified_time,\n    chunk_index: i, chunk_count: chunks.length, token_estimate: est(c),\n  },\n} }));"
       },
-      "id": "dc10f423-3fd8-443d-b4b3-13ab546a2a57",
+      "id": "33666228-a134-4e5a-9f70-b9d1db35a8ee",
       "name": "Split into chunks",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -632,7 +632,7 @@
       "parameters": {
         "jsCode": "const B = Number($('Config').first().json.EMBED_BATCH_SIZE) || 48;\nconst rows = $input.all().map((i) => i.json).filter((r) => r && r.id && r.text);\nconst out = [];\nfor (let s = 0; s < rows.length; s += B) {\n  const slice = rows.slice(s, s + B);\n  out.push({ json: { batch_index: out.length, ids: slice.map((c) => c.id), texts: slice.map((c) => c.text),\n                     metas: slice.map((c) => ({ ...c.metadata, text: c.text })) } });\n}\nif (!out.length) out.push({ json: { batch_index: 0, ids: [], texts: [], metas: [] } });\nreturn out;"
       },
-      "id": "6ceb9e4c-5756-419e-904c-ec7e1ae0f9cc",
+      "id": "37665eec-3d8f-4121-b649-7b675b78467a",
       "name": "Build embedding batches",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -652,7 +652,7 @@
           },
           "conditions": [
             {
-              "id": "1507dc23-122c-4187-9341-9cc86845f8ac",
+              "id": "2c1cedb6-c631-4c8d-a385-cd8359c6b8a4",
               "leftValue": "={{ $json.ids.length > 0 }}",
               "rightValue": "",
               "operator": {
@@ -667,7 +667,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "a01211b8-278e-4d9e-9e1b-cc49e2b28913",
+      "id": "f70ff945-370a-4bf1-8bc5-8f2b67b4f93a",
       "name": "Has chunks?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -694,7 +694,7 @@
           }
         }
       },
-      "id": "983f2c94-8704-46f8-896c-c66df5ac8553",
+      "id": "daf67afe-03bf-4edd-bf95-a8fed7d59cc6",
       "name": "Create embeddings (cloud.ru)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -717,7 +717,7 @@
       "parameters": {
         "jsCode": "const batches = $('Build embedding batches').all().map((i) => i.json).filter((b) => b.ids.length);\nconst resp = $input.all().map((i) => i.json);\nconst out = [];\nfor (let b = 0; b < batches.length; b++) {\n  const data = (resp[b] && resp[b].data) || [];\n  if (data.length !== batches[b].ids.length) throw new Error(`Эмбеддинги: ожидалось ${batches[b].ids.length}, получено ${data.length}`);\n  const vectors = batches[b].ids.map((id, i) => ({ id, values: data[i].embedding, metadata: batches[b].metas[i] }));\n  out.push({ json: { vectors, count: vectors.length } });\n}\nreturn out;"
       },
-      "id": "e39d97bd-4fa3-423a-8210-1c2a9cc52cb5",
+      "id": "3b678b76-63c1-4258-b382-e959d66cd6db",
       "name": "Assemble vectors",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -747,7 +747,7 @@
         "jsonBody": "={{ JSON.stringify({ vectors: $json.vectors, namespace: $('Config').first().json.PINECONE_NAMESPACE }) }}",
         "options": {}
       },
-      "id": "b2af2e1a-e688-4a5f-82ea-aaf31e111d2b",
+      "id": "b9de7418-884f-4552-b2c5-c2b90082c6fd",
       "name": "Pinecone: upsert",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -770,7 +770,7 @@
       "parameters": {
         "jsCode": "// Успех: старые фрагменты с теми же ID перезаписаны upsert'ом; «хвост» (если фрагментов стало меньше) удаляем.\nconst f = $('Prepare export').first().json;\nconst chunks = $('Split into chunks').all().filter((i) => i.json && i.json.id).length;\nconst stale_ids = [];\nfor (let k = chunks; k < f.prev_chunk_count; k++) stale_ids.push(`${f.file_id}#${String(k).padStart(4, '0')}`);\nreturn [{ json: {\n  file_id: f.file_id, name: f.name, mime_type: f.mime_type, doc_code: f.doc_code,\n  modified_time: f.modified_time, web_link: f.web_link,\n  chunk_count: chunks, status: chunks ? 'ok' : 'empty', error: '',\n  ingested_at: new Date().toISOString(), action: f.action, stale_ids,\n} }];"
       },
-      "id": "39333cec-8fe8-4599-84f3-9a80f7185a3d",
+      "id": "13d5501e-c6b3-46a9-8053-9cb20e1432a3",
       "name": "File indexed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -790,7 +790,7 @@
           },
           "conditions": [
             {
-              "id": "ef681f86-1b5b-489e-863f-9297ff2eff9d",
+              "id": "a29675e3-ab63-4736-a321-8b8adace851c",
               "leftValue": "={{ $json.stale_ids.length > 0 }}",
               "rightValue": "",
               "operator": {
@@ -805,7 +805,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "465d7c4a-aff8-4bf6-a08a-f8ef09dded1d",
+      "id": "abb32d6d-50ca-4811-b638-a59542051854",
       "name": "Stale tail?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -834,7 +834,7 @@
         "jsonBody": "={{ JSON.stringify({ ids: $json.stale_ids, namespace: $('Config').first().json.PINECONE_NAMESPACE }) }}",
         "options": {}
       },
-      "id": "85be8a04-6119-4889-add3-79c8f26b4354",
+      "id": "18ab627a-2141-4a72-a576-2d14d34dfd9e",
       "name": "Pinecone: delete stale tail",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -854,7 +854,7 @@
       "parameters": {
         "jsCode": "// Любая ошибка обработки файла: старые фрагменты в Pinecone остаются, modified_time сбрасываем —\n// файл будет повторно обработан при следующем запуске.\nconst f = $('For each file').first().json;\nconst j = $input.first().json || {};\nconst e = j.error;\nconst msg = !e ? 'Unknown error' : (typeof e === 'string' ? e : (e.message || e.description || JSON.stringify(e))).slice(0, 800);\nreturn [{ json: {\n  file_id: f.file_id, name: f.name, mime_type: f.mime_type, doc_code: f.doc_code,\n  modified_time: '', web_link: f.web_link,\n  chunk_count: f.prev_chunk_count, status: 'error', error: msg,\n  ingested_at: new Date().toISOString(), action: 'error', stale_ids: [],\n} }];"
       },
-      "id": "74fb2715-145e-48cc-99f3-48e5889e46ba",
+      "id": "a6f55032-b647-4e80-bc31-7e512c41d993",
       "name": "File failed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -867,7 +867,7 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'kb_sync',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'File failed',\n    severity: 'error',\n    alert: false,\n    chat_id: String('' || ''),\n    message: String(`${j.name}: ${j.error}` || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String(j.file_id || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
       },
-      "id": "82ab288c-7827-46dd-8d56-032df6ded3ac",
+      "id": "f4920f10-745f-4a39-88e8-437341a5b94b",
       "name": "Error payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -896,7 +896,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "9926db24-8eed-4cdc-accf-017d65c37cba",
+      "id": "e01d737c-280b-4911-a1ad-cd18a323712c",
       "name": "Log via BRD-00",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -909,7 +909,7 @@
       "parameters": {
         "jsCode": "const r = $('File failed').isExecuted ? $('File failed').first().json : $('File indexed').first().json;\nconst { stale_ids, action, ...row } = r;\nreturn [{ json: row }];"
       },
-      "id": "c678b860-e55c-4b51-a0d7-010b4e80b377",
+      "id": "00fa7ac9-cd45-4476-8e3c-833f4dc8ce2a",
       "name": "State row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -947,7 +947,7 @@
         },
         "options": {}
       },
-      "id": "063901a1-373c-458c-836f-47c445e00ca0",
+      "id": "93ff0104-b92a-4353-9a99-b9c293454742",
       "name": "Save file state",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -961,7 +961,7 @@
       "parameters": {
         "jsCode": "const r = $('File failed').isExecuted ? $('File failed').first().json : $('File indexed').first().json;\nreturn [{ json: { _result: true, file_id: r.file_id, name: r.name, action: r.action, status: r.status,\n                  chunks: r.chunk_count, error: r.error, link: r.web_link } }];"
       },
-      "id": "b378477c-d85a-4086-86e9-a34ec1888c7c",
+      "id": "c53fdbb2-ee8f-4077-ab0e-dc641a21fa01",
       "name": "Loop result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -974,7 +974,7 @@
       "parameters": {
         "jsCode": "const plan = $('Plan changes').first().json;\nconst results = $input.all().map((i) => i.json).filter((r) => r && r._result);\nconst ts = new Date().toISOString();\nconst rows = [];\nfor (const r of results) rows.push({ timestamp: ts, run_id: plan.run_id, action: r.action, file_name: r.name,\n  file_id: r.file_id, status: r.status, chunks: r.chunks, error: r.error || '', link: r.link || '' });\nfor (const d of plan.to_delete) rows.push({ timestamp: ts, run_id: plan.run_id, action: 'deleted', file_name: d.name,\n  file_id: d.file_id, status: 'ok', chunks: 0, error: '', link: '' });\nfor (const u of plan.unsupported) rows.push({ timestamp: ts, run_id: plan.run_id, action: 'unsupported', file_name: u.name,\n  file_id: u.file_id, status: 'skipped', chunks: 0, error: 'Неподдерживаемый формат: ' + u.mime_type, link: u.link });\nconst cnt = (a) => results.filter((r) => r.action === a && r.status !== 'error').length;\nconst errors = results.filter((r) => r.status === 'error');\nconst s = {\n  added: cnt('added'), updated: cnt('updated') + cnt('retried'), deleted: plan.to_delete.length,\n  unchanged: plan.unchanged.length, unsupported: plan.unsupported.length, errors: errors.length,\n  chunks: results.reduce((x, r) => x + (r.status === 'error' ? 0 : Number(r.chunks) || 0), 0),\n};\nrows.push({ timestamp: ts, run_id: plan.run_id, action: 'run_summary', file_name: '', file_id: '',\n  status: errors.length ? 'with_errors' : 'ok', chunks: s.chunks,\n  error: `added=${s.added} updated=${s.updated} deleted=${s.deleted} unchanged=${s.unchanged} unsupported=${s.unsupported} errors=${s.errors}`, link: '' });\nconst changed = s.added + s.updated + s.deleted;\nconst lines = [\n  `Новых: ${s.added}, обновлённых: ${s.updated}, удалённых: ${s.deleted}, без изменений: ${s.unchanged}`,\n  `Фрагментов записано в Pinecone: ${s.chunks}`,\n];\nif (s.unsupported) lines.push(`Пропущено (формат не поддерживается): ${plan.unsupported.map((u) => u.name).join(', ')}`);\nif (errors.length) lines.push(`Ошибки (${errors.length}): ` + errors.map((e) => `${e.name} — ${String(e.error).slice(0, 150)}`).join('; '));\nconst notifications = [{ audience: 'team', kind: errors.length ? 'warning' : 'report',\n  title: 'Обновление базы знаний' + (changed || errors.length ? '' : ' — без изменений'), text: lines.join('\\n'), source: 'kb_sync' }];\nif (errors.length) notifications.push({ audience: 'support', kind: 'alert', title: 'Ошибки синхронизации базы знаний',\n  text: lines.join('\\n') + `\\nДетали — лист kb_sync_log, run_id=${plan.run_id}`, source: 'kb_sync' });\nreturn [{ json: { summary: s, rows, notifications } }];"
       },
-      "id": "2230807b-45c8-43ac-bce4-e352555a663c",
+      "id": "83d22a13-3dd7-4e97-be2d-848733f34c03",
       "name": "Run summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -987,7 +987,7 @@
       "parameters": {
         "jsCode": "return $json.rows.map((r) => ({ json: r }));"
       },
-      "id": "ed7821a8-fd91-4cee-b749-b1b1a5cd987d",
+      "id": "e0712911-9a2d-45f0-9ae0-5227d735dc41",
       "name": "Log rows",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1022,7 +1022,7 @@
           "handlingExtraData": "ignoreIt"
         }
       },
-      "id": "d978489b-1bdb-496b-8915-4d1c88e5c435",
+      "id": "f9057b44-0c67-43ba-b961-52e347205734",
       "name": "Append to KB sync log",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -1042,7 +1042,7 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'kb_sync',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'Append to KB sync log',\n    severity: 'error',\n    alert: true,\n    chat_id: String('' || ''),\n    message: String('Не удалось записать журнал синхронизации в Google Sheets: ' + errText(j) || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String('' || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
       },
-      "id": "fa98d57e-dc7f-4fbf-8478-1829e881420c",
+      "id": "ef943cf0-0bf3-4640-9584-9f298b468888",
       "name": "Sheet error payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1071,7 +1071,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "fd2ceaa1-470d-4b86-8cb4-73b5bfc15fc8",
+      "id": "c42f1b59-e225-44aa-a869-c2078fdbc35e",
       "name": "Log sheet error via BRD-00",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -1084,7 +1084,7 @@
       "parameters": {
         "jsCode": "return $('Run summary').first().json.notifications.map((n) => ({ json: n }));"
       },
-      "id": "f682be2c-8630-4c27-b8c5-32032b05ea48",
+      "id": "0ee9c992-696e-444a-9789-771cc810a34b",
       "name": "Notifications",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1114,7 +1114,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "b9a67db0-de28-4225-99e2-77dd8342108d",
+      "id": "3e61adea-b478-471a-a554-730ba695f419",
       "name": "Notify via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -1130,7 +1130,7 @@
         "height": 400,
         "color": 5
       },
-      "id": "79ffc302-eeff-4289-8d04-cb37b951ff39",
+      "id": "dfef4e15-689f-49ec-bae7-73857e037d80",
       "name": "Note 45",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,

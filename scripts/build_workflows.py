@@ -18,6 +18,7 @@ OUT = ROOT / "workflows"
 
 INTERVIEW_PROMPT = (ROOT / "prompts/interview_system.md").read_text(encoding="utf-8").strip()
 BRD_WRITER_PROMPT = (ROOT / "prompts/brd_writer_system.md").read_text(encoding="utf-8").strip()
+BRD_FIXER_PROMPT = (ROOT / "prompts/brd_fixer_system.md").read_text(encoding="utf-8").strip()
 BRD_TEMPLATE = (ROOT / "templates/brd_template.md").read_text(encoding="utf-8").strip()
 _md = (ROOT / "scripts/md2html.js").read_text(encoding="utf-8")
 MD2HTML_JS = _md.split("// BEGIN md2html")[1].split("// END md2html")[0].strip()
@@ -58,6 +59,7 @@ LIMITS = {
     "BRD_ATTEMPTS_PER_SESSION": 2,   # первая попытка + один повтор после сбоя; дальше — человек
     "BRD_PER_CHAT_PER_DAY": 2,       # BRD от одного заказчика за 24 ч
     "BRD_PER_DAY": 5,                # BRD за 24 ч всего = недельная норма (5 в неделю)
+    "BRD_REPAIR_ATTEMPTS": 1,        # исправлений после валидатора: одно; не прошло — человек (повтор кормит разгон)
 }
 # Цена модели (USD за 1M токенов) — для оценки расхода; задаётся в .env вместе с моделью.
 CHARS_PER_TOKEN = 2  # русский текст; калибровка cost-attack 2026-10-11: на Claude факт ≈ 2.2 симв./токен, 3 занижало оценку на ~30%
@@ -82,6 +84,50 @@ const estimateRun = (sysChars, promptChars, outText, steps, pIn, pOut, cpt) => {
 """.strip()
 
 
+# Валидатор BRD (паттерн sequential с валидатором): правила стандарта, проверяемые кодом.
+# Каждое нарушение привязано к разделу — шаг исправления переписывает только эти разделы.
+VALIDATOR_JS = r"""
+const splitBrd = (md) => {
+  const re = /^##\s+(\d{1,2})\.[^\n]*$/gm;
+  const hits = [...md.matchAll(re)];
+  const secs = {};
+  hits.forEach((m, k) => { secs[Number(m[1])] = md.slice(m.index, k + 1 < hits.length ? hits[k + 1].index : md.length).trim(); });
+  return { preamble: (hits.length ? md.slice(0, hits[0].index) : md).trim(), secs };
+};
+const joinBrd = (preamble, secs) => [preamble, ...Object.keys(secs).map(Number).sort((a, b) => a - b).map((n) => secs[n])]
+  .filter(Boolean).join('\n\n');
+// В JS \w не совпадает с кириллицей — окончания русских слов ловим через [а-яё]*.
+const EXTERNAL_RE = /ChatGPT|OpenAI|GPT-?4|YandexGPT|GigaChat|внешн[а-яё]*\s+(LLM|API|модел)/i;
+const validateBrd = (md, transcript) => {
+  const { preamble, secs } = splitBrd(md);
+  const v = [];
+  const add = (section, rule, msg) => v.push({ section, rule, msg });
+  for (let n = 0; n <= 12; n++) if (!secs[n]) add(n, 'section_missing', `Нет раздела ${n} (заголовок «## ${n}. …» как в шаблоне)`);
+  if (!/^#\s+BRD:/m.test(preamble)) add(0, 'title', 'Нет заголовка «# BRD: <название>» в начале документа');
+  if (secs[0] && !(/Draft/i.test(secs[0]) && /0\.1/.test(secs[0]))) add(0, 'meta', 'В разделе 0 должны быть «Версия документа: 0.1» и «Статус: Draft»');
+  if (secs[4] && !(/DevOps/i.test(secs[4]) && /ИБ/.test(secs[4]))) add(4, 'stakeholders', 'В разделе 4 нет фиксированных ролей: Инфраструктура — DevOps, Безопасность — ИБ');
+  if (secs[6] && !/FR-?\d/.test(secs[6])) add(6, 'fr_ids', 'В разделе 6 нет таблицы требований с ID FR-01…');
+  if (secs[6] && !/Given|Дано/i.test(secs[6])) add(6, 'fr_acceptance', 'В разделе 6 у требований нет критериев приёмки Given/When/Then');
+  if (secs[7]) {
+    const s75 = (secs[7].split(/^###\s+7\.5[^\n]*$/m)[1] || '').split(/^###\s/m)[0];
+    if (!s75) add(7, 'sec75_missing', 'В разделе 7 нет подраздела «### 7.5 Безопасность и приватность»');
+    else if (!/согласовыва[а-яё]*\s+отдельно\s+с\s+ИБ/i.test(s75)) add(7, 'sec75_ib', 'В 7.5 нет строки «Конкретные меры безопасности согласовываются отдельно с ИБ»');
+  }
+  if (secs[8]) {
+    if (!/-\s*\[[ xXх]\][^\n]*MLflow/i.test(secs[8])) add(8, 'dod_mlflow', 'В разделе 8 нет отдельного чек-бокса про модель в MLflow');
+    if (!/-\s*\[[ xXх]\][^\n]*GitLab/i.test(secs[8])) add(8, 'dod_gitlab', 'В разделе 8 нет отдельного чек-бокса про код в GitLab');
+    if (!/-\s*\[[ xXх]\][^\n]*(ИБ[^\n]*архитект|архитект[^\n]*ИБ)/i.test(secs[8])) add(8, 'dod_ib', 'В разделе 8 нет пункта «Согласование архитектуры с ИБ и архитекторами»');
+  }
+  const tbd = (md.replace(secs[11] || '', '').match(/\bTBD\b/g) || []).length;
+  if (secs[11] && tbd > 0 && !/^\s*(-|\d+\.|\|)/m.test(secs[11].split('\n').slice(1).join('\n')))
+    add(11, 'open_questions', `В документе ${tbd} TBD, а раздел 11 «Открытые вопросы» пуст`);
+  if (EXTERNAL_RE.test(transcript || '') && !(EXTERNAL_RE.test(secs[9] || '') || EXTERNAL_RE.test(secs[11] || '')))
+    add(9, 'external_risk', 'В интервью звучало предложение внешней модели/API, но в разделах 9 и 11 нет риска несоответствия закрытому контуру');
+  return v;
+};
+""".strip()
+
+
 def llm_config():
     """Поля Config для оценки расхода (значения из .env, приводятся Number() в коде)."""
     return {
@@ -93,9 +139,9 @@ def llm_config():
     }
 
 
-def openrouter_model(w, name, pos, temperature, max_tokens, timeout):
+def openrouter_model(w, name, pos, temperature, max_tokens, timeout, model="__CFG_LLM_MODEL__"):
     return w.add(name, "@n8n/n8n-nodes-langchain.lmChatOpenRouter", 1, {
-        "model": "__CFG_LLM_MODEL__",
+        "model": model,
         "options": {"temperature": temperature, "maxTokens": max_tokens, "timeout": timeout, "maxRetries": 2},
     }, pos, creds=["openrouter"])
 
@@ -531,6 +577,7 @@ LIMIT_NAMES = {
     "brd_attempts": "Попытки генерации BRD на сессию",
     "artifacts_chat": "BRD от одного заказчика за 24 ч",
     "artifacts_day": "BRD всего за 24 ч",
+    "validator": "Проверка BRD по стандарту после исправления",
 }
 
 
@@ -1461,8 +1508,14 @@ def build_brd_generator():
         "BRD_FOLDER_ID": "__CFG_BRD_FOLDER_ID__",
         "LOGS_SHEET_ID": "__CFG_LOGS_SHEET_ID__",
         "BRD_REGISTRY_TAB": "brd_registry",
-        "MIN_SECTIONS": 11,
+        "RUNS_TAB": "brd_runs",
+        "N8N_BASE_URL": "__CFG_N8N_BASE_URL__",
         "MAX_ITERATIONS": LIMITS["BRD_MAX_ITERATIONS"],  # справочно; сам потолок — в узле BRD writer
+        "MAX_REPAIRS": LIMITS["BRD_REPAIR_ATTEMPTS"],     # справочно; одно исправление заложено в саму цепочку
+        # модель на шаг: писатель — сильная (CFG_WRITER_*), исправление — лёгкая (CFG_LLM_*)
+        "WRITER_MODEL": "__CFG_WRITER_MODEL__",
+        "WRITER_PRICE_IN": "__CFG_WRITER_PRICE_IN__",
+        "WRITER_PRICE_OUT": "__CFG_WRITER_PRICE_OUT__",
         "BRD_ATTEMPTS_PER_SESSION": LIMITS["BRD_ATTEMPTS_PER_SESSION"],
         "BRD_PER_CHAT_PER_DAY": LIMITS["BRD_PER_CHAT_PER_DAY"],
         "BRD_PER_DAY": LIMITS["BRD_PER_DAY"],
@@ -1498,8 +1551,12 @@ return [{ json: { session_id: $json.session.session_id, brd_attempts: $json.atte
 """), (1540, -100))
     w.add("Record attempt", "n8n-nodes-base.dataTable", 1,
           dt_upsert(SESSIONS_TABLE, "session_id", "={{ $json.session_id }}"), (1760, -100))
+    # Цена прогона = разница расхода ключа OpenRouter до и после (факт провайдера, все шаги паттерна).
+    w.add("Key usage (before)", "n8n-nodes-base.httpRequest", 4.2,
+          http_json("GET", "https://openrouter.ai/api/v1/key"), (1980, -100), creds=["http_openrouter"],
+          alwaysOutputData=True, executeOnce=True, onError="continueRegularOutput")
     tpl_js = json.dumps(BRD_TEMPLATE, ensure_ascii=False)
-    w.dx = 1100  # основной конвейер — правее проверки потолков
+    w.dx = 1320  # основной конвейер — правее проверки потолков
     w.add("Build BRD request", "n8n-nodes-base.code", 2, code(f"""
 const s = $('Check limits').first().json.session;
 let history = [];
@@ -1528,7 +1585,7 @@ const PARTS = [
   {{ part: 2, label: '6–7', hint: 'Сейчас напиши ТОЛЬКО разделы 6 и 7 (начни с `## 6.`).' }},
   {{ part: 3, label: '8–12', hint: 'Сейчас напиши ТОЛЬКО разделы 8–12 (начни с `## 8.`).' }},
 ];
-return PARTS.map((p) => ({{ json: {{ session: s, today, turns: Number(s.turn_count) || 0, part: p.part,
+return PARTS.map((p) => ({{ json: {{ session: s, today, turns: Number(s.turn_count) || 0, part: p.part, transcript,
   prompt: prompt + '\\n\\nЧАСТЬ ' + p.part + ' из 3 (разделы ' + p.label + '). ' + p.hint }} }}));
 """), (880, 0), onError="continueErrorOutput")
     w.add("BRD writer", "@n8n/n8n-nodes-langchain.agent", 2.2, {
@@ -1537,7 +1594,8 @@ return PARTS.map((p) => ({{ json: {{ session: s, today, turns: Number(s.turn_cou
                     "returnIntermediateSteps": True},
     }, (1100, 0), onError="continueErrorOutput", retryOnFail=True, maxTries=2, waitBetweenTries=5000)  # runs once per part
     # retryOnFail — повтор только после СБОЯ (v2.x при maxIterations не падает, а возвращает текст — его ловит Validate BRD).
-    openrouter_model(w, "LLM (BRD)", (980, 220), temperature=0.2, max_tokens=8000, timeout=300000)
+    openrouter_model(w, "LLM (writer)", (980, 220), temperature=0.2, max_tokens=8000, timeout=300000,
+                     model="__CFG_WRITER_MODEL__")
     w.add("KnowledgeBase", "@n8n/n8n-nodes-langchain.vectorStorePinecone", 1.1, {
         "mode": "retrieve-as-tool", "toolName": "KnowledgeBase",
         "toolDescription": "Поиск во внутренней базе знаний: регламенты вывода ИИ-сервисов в ПЭ, runbook'и, стандарты, политика ИБ, чек-лист готовности, FAQ, реестр ИИ-сервисов, стандарт BRD. Используй, чтобы сослаться на применимые требования.",
@@ -1560,7 +1618,7 @@ const prompts = $('Build BRD request').all().map((i) => String(i.json.prompt || 
 let usd = 0, stopped = null;
 items.forEach((it, k) => {{
   const run = estimateRun({len(BRD_WRITER_PROMPT)}, prompts[k] || 0, outs[k], it.json.intermediateSteps,
-    Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 2);
+    Number(cfg.WRITER_PRICE_IN) || 0, Number(cfg.WRITER_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 2);
   usd += run.usd;
   if (!stopped && STOP_RE.test(outs[k])) stopped = {{ part: k + 1, steps: run.steps }};
 }});
@@ -1573,18 +1631,69 @@ const clean = (t, k) => {{
   return t;
 }};
 let md = outs.map(clean).join('\\n\\n');
-const sections = new Set([...md.matchAll(/^##\\s+(\\d{{1,2}})\\./gm)].map((m) => Number(m[1])));
-const min = Number(cfg.MIN_SECTIONS) || 11;
+// Какие запросы к базе знаний писатель решил сделать сам — по частям (доказательство «инструмент выбирает агент»).
+const q = (st) => {{ const t = st?.action?.toolInput; return typeof t === 'string' ? t : (t?.input ?? t?.query ?? JSON.stringify(t ?? '')); }};
+const kbSteps = items.flatMap((it, k) => (it.json.intermediateSteps || []).map((st) => `ч${{k + 1}}: ${{q(st)}}`));
+const violations = validateBrd(md, req.transcript);
 let title = (md.match(/^#\\s+BRD:\\s*(.+)$/m) || [])[1] || '';
 if (!title) title = ((md.match(/\\|\\s*Название задачи\\/проекта\\s*\\|\\s*([^|]+)\\|/) || [])[1] || '').trim();
 title = (title || 'Без названия').replace(/[\\\\/:*?"<>|]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 90);
-const valid = sections.size >= min && md.length > 1500;
-return [{{ json: {{ valid, md, title, sections: sections.size, length: md.length, cost_usd, limit: null,
-  error: valid ? '' : `BRD не прошёл проверку: разделов ${{sections.size}} (нужно ≥ ${{min}}), длина ${{md.length}}`,
-  session: req.session, today: req.today, turns: req.turns }} }}];
-"""), (1540, 0))
+const valid = violations.length === 0;
+return [{{ json: {{ valid, md, title, violations, first_violations: violations, cost_usd, limit: null,
+  kb_calls: kbSteps.length, kb_queries: kbSteps.join(' | ').slice(0, 1500), repaired: false,
+  error: valid ? '' : 'BRD не прошёл проверку: ' + violations.map((x) => x.msg).join('; '),
+  session: req.session, transcript: req.transcript, today: req.today, turns: req.turns }} }}];
+""".replace("const req = $('Build BRD request')", VALIDATOR_JS + "\nconst req = $('Build BRD request')", 1)), (1540, 0))
     w.add("Stopped by limit?", "n8n-nodes-base.if", 2, if_true("={{ !!$json.limit }}"), (1760, 100))
     w.add("Valid?", "n8n-nodes-base.if", 2, if_true("={{ $json.valid }}"), (1760, 0))
+    # Шаг 3 паттерна: исправление по списку нарушений (лёгкая модель, без инструментов), затем повторная проверка кодом.
+    tpl_secs_js = json.dumps(BRD_TEMPLATE, ensure_ascii=False)
+    w.add("Repair request", "n8n-nodes-base.code", 2, code(VALIDATOR_JS + f"""
+const j = $json;
+const TEMPLATE = {tpl_secs_js};
+const tpl = splitBrd(TEMPLATE).secs;
+const {{ secs }} = splitBrd(j.md);
+const nums = [...new Set(j.violations.map((x) => x.section))].sort((a, b) => a - b);
+// Фигурные скобки — переменные шаблона промпта LangChain; в данных их заменяем.
+const safe = (t) => String(t || '').replace(/[{{}}]/g, (c) => (c === '{{' ? '(' : ')'));
+const tbdLines = j.md.split('\\n').filter((l) => /\\bTBD\\b/.test(l)).slice(0, 40).join('\\n');
+const prompt = [
+  'НАРУШЕНИЯ СТАНДАРТА (исправь их):', ...j.violations.map((x) => `- раздел ${{x.section}}: ${{x.msg}}`), '',
+  'РАЗДЕЛЫ ДЛЯ ИСПРАВЛЕНИЯ: ' + nums.join(', '), '',
+  'ШАБЛОН ЭТИХ РАЗДЕЛОВ:', ...nums.map((n) => tpl[n] || `## ${{n}}.`), '',
+  'ТЕКУЩИЙ ТЕКСТ ЭТИХ РАЗДЕЛОВ:', ...nums.map((n) => secs[n] || `(раздела ${{n}} нет — напиши его по шаблону и транскрипту)`), '',
+  nums.includes(11) ? 'СТРОКИ ДОКУМЕНТА С TBD (для раздела 11):\\n' + tbdLines + '\\n' : '',
+  'ТРАНСКРИПТ ИНТЕРВЬЮ:', j.transcript,
+].join('\\n');
+return [{{ json: {{ ...j, fix_sections: nums, fix_prompt: safe(prompt) }} }}];
+"""), (1980, 160))
+    w.add("BRD fixer", "@n8n/n8n-nodes-langchain.chainLlm", 1.7, {
+        "promptType": "define", "text": "={{ $json.fix_prompt }}",
+        "messages": {"messageValues": [{"type": "SystemMessagePromptTemplate",
+                                        "message": BRD_FIXER_PROMPT.replace("{", "(").replace("}", ")")}]},
+    }, (2200, 160), onError="continueErrorOutput")
+    openrouter_model(w, "LLM (fixer)", (2200, 380), temperature=0.1, max_tokens=8000, timeout=180000)
+    w.add("Apply fixes", "n8n-nodes-base.code", 2, code(VALIDATOR_JS + "\n" + LIMIT_JS + f"""
+// Вклеиваем исправленные разделы по номерам и проверяем ВЕСЬ документ тем же валидатором ещё раз.
+const j = $('Repair request').first().json;
+const cfg = $('Config').first().json;
+const out = String($json.text ?? $json.output ?? '').replace(/^```(?:markdown|md)?\\s*\\n/i, '').replace(/\\n```\\s*$/, '').trim();
+const fixed = splitBrd(out).secs;
+const doc = splitBrd(j.md);
+for (const n of j.fix_sections) if (fixed[n]) doc.secs[n] = fixed[n];
+const md = joinBrd(doc.preamble, doc.secs);
+const violations = validateBrd(md, j.transcript);
+const run = estimateRun({len(BRD_FIXER_PROMPT)}, String(j.fix_prompt).length, out, [],
+  Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 2);
+const cost_usd = (Number(j.cost_usd) || 0) + run.usd;
+const valid = violations.length === 0;
+// Потолок паттерна: исправление одно. Не прошло — не повторяем, а отдаём человеку.
+const limit = valid ? null : {{ limit_type: 'validator', limit_value: `${{cfg.MAX_REPAIRS}} исправление`,
+  observed: violations.map((x) => `р.${{x.section}} ${{x.rule}}`).join(', ').slice(0, 250) }};
+return [{{ json: {{ ...j, md, violations, valid, repaired: true, cost_usd, limit,
+  fixed_sections: Object.keys(fixed).join(','), fix_prompt: undefined }} }}];
+"""), (2420, 160))
+    w.add("Valid after fix?", "n8n-nodes-base.if", 2, if_true("={{ $json.valid }}"), (2640, 160))
     w.add("Render Google Doc request", "n8n-nodes-base.code", 2, code(f"""
 {MD2HTML_JS}
 
@@ -1642,10 +1751,12 @@ return [{ json: {
           onError="continueRegularOutput")
     w.add("Success notifications", "n8n-nodes-base.code", 2, code("""
 const p = $('Published').first().json;
+// Тестовые сессии (eval-*) заказчика в Telegram не имеют — им не пишем.
+const isEval = String(p.session.chat_id).startsWith('eval-');
 return [
-  { json: { audience: 'customer', chat_id: p.session.chat_id, kind: 'success', title: 'BRD готов',
-            text: `Документ «${p.title}» сформирован и опубликован:\\n${p.doc_url}\\n\\nКоманда развития ИИ-среды получила уведомление и свяжется с вами для согласования. Начать новую беседу — /new`, source: 'brd_generator' } },
-  { json: { audience: 'team', kind: 'info', title: 'Новый BRD',
+  ...(isEval ? [] : [{ json: { audience: 'customer', chat_id: p.session.chat_id, kind: 'success', title: 'BRD готов',
+            text: `Документ «${p.title}» сформирован и опубликован:\\n${p.doc_url}\\n\\nКоманда развития ИИ-среды получила уведомление и свяжется с вами для согласования. Начать новую беседу — /new`, source: 'brd_generator' } }]),
+  { json: { audience: 'team', kind: 'info', title: isEval ? 'Новый BRD (тестовый прогон)' : 'Новый BRD',
             text: `«${p.title}»\\nИнициатор: ${p.session.username || p.session.chat_id}\\nОтветов в интервью: ${p.turns}\\nСтатус: Draft\\n${p.doc_url}`, source: 'brd_generator' } },
 ];
 """), (3520, -200))
@@ -1679,7 +1790,7 @@ return [{ json: { session_id: $json.session_id, status: 'active', error: $json.e
         (2420, 360))
     w.add("Log via BRD-00", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_ERRORS, wait=False), (2640, 360))
     w.add("Apology to customer", "n8n-nodes-base.code", 2, code("""
-if (!$json.chat_id) return [];
+if (!$json.chat_id || String($json.chat_id).startsWith('eval-')) return [];
 return [{ json: { audience: 'customer', chat_id: $json.chat_id, kind: 'warning', title: 'Не удалось сформировать BRD',
   text: 'Произошла техническая ошибка при формировании документа. Ваша беседа сохранена, команда поддержки уже уведомлена. Попробуйте отправить /done ещё раз через несколько минут.',
   source: 'brd_generator' } }];
@@ -1710,11 +1821,55 @@ return [{{ json: {{ session_row: row, limit: l, session: s,
     w.add("Freeze session", "n8n-nodes-base.dataTable", 1,
           dt_upsert(SESSIONS_TABLE, "session_id", "={{ $json.session_id }}"), (3740, 380), onError="continueRegularOutput")
     w.add("Customer limit message", "n8n-nodes-base.code", 2, code(
-        "const j = $('Limit stop').first().json;\nreturn j.customer.chat_id ? [{ json: j.customer }] : [];"), (3520, 540))
+        "const j = $('Limit stop').first().json;\nconst c = String(j.customer.chat_id || '');\n"
+        "return c && !c.startsWith('eval-') ? [{ json: j.customer }] : [];"), (3520, 540))
     w.add("Notify customer (limit) via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (3740, 540))
     w.add("Queue payload", "n8n-nodes-base.code", 2, code("return [{ json: $('Limit stop').first().json.queue }];"),
           (3520, 700))
     w.add("Escalate via BRD-07", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_QUEUE, wait=False), (3740, 700))
+    # Журнал прогонов паттерна (лист brd_runs): исход, вердикт валидатора, запросы к KB, фактическая цена.
+    w.add("Run: published", "n8n-nodes-base.code", 2, code(
+        "const p = $('Published').first().json;\nreturn [{ json: { outcome: 'published', session: p.session, title: p.title, doc_url: p.doc_url } }];"),
+        (2640, -480))
+    w.add("Run: stopped", "n8n-nodes-base.code", 2, code(
+        "const j = $('Limit stop').first().json;\nreturn [{ json: { outcome: 'limit_stopped', limit_type: j.limit.limit_type, session: j.session } }];"),
+        (3520, 860))
+    w.add("Run: failed", "n8n-nodes-base.code", 2, code(
+        "return [{ json: { outcome: 'error', error: $json.error, session: $json.session || {} } }];"), (2640, 880))
+    w.add("Wait for usage (15 s)", "n8n-nodes-base.wait", 1.1, {"resume": "timeInterval", "amount": 15, "unit": "seconds"},
+          (3740, 1000))
+    w.add("Key usage (after)", "n8n-nodes-base.httpRequest", 4.2,
+          http_json("GET", "https://openrouter.ai/api/v1/key"), (3960, 1000), creds=["http_openrouter"],
+          alwaysOutputData=True, onError="continueRegularOutput")
+    w.add("Run row", "n8n-nodes-base.code", 2, code("""
+const r = $('Wait for usage (15 s)').first().json;
+const cfg = $('Config').first().json;
+const node = (n) => { try { return $(n).isExecuted ? ($(n).first()?.json ?? null) : null; } catch (e) { return null; } };
+const before = node('Key usage (before)')?.data?.usage;
+const after = $json.data?.usage;
+const cost = before != null && after != null ? Math.round((after - before) * 1e6) / 1e6 : '';
+const val = node('Validate BRD');
+const fix = node('Apply fixes');
+const verdict = (x) => (!x || !Array.isArray(x.violations) ? '' : x.violations.length ? 'fail' : 'pass');
+const rules = (x) => (x && Array.isArray(x.violations) ? x.violations.map((v) => `р.${v.section} ${v.rule}`).join(', ') : '');
+const fin = fix || val;
+const base = String(cfg.N8N_BASE_URL || '').replace(/\\/$/, '');
+const s = r.session || {};
+return [{ json: {
+  finished_at: new Date().toISOString(), session_id: s.session_id || '', chat_id: s.chat_id || '', title: r.title || val?.title || '',
+  outcome: r.outcome, limit_type: r.limit_type || '',
+  validator_first: verdict(val), violations_first: rules(val),
+  repaired: fix ? 'yes' : 'no', validator_final: verdict(fin), violations_final: rules(fin),
+  kb_calls: val?.kb_calls ?? '', kb_queries: val?.kb_queries ?? '',
+  writer_model: cfg.WRITER_MODEL, fixer_model: fix ? cfg.LLM_MODEL : '',
+  run_cost_usd: cost, cost_estimate_usd: fin ? Math.round((Number(fin.cost_usd) - (Number(s.cost_usd) || 0)) * 1e6) / 1e6 : '',
+  doc_url: r.doc_url || '', error: String(r.error ? (r.error.message || r.error) : '').slice(0, 300),
+  execution_url: base && !base.startsWith('__') ? `${base}/workflow/${$workflow.id}/executions/${$execution.id}` : String($execution.id),
+} }];
+"""), (4180, 1000))
+    w.add("Append to brd_runs", "n8n-nodes-base.googleSheets", 4.5, sheets_append(
+        "={{ $('Config').first().json.LOGS_SHEET_ID }}", "={{ $('Config').first().json.RUNS_TAB }}"),
+        (4400, 1000), creds=["gsheets"], onError="continueRegularOutput")
     mark_outcome(w, "Outcome: done", "done", (2640, -360))
     mark_outcome(w, "Outcome: error", "error", (2640, 720))
 
@@ -1723,11 +1878,11 @@ return [{{ json: {{ session_row: row, limit: l, session: s,
     w.connect("Test input", "Config")
     w.chain("Config", "Load session", "Load all sessions", "Check limits", "Within limits?")
     w.connect("Check limits", "Generation failed", out=1)
-    w.chain("Within limits?", "Attempt row", "Record attempt", "Build BRD request")
+    w.chain("Within limits?", "Attempt row", "Record attempt", "Key usage (before)", "Build BRD request")
     w.connect("Within limits?", "Limit stop", out=1)
     w.connect("Build BRD request", "BRD writer", out=0)
     w.connect("Build BRD request", "Generation failed", out=1)
-    w.connect("LLM (BRD)", "BRD writer", kind="ai_languageModel")
+    w.connect("LLM (writer)", "BRD writer", kind="ai_languageModel")
     w.connect("KnowledgeBase", "BRD writer", kind="ai_tool")
     w.connect("Embeddings (cloud.ru)", "KnowledgeBase", kind="ai_embedding")
     w.connect("BRD writer", "Validate BRD", out=0)
@@ -1736,7 +1891,12 @@ return [{{ json: {{ session_row: row, limit: l, session: s,
     w.connect("Stopped by limit?", "Limit stop", out=0)
     w.connect("Stopped by limit?", "Valid?", out=1)
     w.connect("Valid?", "Render Google Doc request", out=0)
-    w.connect("Valid?", "Generation failed", out=1)
+    w.connect("Valid?", "Repair request", out=1)
+    w.chain("Repair request", "BRD fixer", "Apply fixes", "Valid after fix?")
+    w.connect("LLM (fixer)", "BRD fixer", kind="ai_languageModel")
+    w.connect("BRD fixer", "Generation failed", out=1)
+    w.connect("Valid after fix?", "Render Google Doc request", out=0)
+    w.connect("Valid after fix?", "Limit stop", out=1)
     w.connect("Render Google Doc request", "Upload to Drive as Google Doc")
     w.connect("Upload to Drive as Google Doc", "Published", out=0)
     w.connect("Upload to Drive as Google Doc", "Generation failed", out=1)
@@ -1759,6 +1919,12 @@ return [{{ json: {{ session_row: row, limit: l, session: s,
     w.connect("Session row (needs_review)", "Freeze session")
     w.connect("Customer limit message", "Notify customer (limit) via BRD-02")
     w.connect("Queue payload", "Escalate via BRD-07")
+    w.connect("Published", "Run: published")
+    w.connect("Outcome: limit_stopped", "Run: stopped")
+    w.connect("Provider limit?", "Run: failed", out=1)
+    for n in ("Run: published", "Run: stopped", "Run: failed"):
+        w.connect(n, "Wait for usage (15 s)")
+    w.chain("Wait for usage (15 s)", "Key usage (after)", "Run row", "Append to brd_runs")
     w.dx = 0
     w.note(f"""## BRD-04 — генерация и публикация BRD
 Вызывается асинхронно из BRD-03 (`session_id`). Для отладки — **Manual test** с session_id из brd_sessions.
@@ -1945,6 +2111,41 @@ return [{ json: { audience: 'team', kind: 'report', title: 'Дайджест BRD
 
 
 # ===========================================================================
+# BRD-98 — тестовые входы для «Таблицы пяти прогонов»: транскрипты eval/transcripts → brd_sessions
+def build_eval_seed():
+    w = WF("BRD-98 Eval: seed test sessions")
+    w.add("Run once per series", "n8n-nodes-base.manualTrigger", 1, {}, (0, 0))
+    transcripts = [json.loads(f.read_text(encoding="utf-8"))
+                   for f in sorted((ROOT / "eval/transcripts").glob("*.json"))]
+    w.add("Test sessions", "n8n-nodes-base.code", 2, code(f"""
+// Каждая серия — новые session_id (eval-<прогон>-<время>): прошлые BRD остаются в учёте потолков артефактов.
+const T = {json.dumps(transcripts, ensure_ascii=False)};
+const now = new Date().toISOString();
+const stamp = Date.now().toString(36);
+return T.map((t) => ({{ json: {{
+  session_id: `eval-${{t.run}}-${{stamp}}`, chat_id: `eval-${{t.run}}`, user_id: '', username: t.username,
+  status: 'eval_ready', history: JSON.stringify(t.history.map((m) => ({{ ...m, ts: now }}))),
+  turn_count: t.history.filter((m) => m.role === 'user').length, started_at: now, last_activity_at: now,
+  reminder_count: 0, last_reminder_at: '', brd_title: '', brd_url: '', error: '',
+  cost_usd: 0, limit_hit: '', brd_attempts: 0, brd_created_at: '',
+}} }}));
+"""), (220, 0))
+    w.add("Save test sessions", "n8n-nodes-base.dataTable", 1,
+          dt_upsert(SESSIONS_TABLE, "session_id", "={{ $json.session_id }}"), (440, 0))
+    w.add("Session IDs for BRD-04", "n8n-nodes-base.code", 2, code("""
+// Скопируйте session_id по одному в BRD-04 → Test input → Manual test (один прогон = одно выполнение).
+return $('Test sessions').all().map((i) => ({ json: { run: i.json.chat_id, session_id: i.json.session_id, username: i.json.username } }));
+"""), (660, 0))
+    w.chain("Run once per series", "Test sessions", "Save test sessions", "Session IDs for BRD-04")
+    w.note("""## BRD-98 — входы для таблицы пяти прогонов
+Записывает 5 тестовых интервью из `eval/transcripts/` в **brd_sessions** (chat_id `eval-1…5`, статус `eval_ready`).
+Дальше каждый прогон: **BRD-04 → Test input** = session_id из узла *Session IDs for BRD-04* → **Manual test**.
+Тестовым сессиям BRD-04 не пишет заказчику в Telegram; результат каждого прогона — строка в листе **brd_runs**.
+Потолки не отключены: 5 BRD за 24 ч всего, 2 попытки на сессию.""", (-40, -260), w=640, h=220, color=7)
+    w.dump("BRD-98_eval-seed.json")
+
+
+# ===========================================================================
 # BRD-99 — разовая настройка: создание Data Tables
 def build_setup():
     w = WF("BRD-99 Setup (create data tables)", error_workflow=False)
@@ -1987,4 +2188,5 @@ if __name__ == "__main__":
     build_brd_generator()
     build_reminders()
     build_digest()
+    build_eval_seed()
     build_setup()

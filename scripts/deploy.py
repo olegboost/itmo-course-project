@@ -37,6 +37,7 @@ ORDER = [
     ("BRD-03_interview-agent.json", None, True),
     ("BRD-05_reminders.json", None, True),
     ("BRD-06_daily-digest.json", None, True),
+    ("BRD-98_eval-seed.json", None, False),
     ("BRD-99_setup-data-tables.json", None, False),
 ]
 API_FIELDS = ("name", "nodes", "connections", "settings")
