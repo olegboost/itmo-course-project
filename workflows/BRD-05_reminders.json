@@ -12,7 +12,7 @@
           ]
         }
       },
-      "id": "32ca3202-f47b-4c99-892a-18851d25a988",
+      "id": "de2b9c93-206a-43ab-bf33-9a13c491a222",
       "name": "Every hour",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -23,7 +23,7 @@
     },
     {
       "parameters": {},
-      "id": "b06325b8-2461-4e99-85a1-a0438c76d5cb",
+      "id": "0a33c45b-1ef0-477a-9cde-963b2ea38de3",
       "name": "Manual run",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -37,32 +37,38 @@
         "assignments": {
           "assignments": [
             {
-              "id": "f9dcc7d6-b9e2-4d9d-ae14-7b0ac55bc2e2",
+              "id": "dd88dd9c-adc4-46f7-b407-b36d51d1c4d8",
               "name": "REMIND_AFTER_HOURS",
               "value": 24,
               "type": "number"
             },
             {
-              "id": "526ea3ac-57eb-424b-a105-38bae44832ae",
+              "id": "be3d467c-58a8-4442-be32-f5364030b2de",
               "name": "MAX_REMINDERS",
               "value": 2,
               "type": "number"
             },
             {
-              "id": "d0bdd2be-ab00-4867-8b21-5bcb2d050a8e",
+              "id": "33c537c0-0867-4be0-b4db-ec699cd23360",
               "name": "CLOSE_AFTER_HOURS",
               "value": 72,
               "type": "number"
             },
             {
-              "id": "405dcee3-ab49-454b-9202-af6161468256",
+              "id": "6ea29e82-e3c5-4922-a7ef-c1ae2bc74184",
               "name": "WORK_HOUR_FROM",
               "value": 9,
               "type": "number"
             },
             {
-              "id": "a19e59fb-4dfe-4e90-9a8d-7368ad6bb336",
+              "id": "9c2b0c51-901e-4baf-9444-56c8b3da2618",
               "name": "WORK_HOUR_TO",
+              "value": 20,
+              "type": "number"
+            },
+            {
+              "id": "da06c671-6c9a-4cf8-9f26-bc8644377d7d",
+              "name": "GENERATION_STUCK_MIN",
               "value": 20,
               "type": "number"
             }
@@ -70,7 +76,7 @@
         },
         "options": {}
       },
-      "id": "7f9ddb78-53a2-4f25-becd-f44f5139231b",
+      "id": "2a864f6e-d6c6-4124-94ab-0d303e62929f",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -89,18 +95,23 @@
           "value": "brd_sessions"
         },
         "returnAll": true,
-        "matchType": "allConditions",
+        "matchType": "anyCondition",
         "filters": {
           "conditions": [
             {
               "keyName": "status",
               "condition": "eq",
               "keyValue": "active"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "generating"
             }
           ]
         }
       },
-      "id": "0b865d0d-1d4e-49d9-9cda-5a6d3be211e3",
+      "id": "c3a32f8a-abb9-4ff2-b312-e54076e703be",
       "name": "Load active sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -113,9 +124,9 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg = $('Config').first().json;\nconst now = new Date();\nconst hourMsk = Number(now.toLocaleString('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }));\nconst workTime = hourMsk >= Number(cfg.WORK_HOUR_FROM) && hourMsk < Number(cfg.WORK_HOUR_TO);\nconst H = 3600 * 1000;\nconst sessions = $input.all().map((i) => i.json).filter((r) => r && r.session_id && r.status === 'active');\nconst saves = [], notifications = [];\nfor (const s of sessions) {\n  const idleH = (now - new Date(s.last_activity_at)) / H;\n  const sinceRemH = s.last_reminder_at ? (now - new Date(s.last_reminder_at)) / H : Infinity;\n  const sent = Number(s.reminder_count) || 0;\n  let lastQ = '';\n  try { const h = JSON.parse(s.history || '[]'); lastQ = ([...h].reverse().find((m) => m.role === 'assistant') || {}).content || ''; } catch (e) {}\n  if (sent >= Number(cfg.MAX_REMINDERS) && idleH >= Number(cfg.CLOSE_AFTER_HOURS)) {\n    saves.push({ session_id: s.session_id, status: 'abandoned', last_activity_at: now.toISOString() });\n    notifications.push({ audience: 'customer', chat_id: s.chat_id, kind: 'info', title: 'Беседа закрыта',\n      text: 'Мы так и не закончили интервью, поэтому я закрыл беседу. Когда будете готовы — напишите /new, и начнём заново.', source: 'reminders' });\n    notifications.push({ audience: 'team', kind: 'info', title: 'Интервью брошено',\n      text: `Инициатор ${s.username || s.chat_id} не завершил интервью (ответов: ${s.turn_count}, напоминаний: ${sent}). Сессия закрыта как abandoned.`, source: 'reminders' });\n  } else if (workTime && sent < Number(cfg.MAX_REMINDERS) && idleH >= Number(cfg.REMIND_AFTER_HOURS) && sinceRemH >= Number(cfg.REMIND_AFTER_HOURS)) {\n    saves.push({ session_id: s.session_id, reminder_count: sent + 1, last_reminder_at: now.toISOString() });\n    notifications.push({ audience: 'customer', chat_id: s.chat_id, kind: 'reminder', title: 'Продолжим сбор требований?',\n      text: 'Наша беседа по вашей задаче не завершена.' + (lastQ ? `\\n\\nПоследний вопрос был такой:\\n«${lastQ.slice(0, 600)}»` : '') +\n            '\\n\\nПросто ответьте на него. Если информации уже достаточно — /done, если задача неактуальна — /cancel.', source: 'reminders' });\n  }\n}\nreturn [{ json: { checked: sessions.length, work_time: workTime, saves, notifications } }];"
+        "jsCode": "const cfg = $('Config').first().json;\nconst now = new Date();\nconst hourMsk = Number(now.toLocaleString('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }));\nconst workTime = hourMsk >= Number(cfg.WORK_HOUR_FROM) && hourMsk < Number(cfg.WORK_HOUR_TO);\nconst H = 3600 * 1000;\nconst all = $input.all().map((i) => i.json).filter((r) => r && r.session_id);\nconst sessions = all.filter((r) => r.status === 'active');\nconst saves = [], notifications = [], escalations = [];\n// Сторож потолка времени: BRD-04 мог быть снят по таймауту и не успеть записать исход.\nfor (const s of all.filter((r) => r.status === 'generating')) {\n  const min = (now - new Date(s.last_activity_at)) / 60000;\n  if (min < Number(cfg.GENERATION_STUCK_MIN)) continue;\n  saves.push({ session_id: s.session_id, status: 'needs_review', last_activity_at: now.toISOString(),\n               limit_hit: `time: ${Math.round(min)} мин в generating / ${cfg.GENERATION_STUCK_MIN}` });\n  notifications.push({ audience: 'customer', chat_id: s.chat_id, kind: 'warning', title: 'BRD не сформирован автоматически',\n    text: 'Я остановил беседу: сработало ограничение агента. Ваши ответы сохранены, беседа передана команде развития ИИ-среды — с вами свяжутся и решат, как продолжить. Повторять сообщения не нужно.', source: 'reminders' });\n  escalations.push({ limit_type: 'time', limit_value: `${cfg.GENERATION_STUCK_MIN} мин`, observed: `${Math.round(min)} мин в статусе generating`,\n    workflow: 'BRD-04 BRD Generator & Publisher (найдено BRD-05)', session_id: s.session_id, chat_id: s.chat_id, username: s.username || '',\n    details: 'Генерация не завершилась и не записала исход (вероятно, снята по таймауту). Сессия переведена в needs_review.' });\n}\nfor (const s of sessions) {\n  const idleH = (now - new Date(s.last_activity_at)) / H;\n  const sinceRemH = s.last_reminder_at ? (now - new Date(s.last_reminder_at)) / H : Infinity;\n  const sent = Number(s.reminder_count) || 0;\n  let lastQ = '';\n  try { const h = JSON.parse(s.history || '[]'); lastQ = ([...h].reverse().find((m) => m.role === 'assistant') || {}).content || ''; } catch (e) {}\n  if (sent >= Number(cfg.MAX_REMINDERS) && idleH >= Number(cfg.CLOSE_AFTER_HOURS)) {\n    saves.push({ session_id: s.session_id, status: 'abandoned', last_activity_at: now.toISOString() });\n    notifications.push({ audience: 'customer', chat_id: s.chat_id, kind: 'info', title: 'Беседа закрыта',\n      text: 'Мы так и не закончили интервью, поэтому я закрыл беседу. Когда будете готовы — напишите /new, и начнём заново.', source: 'reminders' });\n    notifications.push({ audience: 'team', kind: 'info', title: 'Интервью брошено',\n      text: `Инициатор ${s.username || s.chat_id} не завершил интервью (ответов: ${s.turn_count}, напоминаний: ${sent}). Сессия закрыта как abandoned.`, source: 'reminders' });\n  } else if (workTime && sent < Number(cfg.MAX_REMINDERS) && idleH >= Number(cfg.REMIND_AFTER_HOURS) && sinceRemH >= Number(cfg.REMIND_AFTER_HOURS)) {\n    saves.push({ session_id: s.session_id, reminder_count: sent + 1, last_reminder_at: now.toISOString() });\n    notifications.push({ audience: 'customer', chat_id: s.chat_id, kind: 'reminder', title: 'Продолжим сбор требований?',\n      text: 'Наша беседа по вашей задаче не завершена.' + (lastQ ? `\\n\\nПоследний вопрос был такой:\\n«${lastQ.slice(0, 600)}»` : '') +\n            '\\n\\nПросто ответьте на него. Если информации уже достаточно — /done, если задача неактуальна — /cancel.', source: 'reminders' });\n  }\n}\nreturn [{ json: { checked: sessions.length, work_time: workTime, saves, notifications, escalations } }];"
       },
-      "id": "002570f8-555c-4d0c-a01f-33d5b703a9b3",
+      "id": "9f251264-4b40-4090-be2c-45230d94dfbe",
       "name": "Plan reminders",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -128,7 +139,7 @@
       "parameters": {
         "jsCode": "return $json.saves.map((s) => ({ json: s }));"
       },
-      "id": "4a61bc24-beab-48a6-b3b2-aa91a006e0f5",
+      "id": "db9177a9-6e2c-4c9d-8df9-406dde8f4390",
       "name": "Session updates",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -166,7 +177,7 @@
         },
         "options": {}
       },
-      "id": "cf99c861-241f-40e1-a98b-c6b8a993544d",
+      "id": "b55ad879-ad75-47b7-9fa2-a0b6779808c4",
       "name": "Update sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -179,7 +190,7 @@
       "parameters": {
         "jsCode": "return $('Plan reminders').first().json.notifications.map((n) => ({ json: n }));"
       },
-      "id": "042cddd7-f11c-4b14-9430-398733cf52d4",
+      "id": "0cb588de-5671-4dda-8de4-7178fe10d4d9",
       "name": "Messages",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -208,7 +219,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "6128487b-23de-4080-bb9f-f07ac7f911bb",
+      "id": "3316de19-45b8-4661-b252-a16cfa84d6cb",
       "name": "Notify via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -219,18 +230,60 @@
     },
     {
       "parameters": {
-        "content": "## BRD-05 — напоминания\nКаждый час (в :15) проверяет активные беседы в **brd_sessions**:\n• нет ответа ≥ 24 ч → напоминание заказчику с последним вопросом (не больше 2 раз, только с 9:00 до 20:00 МСК);\n• после 2 напоминаний и ≥ 72 ч тишины → сессия `abandoned`, сообщение заказчику и в чат команды.\nПороги задаются в **Config**.",
-        "width": 620,
-        "height": 230,
+        "jsCode": "return $('Plan reminders').first().json.escalations.map((e) => ({ json: e }));"
+      },
+      "id": "2fe0daf2-c3ce-4098-b093-0c498a81bc79",
+      "name": "Escalations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "__WF_QUEUE__",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "329b3ea2-5be6-4de9-b85f-79ee1dbb7b1f",
+      "name": "Escalate via BRD-07",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1100,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## BRD-05 — напоминания и сторож генерации\nКаждый час (в :15) проверяет беседы в **brd_sessions**:\n• нет ответа ≥ 24 ч → напоминание заказчику с последним вопросом (не больше 2 раз, только с 9:00 до 20:00 МСК);\n• после 2 напоминаний и ≥ 72 ч тишины → сессия `abandoned`, сообщение заказчику и в чат команды;\n• **сторож потолка времени:** сессия в `generating` дольше `GENERATION_STUCK_MIN` → `needs_review` + ручная очередь **BRD-07**.\nСессии `needs_review` не трогает: их разбирает команда. Пороги задаются в **Config**.",
+        "width": 640,
+        "height": 270,
         "color": 2
       },
-      "id": "1ae9d3a5-ce85-4798-91bd-83b34abf8ab9",
-      "name": "Note 9",
+      "id": "03ce0ea7-f95c-41be-ac61-1fa8d377ada1",
+      "name": "Note 11",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
         -40,
-        -300
+        -340
       ]
     }
   ],
@@ -291,6 +344,11 @@
             "node": "Messages",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Escalations",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -311,6 +369,17 @@
         [
           {
             "node": "Notify via BRD-02",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalations": {
+      "main": [
+        [
+          {
+            "node": "Escalate via BRD-07",
             "type": "main",
             "index": 0
           }

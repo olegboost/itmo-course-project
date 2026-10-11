@@ -5,7 +5,7 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "df3b5c14-db5a-4ac3-8aca-4aa7fd3fe61d",
+      "id": "61493789-1b3a-4caf-83f8-0f70492aaacc",
       "name": "When called by another workflow",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -16,7 +16,7 @@
     },
     {
       "parameters": {},
-      "id": "fbbe1c09-d785-406f-8b52-18eeec08ae04",
+      "id": "ff386b82-f2aa-469e-8663-e67b616ca955",
       "name": "Manual test",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -30,25 +30,25 @@
         "assignments": {
           "assignments": [
             {
-              "id": "e1cca54d-ae3a-4bab-8586-a7b4f426e2c4",
+              "id": "6ffdd27c-f423-4a9e-ab80-67a66e550cba",
               "name": "audience",
               "value": "team",
               "type": "string"
             },
             {
-              "id": "0cb8f8dc-23e1-4412-b834-16991d255b9e",
+              "id": "24565c48-69a6-41f4-b755-8d3f4ea7854b",
               "name": "kind",
               "value": "info",
               "type": "string"
             },
             {
-              "id": "541872c9-903d-4156-812c-80be78d2ea64",
+              "id": "6b18837f-f0ad-47bc-b44b-8687ff354309",
               "name": "title",
               "value": "Тест уведомлений",
               "type": "string"
             },
             {
-              "id": "77c55821-0798-47e0-a6fa-5eab0096d251",
+              "id": "e6c1de43-4e3d-4f06-ab13-c347ef973e0d",
               "name": "text",
               "value": "Если вы видите это сообщение — BRD-02 Notify настроен правильно.",
               "type": "string"
@@ -57,7 +57,7 @@
         },
         "options": {}
       },
-      "id": "46701239-fe4f-40b4-9db7-87282a0e0e9d",
+      "id": "54f68491-54af-4f89-b04e-b15f6f5045a4",
       "name": "Test message",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -71,13 +71,13 @@
         "assignments": {
           "assignments": [
             {
-              "id": "5b742a47-11c3-4228-b6c8-bd788287f731",
+              "id": "40691f9b-abf3-4766-a9ef-bce46b30e630",
               "name": "TEAM_CHAT_ID",
               "value": "__CFG_TEAM_CHAT_ID__",
               "type": "string"
             },
             {
-              "id": "af6b6a04-2e38-49f1-a765-d9670a6719eb",
+              "id": "5c507c3b-b477-45f9-a726-504165bfe2cb",
               "name": "SUPPORT_CHAT_ID",
               "value": "__CFG_SUPPORT_CHAT_ID__",
               "type": "string"
@@ -87,7 +87,7 @@
         "options": {},
         "includeOtherFields": true
       },
-      "id": "4eda84d1-5bd8-4b67-9622-035fc7578b4d",
+      "id": "46bc0d2a-2385-41d5-8d00-a83c5524d900",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -100,7 +100,7 @@
       "parameters": {
         "jsCode": "// Вход (по одному item на сообщение):\n//   audience: team | support | customer   — кому\n//   chat_id:  явный чат (обязателен для customer)\n//   kind:     info | reminder | success | warning | alert | report\n//   title, text\nconst cfg = $('Config').first().json;\nconst ICON = { info: 'ℹ️', reminder: '⏰', success: '✅', warning: '⚠️', alert: '🚨', report: '📊' };\nconst MAX = 3900;\nconst out = [];\nfor (const it of $input.all()) {\n  const j = it.json || {};\n  const audience = j.audience || 'team';\n  let chat_id = j.chat_id;\n  if (!chat_id) chat_id = audience === 'support' ? cfg.SUPPORT_CHAT_ID : (audience === 'team' ? cfg.TEAM_CHAT_ID : '');\n  if (!chat_id || String(chat_id).startsWith('__')) throw new Error(`Notify: не задан chat_id для audience=${audience}`);\n  const icon = ICON[j.kind] || '';\n  const head = j.title ? `${icon ? icon + ' ' : ''}${j.title}` : '';\n  let s = [head, j.text || ''].filter(Boolean).join('\\n\\n').trim();\n  if (!head && icon) s = `${icon} ${s}`;\n  if (!s) s = '(пустое сообщение)';\n  const parts = [];\n  while (s.length > MAX) {\n    let c = s.lastIndexOf('\\n', MAX);\n    if (c < MAX * 0.5) c = MAX;\n    parts.push(s.slice(0, c));\n    s = s.slice(c).replace(/^\\s+/, '');\n  }\n  parts.push(s);\n  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n  parts.forEach((p, i) => out.push({ json: {\n    chat_id: String(chat_id), text: esc(p), audience, kind: j.kind || 'info', source: j.source || '',\n    part: i + 1, parts: parts.length,\n  } }));\n}\nreturn out;"
       },
-      "id": "b67abd49-e941-4580-a3d4-5ca7df95b4c7",
+      "id": "215ede09-0c0d-44e6-a0b2-1eba87d8cf25",
       "name": "Prepare messages",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -119,7 +119,7 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "2c824871-efbf-4f0c-9c6b-21ee6a997799",
+      "id": "c7b8da8c-85d2-400a-9b0c-580de58ce510",
       "name": "Send to Telegram",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -137,7 +137,7 @@
     },
     {
       "parameters": {},
-      "id": "c50cca3e-882c-4a6c-9ac0-78d2fd0dcdd4",
+      "id": "fbe767d6-90dd-41cc-8b25-00f2b235ccac",
       "name": "Sent",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
@@ -150,7 +150,7 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'notify',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'Send to Telegram',\n    severity: 'error',\n    alert: true,\n    chat_id: String($('Prepare messages').all()[0]?.json.chat_id || ''),\n    message: String('Не удалось отправить уведомление в Telegram: ' + errText(j) || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String($('Prepare messages').all()[0]?.json.text || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
       },
-      "id": "9a90204d-4d1c-4a90-8954-e6e209e4a3d1",
+      "id": "4e56ba31-603e-4ba5-b72c-7cb9a68c21db",
       "name": "Error payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -179,7 +179,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "3d11e4d0-6730-425e-a24b-95706f854d20",
+      "id": "cea990ef-ba0c-4565-aeda-cb8d00077ed9",
       "name": "Log via BRD-00",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -195,7 +195,7 @@
         "height": 280,
         "color": 4
       },
-      "id": "5e8ae574-e8c2-4957-9be4-d93895816ba6",
+      "id": "b8319ca2-7575-45d5-94b6-c8ea052b15bb",
       "name": "Note 9",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,

@@ -5,7 +5,7 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "d49bd83f-6c40-4bea-8fff-5f9cf1db4a9e",
+      "id": "21afe0b9-3c1b-4b1f-946d-1fc58da129ea",
       "name": "When called by BRD-03",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -16,7 +16,7 @@
     },
     {
       "parameters": {},
-      "id": "18750a4d-4e87-4a06-ae23-97db3c38780b",
+      "id": "38160e1d-165d-4ab6-bdb5-ac521206a735",
       "name": "Manual test",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -30,7 +30,7 @@
         "assignments": {
           "assignments": [
             {
-              "id": "1e63fbbb-65cf-4d5d-b655-f309f4940d71",
+              "id": "c644294a-96ab-4818-8cf2-976fc7eb3cf4",
               "name": "session_id",
               "value": "PASTE_SESSION_ID_FROM_brd_sessions",
               "type": "string"
@@ -39,7 +39,7 @@
         },
         "options": {}
       },
-      "id": "90c48225-acd2-41af-8e70-dbf94ad8c5e6",
+      "id": "55cacd50-da7e-4691-98f6-d2b07592d548",
       "name": "Test input",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -53,27 +53,81 @@
         "assignments": {
           "assignments": [
             {
-              "id": "fbb7dc1e-1b8a-4573-9bf1-4930c1e38b46",
+              "id": "086f8a2f-43d2-405a-adde-eeddf01b7d61",
               "name": "BRD_FOLDER_ID",
               "value": "__CFG_BRD_FOLDER_ID__",
               "type": "string"
             },
             {
-              "id": "366d9349-b3e5-4dcb-b2ba-58e95a64feac",
+              "id": "78289c95-60ee-4f85-b920-1ffe56f62c91",
               "name": "LOGS_SHEET_ID",
               "value": "__CFG_LOGS_SHEET_ID__",
               "type": "string"
             },
             {
-              "id": "4dddf592-8baa-468b-b1fe-ed7af22a19bc",
+              "id": "cada7d82-a4f6-47ba-b6a0-745186779f22",
               "name": "BRD_REGISTRY_TAB",
               "value": "brd_registry",
               "type": "string"
             },
             {
-              "id": "db9c2a16-37f8-4286-9c6b-5e7fbb26ff70",
+              "id": "bc623942-b240-4889-92ba-fcaa889aa689",
               "name": "MIN_SECTIONS",
               "value": 11,
+              "type": "number"
+            },
+            {
+              "id": "090d46cb-8c1f-4a4a-b3d1-c8c549a0032c",
+              "name": "MAX_ITERATIONS",
+              "value": 6,
+              "type": "number"
+            },
+            {
+              "id": "f51120cc-4ac7-4e15-8adb-1e756043aaaa",
+              "name": "BRD_ATTEMPTS_PER_SESSION",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "38d490c4-961e-45ca-85a0-1292f7d983d1",
+              "name": "BRD_PER_CHAT_PER_DAY",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "a795dbf0-af17-4776-a2d7-d9c4ce2c29d8",
+              "name": "BRD_PER_DAY",
+              "value": 5,
+              "type": "number"
+            },
+            {
+              "id": "8334880f-fbb0-4136-b144-d320fc05bc58",
+              "name": "LLM_MODEL",
+              "value": "__CFG_LLM_MODEL__",
+              "type": "string"
+            },
+            {
+              "id": "83a6648c-67bc-4d6e-bcbb-5684d7ae5b0f",
+              "name": "LLM_PRICE_IN",
+              "value": "__CFG_LLM_PRICE_IN__",
+              "type": "string"
+            },
+            {
+              "id": "93d27593-67c6-4a5e-8ec9-e337a4d72c3e",
+              "name": "LLM_PRICE_OUT",
+              "value": "__CFG_LLM_PRICE_OUT__",
+              "type": "string"
+            },
+            {
+              "id": "ecf68906-9b4d-42aa-9c3e-69813115228c",
+              "name": "CHARS_PER_TOKEN",
+              "value": 3,
+              "type": "number"
+            },
+            {
+              "id": "2d722746-177a-4513-874f-54583deeffdd",
+              "name": "SESSION_BUDGET_USD",
+              "value": 1.0,
               "type": "number"
             }
           ]
@@ -81,7 +135,7 @@
         "options": {},
         "includeOtherFields": true
       },
-      "id": "9d034732-82e2-4d98-b3c7-48352ea3667c",
+      "id": "9e63a22e-12ac-49e5-8f8b-cbe7ce882a13",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -111,7 +165,7 @@
           ]
         }
       },
-      "id": "af259467-022f-4e3d-bd57-464278fca353",
+      "id": "fe5b9a61-137c-46b9-81f8-1ec78e46bea4",
       "name": "Load session",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -124,14 +178,136 @@
     },
     {
       "parameters": {
-        "jsCode": "const s = $input.all().map((i) => i.json).find((r) => r && r.session_id);\nif (!s) throw new Error('Сессия не найдена: ' + $('Config').first().json.session_id);\nlet history = [];\ntry { history = JSON.parse(s.history || '[]'); } catch (e) { throw new Error('Повреждена история сессии ' + s.session_id); }\nconst transcript = history.map((m) => (m.role === 'user' ? 'ЗАКАЗЧИК: ' : 'ИНТЕРВЬЮЕР: ') + m.content).join('\\n\\n');\nconst today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' });\nconst TEMPLATE = \"# Business Requirements Document (BRD) — Шаблон\\n\\n> Универсальный шаблон BRD, используемый как критерий приёмки задачи. Подходит для ML-систем, но применим к любой задаче — незначимые разделы отмечайте \\\"N/A\\\".\\n\\n## 0. Метаданные\\n\\n| Поле | Значение |\\n|---|---|\\n| Название задачи/проекта | |\\n| ID задачи | |\\n| Автор | |\\n| Дата создания | |\\n| Версия документа | |\\n| Статус | Draft / Review / Approved |\\n| Заказчик / Product Owner | |\\n| Согласующие (Approvers) | |\\n\\n## 1. Резюме (Executive Summary)\\n\\nКратко (3–5 предложений): что делаем, зачем, какой ожидаемый эффект.\\n\\n## 2. Бизнес-контекст и проблема\\n\\n- Проблема / боль, которую решаем\\n- Текущее состояние (as-is)\\n- Целевое состояние (to-be)\\n- Связь со стратегией продукта/компании\\n\\n## 3. Цели и метрики успеха\\n\\n| Цель | Метрика (KPI) | Baseline | Целевое значение | Срок |\\n|---|---|---|---|---|\\n| | | | | |\\n\\nОтдельно для ML-задач:\\n- Бизнес-метрика (revenue, conversion, retention и т.д.)\\n- Продуктовая метрика (engagement, latency to value и т.д.)\\n- Модельная метрика (precision/recall, AUC, RMSE, perplexity и т.д.)\\n\\n## 4. Стейкхолдеры\\n\\n| Роль | Имя | Интерес/ответственность |\\n|---|---|---|\\n| Product Owner | | |\\n| Инженерия | | |\\n| Data Science / ML | | |\\n| Юридический/Комплаенс | | |\\n| Конечный пользователь | | |\\n\\n## 5. Scope\\n\\n### 5.1 In Scope\\n-\\n\\n### 5.2 Out of Scope\\n-\\n\\n### 5.3 Допущения (Assumptions)\\n-\\n\\n### 5.4 Ограничения (Constraints)\\n- Бюджет:\\n- Сроки:\\n- Технологический стек:\\n- Регуляторные:\\n\\n## 6. Функциональные требования (Functional Requirements)\\n\\nФормат: ID, описание, приоритет (MoSCoW), критерий приёмки.\\n\\n| ID | Требование | Приоритет | Критерий приёмки (Given/When/Then) |\\n|---|---|---|---|\\n| FR-01 | | Must | Given ... When ... Then ... |\\n| FR-02 | | Should | |\\n| FR-03 | | Could | |\\n\\n### 6.1 Пользовательские сценарии / User Stories\\n- Как <роль>, я хочу <действие>, чтобы <ценность>.\\n\\n### 6.2 Функциональные требования к ML-компоненту (если применимо)\\n- Вход/выход модели (формат, схема данных)\\n- Тип задачи (классификация/регрессия/генерация/ранжирование и т.д.)\\n- Логика инференса (batch/real-time/streaming)\\n- Поведение при неопределённости модели (fallback, human-in-the-loop)\\n- Explainability / интерпретируемость предсказаний\\n- Персонализация / сегментация (если есть)\\n\\n## 7. Нефункциональные требования (Non-Functional Requirements)\\n\\n### 7.1 Производительность и масштабируемость\\n| Требование | Целевое значение |\\n|---|---|\\n| Latency (p50/p95/p99) | |\\n| Throughput (RPS/QPS) | |\\n| Объём данных (текущий/прогноз роста) | |\\n| Пиковая нагрузка | |\\n| Горизонтальное масштабирование | |\\n\\n### 7.2 Доступность и надёжность\\n- SLA / uptime (например, 99.9%)\\n- RTO / RPO\\n- Disaster recovery план\\n- Стратегия деградации (graceful degradation, circuit breaker)\\n- Retry/timeout policy\\n\\n### 7.3 Данные\\n- Источники данных и их владельцы\\n- Объём, скорость поступления, свежесть (data freshness)\\n- Качество данных: критерии валидации, обработка пропусков/выбросов\\n- Data lineage и версионирование (data + feature store)\\n- Схема данных / контракт данных (data contract)\\n- Retention policy\\n\\n### 7.4 ML-специфичные требования\\n- Требования к обучающим данным (объём, баланс классов, разметка)\\n- Частота переобучения (retraining cadence) и триггеры\\n- Мониторинг дрейфа данных и модели (data drift, concept drift)\\n- Стратегия A/B-тестирования / shadow-деплой перед полным релизом\\n- Версионирование моделей и воспроизводимость экспериментов\\n- Требования к offline/online метрикам и порогам качества для деплоя\\n- Champion/challenger стратегия\\n\\n### 7.5 Безопасность и приватность\\n- Аутентификация / авторизация\\n- Шифрование данных (at rest / in transit)\\n- PII-данные: маскирование, анонимизация\\n- Соответствие регуляциям (GDPR, 152-ФЗ и т.п.)\\n- Аудит доступа\\n- Модельная безопасность (adversarial-устойчивость, prompt injection — если LLM)\\n\\n### 7.6 Наблюдаемость (Observability)\\n- Логирование (структура, уровень, хранение)\\n- Метрики (бизнес, системные, модельные) и дашборды\\n- Алертинг (пороги, каналы оповещения, ответственные)\\n- Трейсинг запросов (distributed tracing)\\n\\n### 7.7 Совместимость и интеграции\\n- Внешние API/системы, с которыми интеграция\\n- Форматы обмена данными\\n- Обратная совместимость\\n- Поддерживаемые платформы/браузеры/устройства\\n\\n### 7.8 Эксплуатационные требования (Operability)\\n- Требования к деплою (CI/CD, blue-green, canary)\\n- Требования к откату (rollback)\\n- Требования к инфраструктуре (compute, GPU/CPU, память)\\n- Стоимость эксплуатации (cost per inference, TCO)\\n\\n### 7.9 Юзабилити и доступность\\n- Требования к UX (если есть интерфейс)\\n- Accessibility (WCAG и т.п.)\\n- Локализация/языки\\n\\n## 8. Критерии приёмки задачи (Definition of Done)\\n\\nОбязательный чек-лист для закрытия задачи:\\n\\n- [ ] Все FR из раздела 6 реализованы и покрыты тестами\\n- [ ] Все NFR из раздела 7 выполнены и измерены\\n- [ ] Целевые метрики из раздела 3 достигнуты (или зафиксирован план их достижения)\\n- [ ] Проведено код-ревью / модель-ревью\\n- [ ] Написана и пройдена документация (README, runbook)\\n- [ ] Настроены мониторинг и алерты в проде\\n- [ ] Проведено нагрузочное тестирование (если применимо)\\n- [ ] Проведена проверка безопасности/приватности данных\\n- [ ] Получено согласование от всех approvers из раздела 0/4\\n- [ ] План отката/rollback описан и проверен\\n\\n## 9. Риски и зависимости\\n\\n| Риск | Вероятность | Влияние | Митигация |\\n|---|---|---|---|\\n| | | | |\\n\\n| Зависимость | Владелец | Статус |\\n|---|---|---|\\n| | | |\\n\\n## 10. Сроки и вехи (Timeline)\\n\\n| Веха | Дата | Ответственный |\\n|---|---|---|\\n| Согласование BRD | | |\\n| MVP / прототип | | |\\n| Тестирование | | |\\n| Релиз | | |\\n\\n## 11. Открытые вопросы (Open Questions)\\n\\n- [ ]\\n\\n## 12. История изменений\\n\\n| Версия | Дата | Автор | Изменения |\\n|---|---|---|---|\\n| 0.1 | | | Первая версия |\";\nconst prompt = [\n  'ВХОДНЫЕ МЕТАДАННЫЕ:',\n  `- Дата создания: ${today}`,\n  `- Автор: BRD-агент (n8n) по итогам интервью с ${s.username || s.chat_id}`,\n  `- Инициатор (Telegram): ${s.username || s.chat_id}`,\n  `- Session ID: ${s.session_id}`,\n  '',\n  'ШАБЛОН BRD:',\n  TEMPLATE,\n  '',\n  'ТРАНСКРИПТ ИНТЕРВЬЮ:',\n  transcript,\n  '',\n  'Составь полный BRD по шаблону.',\n].join('\\n');\n// BRD длиннее лимита ответа DeepSeek (8000 токенов), поэтому пишем его в три приёма; агент обрабатывает items по очереди.\nconst PARTS = [\n  { part: 1, label: '0–5', hint: 'Сейчас напиши ТОЛЬКО разделы 0–5 (начни со строки `# BRD: <название>`).' },\n  { part: 2, label: '6–7', hint: 'Сейчас напиши ТОЛЬКО разделы 6 и 7 (начни с `## 6.`).' },\n  { part: 3, label: '8–12', hint: 'Сейчас напиши ТОЛЬКО разделы 8–12 (начни с `## 8.`).' },\n];\nreturn PARTS.map((p) => ({ json: { session: s, today, turns: Number(s.turn_count) || 0, part: p.part,\n  prompt: prompt + '\\n\\nЧАСТЬ ' + p.part + ' из 3 (разделы ' + p.label + '). ' + p.hint } }));"
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "brd_sessions"
+        },
+        "returnAll": true
       },
-      "id": "b80d51aa-90b5-499b-a850-e7f9fcdcbf29",
+      "id": "f5838f55-5d34-49e6-8cd4-4e0900e155ac",
+      "name": "Load all sessions",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Потолки до генерации: попытки на сессию, число BRD за 24 ч (на заказчика и всего), бюджет сессии.\nconst cfg = $('Config').first().json;\nconst s = $('Load session').all().map((i) => i.json).find((r) => r && r.session_id);\nif (!s) throw new Error('Сессия не найдена: ' + cfg.session_id);\nconst all = $input.all().map((i) => i.json).filter((r) => r && r.session_id);\nconst since = Date.now() - 24 * 3600 * 1000;\nconst recent = all.filter((r) => r.brd_created_at && new Date(r.brd_created_at).getTime() >= since);\nconst byChat = recent.filter((r) => String(r.chat_id) === String(s.chat_id)).length;\nconst attempt = (Number(s.brd_attempts) || 0) + 1;\nconst spent = Number(s.cost_usd) || 0;\nlet limit = null;\nif (attempt > Number(cfg.BRD_ATTEMPTS_PER_SESSION)) limit = { limit_type: 'brd_attempts', limit_value: cfg.BRD_ATTEMPTS_PER_SESSION, observed: attempt };\nelse if (byChat >= Number(cfg.BRD_PER_CHAT_PER_DAY)) limit = { limit_type: 'artifacts_chat', limit_value: cfg.BRD_PER_CHAT_PER_DAY, observed: byChat + 1 };\nelse if (recent.length >= Number(cfg.BRD_PER_DAY)) limit = { limit_type: 'artifacts_day', limit_value: cfg.BRD_PER_DAY, observed: recent.length + 1 };\nelse if (spent >= Number(cfg.SESSION_BUDGET_USD)) limit = { limit_type: 'cost_session', limit_value: cfg.SESSION_BUDGET_USD, observed: '$' + spent.toFixed(3) };\nreturn [{ json: { ok: !limit, limit, session: s, attempt } }];"
+      },
+      "id": "881dd4b4-6d59-40eb-8727-e654c403f1d3",
+      "name": "Check limits",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d0538e16-0d26-4e02-8ac7-54431a4ea3f2",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "11355458-c184-4695-81ca-fc70cb1a5d29",
+      "name": "Within limits?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Попытку фиксируем ДО вызова LLM: даже если прогон упадёт по таймауту, повтор будет посчитан.\nreturn [{ json: { session_id: $json.session.session_id, brd_attempts: $json.attempt } }];"
+      },
+      "id": "27ad1c5f-2506-45cd-b99c-7e1fb510bcf3",
+      "name": "Attempt row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "brd_sessions"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.session_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "55a7bb98-2e91-4d3d-a516-7415ffc2cf1a",
+      "name": "Record attempt",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const s = $('Check limits').first().json.session;\nlet history = [];\ntry { history = JSON.parse(s.history || '[]'); } catch (e) { throw new Error('Повреждена история сессии ' + s.session_id); }\nconst transcript = history.map((m) => (m.role === 'user' ? 'ЗАКАЗЧИК: ' : 'ИНТЕРВЬЮЕР: ') + m.content).join('\\n\\n');\nconst today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' });\nconst TEMPLATE = \"# Business Requirements Document (BRD) — Шаблон\\n\\n> Универсальный шаблон BRD, используемый как критерий приёмки задачи. Подходит для ML-систем, но применим к любой задаче — незначимые разделы отмечайте \\\"N/A\\\".\\n\\n## 0. Метаданные\\n\\n| Поле | Значение |\\n|---|---|\\n| Название задачи/проекта | |\\n| ID задачи | |\\n| Автор | |\\n| Дата создания | |\\n| Версия документа | |\\n| Статус | Draft / Review / Approved |\\n| Заказчик / Product Owner | |\\n| Согласующие (Approvers) | |\\n\\n## 1. Резюме (Executive Summary)\\n\\nКратко (3–5 предложений): что делаем, зачем, какой ожидаемый эффект.\\n\\n## 2. Бизнес-контекст и проблема\\n\\n- Проблема / боль, которую решаем\\n- Текущее состояние (as-is)\\n- Целевое состояние (to-be)\\n- Связь со стратегией продукта/компании\\n\\n## 3. Цели и метрики успеха\\n\\n| Цель | Метрика (KPI) | Baseline | Целевое значение | Срок |\\n|---|---|---|---|---|\\n| | | | | |\\n\\nОтдельно для ML-задач:\\n- Бизнес-метрика (revenue, conversion, retention и т.д.)\\n- Продуктовая метрика (engagement, latency to value и т.д.)\\n- Модельная метрика (precision/recall, AUC, RMSE, perplexity и т.д.)\\n\\n## 4. Стейкхолдеры\\n\\n| Роль | Имя | Интерес/ответственность |\\n|---|---|---|\\n| Product Owner | | |\\n| Инженерия | | |\\n| Data Science / ML | | |\\n| Юридический/Комплаенс | | |\\n| Конечный пользователь | | |\\n\\n## 5. Scope\\n\\n### 5.1 In Scope\\n-\\n\\n### 5.2 Out of Scope\\n-\\n\\n### 5.3 Допущения (Assumptions)\\n-\\n\\n### 5.4 Ограничения (Constraints)\\n- Бюджет:\\n- Сроки:\\n- Технологический стек:\\n- Регуляторные:\\n\\n## 6. Функциональные требования (Functional Requirements)\\n\\nФормат: ID, описание, приоритет (MoSCoW), критерий приёмки.\\n\\n| ID | Требование | Приоритет | Критерий приёмки (Given/When/Then) |\\n|---|---|---|---|\\n| FR-01 | | Must | Given ... When ... Then ... |\\n| FR-02 | | Should | |\\n| FR-03 | | Could | |\\n\\n### 6.1 Пользовательские сценарии / User Stories\\n- Как <роль>, я хочу <действие>, чтобы <ценность>.\\n\\n### 6.2 Функциональные требования к ML-компоненту (если применимо)\\n- Вход/выход модели (формат, схема данных)\\n- Тип задачи (классификация/регрессия/генерация/ранжирование и т.д.)\\n- Логика инференса (batch/real-time/streaming)\\n- Поведение при неопределённости модели (fallback, human-in-the-loop)\\n- Explainability / интерпретируемость предсказаний\\n- Персонализация / сегментация (если есть)\\n\\n## 7. Нефункциональные требования (Non-Functional Requirements)\\n\\n### 7.1 Производительность и масштабируемость\\n| Требование | Целевое значение |\\n|---|---|\\n| Latency (p50/p95/p99) | |\\n| Throughput (RPS/QPS) | |\\n| Объём данных (текущий/прогноз роста) | |\\n| Пиковая нагрузка | |\\n| Горизонтальное масштабирование | |\\n\\n### 7.2 Доступность и надёжность\\n- SLA / uptime (например, 99.9%)\\n- RTO / RPO\\n- Disaster recovery план\\n- Стратегия деградации (graceful degradation, circuit breaker)\\n- Retry/timeout policy\\n\\n### 7.3 Данные\\n- Источники данных и их владельцы\\n- Объём, скорость поступления, свежесть (data freshness)\\n- Качество данных: критерии валидации, обработка пропусков/выбросов\\n- Data lineage и версионирование (data + feature store)\\n- Схема данных / контракт данных (data contract)\\n- Retention policy\\n\\n### 7.4 ML-специфичные требования\\n- Требования к обучающим данным (объём, баланс классов, разметка)\\n- Частота переобучения (retraining cadence) и триггеры\\n- Мониторинг дрейфа данных и модели (data drift, concept drift)\\n- Стратегия A/B-тестирования / shadow-деплой перед полным релизом\\n- Версионирование моделей и воспроизводимость экспериментов\\n- Требования к offline/online метрикам и порогам качества для деплоя\\n- Champion/challenger стратегия\\n\\n### 7.5 Безопасность и приватность\\n- Аутентификация / авторизация\\n- Шифрование данных (at rest / in transit)\\n- PII-данные: маскирование, анонимизация\\n- Соответствие регуляциям (GDPR, 152-ФЗ и т.п.)\\n- Аудит доступа\\n- Модельная безопасность (adversarial-устойчивость, prompt injection — если LLM)\\n\\n### 7.6 Наблюдаемость (Observability)\\n- Логирование (структура, уровень, хранение)\\n- Метрики (бизнес, системные, модельные) и дашборды\\n- Алертинг (пороги, каналы оповещения, ответственные)\\n- Трейсинг запросов (distributed tracing)\\n\\n### 7.7 Совместимость и интеграции\\n- Внешние API/системы, с которыми интеграция\\n- Форматы обмена данными\\n- Обратная совместимость\\n- Поддерживаемые платформы/браузеры/устройства\\n\\n### 7.8 Эксплуатационные требования (Operability)\\n- Требования к деплою (CI/CD, blue-green, canary)\\n- Требования к откату (rollback)\\n- Требования к инфраструктуре (compute, GPU/CPU, память)\\n- Стоимость эксплуатации (cost per inference, TCO)\\n\\n### 7.9 Юзабилити и доступность\\n- Требования к UX (если есть интерфейс)\\n- Accessibility (WCAG и т.п.)\\n- Локализация/языки\\n\\n## 8. Критерии приёмки задачи (Definition of Done)\\n\\nОбязательный чек-лист для закрытия задачи:\\n\\n- [ ] Все FR из раздела 6 реализованы и покрыты тестами\\n- [ ] Все NFR из раздела 7 выполнены и измерены\\n- [ ] Целевые метрики из раздела 3 достигнуты (или зафиксирован план их достижения)\\n- [ ] Проведено код-ревью / модель-ревью\\n- [ ] Написана и пройдена документация (README, runbook)\\n- [ ] Настроены мониторинг и алерты в проде\\n- [ ] Проведено нагрузочное тестирование (если применимо)\\n- [ ] Проведена проверка безопасности/приватности данных\\n- [ ] Получено согласование от всех approvers из раздела 0/4\\n- [ ] План отката/rollback описан и проверен\\n\\n## 9. Риски и зависимости\\n\\n| Риск | Вероятность | Влияние | Митигация |\\n|---|---|---|---|\\n| | | | |\\n\\n| Зависимость | Владелец | Статус |\\n|---|---|---|\\n| | | |\\n\\n## 10. Сроки и вехи (Timeline)\\n\\n| Веха | Дата | Ответственный |\\n|---|---|---|\\n| Согласование BRD | | |\\n| MVP / прототип | | |\\n| Тестирование | | |\\n| Релиз | | |\\n\\n## 11. Открытые вопросы (Open Questions)\\n\\n- [ ]\\n\\n## 12. История изменений\\n\\n| Версия | Дата | Автор | Изменения |\\n|---|---|---|---|\\n| 0.1 | | | Первая версия |\";\nconst prompt = [\n  'ВХОДНЫЕ МЕТАДАННЫЕ:',\n  `- Дата создания: ${today}`,\n  `- Автор: BRD-агент (n8n) по итогам интервью с ${s.username || s.chat_id}`,\n  `- Инициатор (Telegram): ${s.username || s.chat_id}`,\n  `- Session ID: ${s.session_id}`,\n  '',\n  'ШАБЛОН BRD:',\n  TEMPLATE,\n  '',\n  'ТРАНСКРИПТ ИНТЕРВЬЮ:',\n  transcript,\n  '',\n  'Составь полный BRD по шаблону.',\n].join('\\n');\n// BRD длиннее лимита ответа DeepSeek (8000 токенов), поэтому пишем его в три приёма; агент обрабатывает items по очереди.\nconst PARTS = [\n  { part: 1, label: '0–5', hint: 'Сейчас напиши ТОЛЬКО разделы 0–5 (начни со строки `# BRD: <название>`).' },\n  { part: 2, label: '6–7', hint: 'Сейчас напиши ТОЛЬКО разделы 6 и 7 (начни с `## 6.`).' },\n  { part: 3, label: '8–12', hint: 'Сейчас напиши ТОЛЬКО разделы 8–12 (начни с `## 8.`).' },\n];\nreturn PARTS.map((p) => ({ json: { session: s, today, turns: Number(s.turn_count) || 0, part: p.part,\n  prompt: prompt + '\\n\\nЧАСТЬ ' + p.part + ' из 3 (разделы ' + p.label + '). ' + p.hint } }));"
+      },
+      "id": "b270565b-b827-41c4-bd19-8a8448d8f4b7",
       "name": "Build BRD request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        880,
+        1980,
         0
       ],
       "onError": "continueErrorOutput"
@@ -142,15 +318,16 @@
         "text": "={{ $json.prompt }}",
         "options": {
           "systemMessage": "Ты — технический писатель команды развития ИИ-среды банка. На вход ты получаешь транскрипт интервью BRD-интервьюера с инициатором задачи и шаблон BRD. Твоя задача — составить полный BRD строго по шаблону, на русском языке, в формате Markdown.\n\n# Контекст среды (используй как данность)\n- Банк, полностью закрытый контур: никаких вызовов внешних моделей и API. Если в интервью звучало предложение использовать внешний сервис, зафиксируй это как риск или несоответствие в разделе 9 и/или 11, а не как рабочий вариант.\n- Платформа: OpenShift (2 кластера, инфраструктуру поддерживает DevOps), Apache Airflow (весь batch), MLflow, GitLab.\n- Online-механизм деплоя не выбирай: укажи собранные характеристики нагрузки и пометку «механизм деплоя выбирается командой ИИ-среды по внутренней документации».\n- Обязательные условия деплоя: модель в MLflow и код в GitLab. Их статус обязательно указывается отдельными пунктами в разделе 8 (DoD): [x], если выполнено, или [ ] с пометкой «не выполнено — требуется до деплоя», если нет или неизвестно. Отдельным пунктом добавь «Согласование архитектуры с ИБ и архитекторами (следующий шаг после BRD)».\n- Раздел 4 «Стейкхолдеры» заполняй фиксированным набором ролей: Product Owner / инициатор; Инженерия — команда развития ИИ-среды (деплой, поддержка, контроль GPU); Инфраструктура — DevOps (кластеры OpenShift); Безопасность — ИБ (согласование архитектуры и мер защиты); Data Science / ML — инициатор или его команда. Имена указывай только если они прозвучали, иначе «TBD».\n- Раздел 7.5 «Безопасность и приватность»: только факты о данных, потоках и чувствительности (ПДн, банковская тайна, класс данных). Обязательно добавь строку «Конкретные меры безопасности согласовываются отдельно с ИБ». Меры защиты не придумывай.\n\n# Работа с базой знаний\nУ тебя есть инструмент KnowledgeBase. Перед написанием сделай 2–4 целевых запроса по типу сервиса из интервью, например: «требования чек-листа готовности к online-сервису», «порядок согласования заявки на вывод в ПЭ», «требования ИБ для данных класса К4», «стандарт именования batch DAG». Найденные применимые требования добавь со ссылкой на источник в формате «(DOC-05 п. 3.2)» в разделы 5.4 «Ограничения», 7.x, 8 и 9. Не выдумывай пункты и цифры, которых нет во фрагментах.\n\n# Правила заполнения\n1. Заполни все разделы шаблона от 0 до 12 с теми же номерами и заголовками. Не добавляй и не удаляй разделы.\n2. Источник фактов — только транскрипт и найденные фрагменты базы знаний. Ничего не выдумывай.\n3. Различай три вида сведений:\n   - сказано инициатором — пиши как факт;\n   - предложено интервьюером и явно подтверждено инициатором — пиши с пометкой «(рабочая гипотеза, подтверждена инициатором)»;\n   - не прозвучало или не подтверждено — «TBD» в теле и отдельный пункт в разделе 11 «Открытые вопросы».\n4. Неприменимые разделы и строки помечай «N/A» (например, 7.9 для бэкенд-пайплайна).\n5. Раздел 0: «ID задачи» — TBD, «Автор» и «Дата создания» бери из входных метаданных, «Версия документа» — 0.1, «Статус» — Draft, «Согласующие» — TBD (уточняется при согласовании).\n6. Функциональные требования (раздел 6): таблица с ID FR-01…, приоритетом MoSCoW и критерием приёмки в формате Given/When/Then. Пиши только требования, которые следуют из интервью.\n7. Раздел 3: если цифр нет — TBD плюс открытый вопрос.\n8. Раздел 10: даты, которых не было в интервью, — TBD.\n9. Раздел 12: одна строка «0.1 | <дата> | BRD-агент | Первая версия по итогам интервью».\n\n# Генерация частями\nBRD слишком длинный для одного ответа, поэтому его пишут в три приёма: разделы 0–5, 6–7 и 8–12. В конце запроса указано, какую часть писать сейчас.\n- Выводи строго разделы своей части, начиная с первого заголовка этой части. Не повторяй другие разделы и не пиши «продолжение следует».\n- Все части пишутся по одному транскрипту, поэтому формулировки и ID требований (FR-01…) должны быть согласованы. В разделах 8–12 ссылайся на те же факты, что прозвучали в интервью.\n- Запросы к KnowledgeBase делай только по темам своей части.\n\n# Формат вывода\n- Выведи только документ, без вступлений и пояснений, без обрамления ```.\n- Первая строка части 0–5: `# BRD: <краткое название задачи>`. Части 6–7 и 8–12 начинаются сразу с `## 6.` и `## 8.` соответственно.\n- Используй Markdown-таблицы (`| a | b |` с разделителем `|---|---|`), списки `-` и чек-боксы `- [ ]` / `- [x]`.",
-          "maxIterations": 8
+          "maxIterations": 6,
+          "returnIntermediateSteps": true
         }
       },
-      "id": "94d469f1-7d98-476a-9b78-533de9160ed3",
+      "id": "f9497df7-e5a8-4122-84de-a7bdecafb6ac",
       "name": "BRD writer",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
       "position": [
-        1100,
+        2200,
         0
       ],
       "onError": "continueErrorOutput",
@@ -160,7 +337,7 @@
     },
     {
       "parameters": {
-        "model": "deepseek-chat",
+        "model": "__CFG_LLM_MODEL__",
         "options": {
           "temperature": 0.2,
           "maxTokens": 8000,
@@ -168,18 +345,18 @@
           "maxRetries": 2
         }
       },
-      "id": "2f265d48-2003-42a0-a7dd-74408cfd368a",
-      "name": "DeepSeek (BRD)",
-      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "id": "9bd380fc-d5e5-49f1-9c1e-499c42b412c3",
+      "name": "LLM (BRD)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
       "position": [
-        980,
+        2080,
         220
       ],
       "credentials": {
-        "deepSeekApi": {
-          "id": "__CRED_DEEPSEEK__",
-          "name": "DeepSeek"
+        "openRouterApi": {
+          "id": "__CRED_OPENROUTER__",
+          "name": "OpenRouter (key with limit)"
         }
       }
     },
@@ -198,12 +375,12 @@
           "pineconeNamespace": "__CFG_PINECONE_NAMESPACE__"
         }
       },
-      "id": "5c0e65e4-b4dd-4c43-94de-2c6aaa1063f5",
+      "id": "461d3fbf-1cd5-4605-877f-7e1fb8826303",
       "name": "KnowledgeBase",
       "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
       "typeVersion": 1.1,
       "position": [
-        1160,
+        2260,
         220
       ],
       "credentials": {
@@ -220,12 +397,12 @@
           "dimensions": 1536
         }
       },
-      "id": "391ecdd8-e2a5-4fcd-9dcc-89c92d94b81d",
+      "id": "d262cfe0-326a-4614-bc93-0f34b05cf923",
       "name": "Embeddings (cloud.ru)",
       "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
       "typeVersion": 1.2,
       "position": [
-        1240,
+        2340,
         400
       ],
       "credentials": {
@@ -237,14 +414,14 @@
     },
     {
       "parameters": {
-        "jsCode": "const req = $('Build BRD request').first().json;\n// Склеиваем три части (разделы 0–5, 6–7, 8–12). Если какая-то часть упала, её обработает ветка ошибки.\nconst outs = $input.all().map((i) => String(i.json.output ?? i.json.text ?? '').trim());\nif (outs.length < 3) return [];\nconst clean = (t, k) => {\n  t = t.replace(/^```(?:markdown|md)?\\s*\\n/i, '').replace(/\\n```\\s*$/, '').trim();\n  if (k > 0) t = t.replace(/^#\\s+BRD:.*\\n+/, '');\n  return t;\n};\nlet md = outs.map(clean).join('\\n\\n');\nconst sections = new Set([...md.matchAll(/^##\\s+(\\d{1,2})\\./gm)].map((m) => Number(m[1])));\nconst min = Number($('Config').first().json.MIN_SECTIONS) || 11;\nlet title = (md.match(/^#\\s+BRD:\\s*(.+)$/m) || [])[1] || '';\nif (!title) title = ((md.match(/\\|\\s*Название задачи\\/проекта\\s*\\|\\s*([^|]+)\\|/) || [])[1] || '').trim();\ntitle = (title || 'Без названия').replace(/[\\\\/:*?\"<>|]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 90);\nconst valid = sections.size >= min && md.length > 1500;\nreturn [{ json: { valid, md, title, sections: sections.size, length: md.length,\n  error: valid ? '' : `BRD не прошёл проверку: разделов ${sections.size} (нужно ≥ ${min}), длина ${md.length}`,\n  session: req.session, today: req.today, turns: req.turns } }];"
+        "jsCode": "// Агентная нода v2.x при maxIterations завершается УСПЕШНО с этим текстом; v3.x — падает с ошибкой «Max iterations (N) reached».\nconst STOP_RE = /Agent stopped due to (max iterations|iteration limit)|Max iterations \\(\\d+\\) reached/i;\n// Лимит ключа/баланса провайдера: OpenRouter 402/403 (limit_source openrouter_key_limit), DeepSeek 402 Insufficient Balance.\nconst MONEY_RE = /\\b402\\b|insufficient (credits|balance)|payment required|openrouter_key_limit|key limit|budget limit/i;\nconst errStr = (e) => (!e ? '' : typeof e === 'string' ? e : [e.message, e.description, e.httpCode].filter(Boolean).join(' ') || JSON.stringify(e)).slice(0, 800);\n// Оценка стоимости одного прогона агента сверху: каждый вызов LLM получает system + prompt + результаты инструментов.\nconst estimateRun = (sysChars, promptChars, outText, steps, pIn, pOut, cpt) => {\n  steps = Array.isArray(steps) ? steps : [];\n  const calls = steps.length + 1;\n  const obs = steps.reduce((a, s) => a + String(s.observation ?? '').length, 0);\n  const acts = steps.reduce((a, s) => a + JSON.stringify(s.action ?? {}).length, 0);\n  const inChars = calls * (sysChars + promptChars) + obs * calls;\n  const outChars = String(outText || '').length + acts;\n  return { calls, steps: steps.length, usd: (inChars * pIn + outChars * pOut) / cpt / 1e6 };\n};\nconst req = $('Build BRD request').first().json;\nconst cfg = $('Config').first().json;\n// Склеиваем три части (разделы 0–5, 6–7, 8–12). Если какая-то часть упала, её обработает ветка ошибки.\nconst items = $input.all();\nconst outs = items.map((i) => String(i.json.output ?? i.json.text ?? '').trim());\nif (outs.length < 3) return [];\n// Расход трёх прогонов (оценка сверху) и проверка потолка шагов по каждой части.\nconst prompts = $('Build BRD request').all().map((i) => String(i.json.prompt || '').length);\nlet usd = 0, stopped = null;\nitems.forEach((it, k) => {\n  const run = estimateRun(4317, prompts[k] || 0, outs[k], it.json.intermediateSteps,\n    Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 3);\n  usd += run.usd;\n  if (!stopped && STOP_RE.test(outs[k])) stopped = { part: k + 1, steps: run.steps };\n});\nconst cost_usd = (Number(req.session.cost_usd) || 0) + usd;\nif (stopped) return [{ json: { valid: false, session: req.session, cost_usd,\n  limit: { limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: `часть ${stopped.part} из 3: ${stopped.steps} шагов, текста нет` } } }];\nconst clean = (t, k) => {\n  t = t.replace(/^```(?:markdown|md)?\\s*\\n/i, '').replace(/\\n```\\s*$/, '').trim();\n  if (k > 0) t = t.replace(/^#\\s+BRD:.*\\n+/, '');\n  return t;\n};\nlet md = outs.map(clean).join('\\n\\n');\nconst sections = new Set([...md.matchAll(/^##\\s+(\\d{1,2})\\./gm)].map((m) => Number(m[1])));\nconst min = Number(cfg.MIN_SECTIONS) || 11;\nlet title = (md.match(/^#\\s+BRD:\\s*(.+)$/m) || [])[1] || '';\nif (!title) title = ((md.match(/\\|\\s*Название задачи\\/проекта\\s*\\|\\s*([^|]+)\\|/) || [])[1] || '').trim();\ntitle = (title || 'Без названия').replace(/[\\\\/:*?\"<>|]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 90);\nconst valid = sections.size >= min && md.length > 1500;\nreturn [{ json: { valid, md, title, sections: sections.size, length: md.length, cost_usd, limit: null,\n  error: valid ? '' : `BRD не прошёл проверку: разделов ${sections.size} (нужно ≥ ${min}), длина ${md.length}`,\n  session: req.session, today: req.today, turns: req.turns } }];"
       },
-      "id": "be66de1e-fcac-47fb-8e74-ee5f0d8b05b4",
+      "id": "de1d8d54-364d-4215-ad49-3a47cf157727",
       "name": "Validate BRD",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1540,
+        2640,
         0
       ]
     },
@@ -259,7 +436,42 @@
           },
           "conditions": [
             {
-              "id": "cb7b5bd0-659c-4a98-9954-7799d3102adf",
+              "id": "e3f08cc3-aa28-4c7b-a78c-d05a32282324",
+              "leftValue": "={{ !!$json.limit }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "104b676c-ffba-4309-8ed9-7ff15e9b4e7b",
+      "name": "Stopped by limit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1049ae9d-98a6-49bf-bc97-408cd6d61b30",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -274,12 +486,12 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "4a545a33-cd3b-4b2d-9006-75a827fad9a4",
+      "id": "585ccf8f-7120-4fc6-9216-558900ca65f3",
       "name": "Valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [
-        1760,
+        2860,
         0
       ]
     },
@@ -287,12 +499,12 @@
       "parameters": {
         "jsCode": "function md2html(md) {\n  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n  const inline = (s) => esc(s)\n    .replace(/`([^`]+)`/g, '<code>$1</code>')\n    .replace(/\\*\\*([^*]+)\\*\\*/g, '<b>$1</b>')\n    .replace(/(^|[^*])\\*([^*\\s][^*]*)\\*/g, '$1<i>$2</i>')\n    .replace(/\\[([^\\]]+)\\]\\((https?:[^)\\s]+)\\)/g, '<a href=\"$2\">$1</a>')\n    .replace(/^\\[ \\]\\s*/, '&#9744; ')\n    .replace(/^\\[x\\]\\s*/i, '&#9745; ');\n  const cells = (row) => row.trim().replace(/^\\|/, '').replace(/\\|$/, '').split('|').map((c) => c.trim());\n  const isTableSep = (l) => /^\\s*\\|?\\s*:?-{2,}:?\\s*(\\|\\s*:?-{2,}:?\\s*)*\\|?\\s*$/.test(l);\n  const TD = 'style=\"border:1px solid #999;padding:4px 6px;vertical-align:top\"';\n  const TH = 'style=\"border:1px solid #999;padding:4px 6px;background:#e8eef7;font-weight:bold\"';\n\n  const lines = String(md || '').replace(/\\r\\n/g, '\\n').split('\\n');\n  const out = [];\n  let i = 0;\n  while (i < lines.length) {\n    const line = lines[i];\n    if (/^\\s*```/.test(line)) {\n      const buf = [];\n      i++;\n      while (i < lines.length && !/^\\s*```/.test(lines[i])) buf.push(esc(lines[i++]));\n      i++;\n      out.push('<pre style=\"font-family:monospace;background:#f4f4f4\">' + buf.join('\\n') + '</pre>');\n      continue;\n    }\n    const h = line.match(/^(#{1,6})\\s+(.*)$/);\n    if (h) { out.push(`<h${h[1].length}>${inline(h[2].trim())}</h${h[1].length}>`); i++; continue; }\n    if (/^\\s*(-{3,}|\\*{3,})\\s*$/.test(line)) { out.push('<hr>'); i++; continue; }\n    if (/^\\s*\\|/.test(line) && i + 1 < lines.length && isTableSep(lines[i + 1])) {\n      const head = cells(line);\n      i += 2;\n      const rows = [];\n      while (i < lines.length && /^\\s*\\|/.test(lines[i])) rows.push(cells(lines[i++]));\n      let t = '<table style=\"border-collapse:collapse;width:100%\"><tr>' +\n        head.map((c) => `<th ${TH}>${inline(c)}</th>`).join('') + '</tr>';\n      for (const r of rows) t += '<tr>' + head.map((_, k) => `<td ${TD}>${inline(r[k] || '')}</td>`).join('') + '</tr>';\n      out.push(t + '</table>');\n      continue;\n    }\n    if (/^\\s*[-*+]\\s+/.test(line) || /^\\s*\\d+[.)]\\s+/.test(line)) {\n      const ordered = /^\\s*\\d+[.)]\\s+/.test(line);\n      const re = ordered ? /^\\s*\\d+[.)]\\s+/ : /^\\s*[-*+]\\s+/;\n      const items = [];\n      while (i < lines.length && re.test(lines[i])) {\n        let text = lines[i++].replace(re, '');\n        while (i < lines.length && /^\\s{2,}\\S/.test(lines[i]) && !/^\\s*([-*+]|\\d+[.)])\\s+/.test(lines[i])) text += ' ' + lines[i++].trim();\n        items.push(`<li>${inline(text)}</li>`);\n      }\n      out.push((ordered ? '<ol>' : '<ul>') + items.join('') + (ordered ? '</ol>' : '</ul>'));\n      continue;\n    }\n    if (/^\\s*>/.test(line)) {\n      const buf = [];\n      while (i < lines.length && /^\\s*>/.test(lines[i])) buf.push(inline(lines[i++].replace(/^\\s*>\\s?/, '')));\n      out.push('<blockquote style=\"color:#555;border-left:3px solid #ccc;padding-left:8px\">' + buf.join('<br>') + '</blockquote>');\n      continue;\n    }\n    if (!line.trim()) { i++; continue; }\n    const buf = [];\n    while (i < lines.length && lines[i].trim() && !/^(#{1,6}\\s|\\s*[-*+]\\s|\\s*\\d+[.)]\\s|\\s*\\||\\s*>|\\s*```)/.test(lines[i])) buf.push(inline(lines[i++].trim()));\n    if (!buf.length) { out.push(`<p>${inline(lines[i++])}</p>`); continue; }\n    out.push(`<p>${buf.join('<br>')}</p>`);\n  }\n  return '<html><head><meta charset=\"utf-8\"></head><body style=\"font-family:Arial,sans-serif;font-size:11pt\">' +\n    out.join('\\n') + '</body></html>';\n}\n\nconst j = $json;\nconst cfg = $('Config').first().json;\nconst who = String(j.session.username || j.session.chat_id).replace(/^@/, '');\nconst name = `BRD ${j.today} — ${j.title} (${who})`;\nconst html = md2html(j.md);\nconst boundary = 'brd_' + Date.now().toString(36);\nconst meta = { name, mimeType: 'application/vnd.google-apps.document', parents: [cfg.BRD_FOLDER_ID],\n               description: `BRD по интервью в Telegram. Session ID: ${j.session.session_id}` };\nconst body = `--${boundary}\\r\\nContent-Type: application/json; charset=UTF-8\\r\\n\\r\\n${JSON.stringify(meta)}\\r\\n` +\n             `--${boundary}\\r\\nContent-Type: text/html; charset=UTF-8\\r\\n\\r\\n${html}\\r\\n--${boundary}--`;\nreturn [{ json: { ...j, doc_name: name, body, content_type: `multipart/related; boundary=${boundary}` } }];"
       },
-      "id": "afb3dac1-b1b5-48b7-bad6-57031f095d0c",
+      "id": "6894450e-37e7-4165-899b-f3d64091680b",
       "name": "Render Google Doc request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1980,
+        3080,
         -100
       ]
     },
@@ -327,12 +539,12 @@
           "timeout": 120000
         }
       },
-      "id": "6e0bcaf1-120c-4771-84d0-cca8fd1b7e96",
+      "id": "41472388-cbd7-4a57-9a9b-ff5b2385927a",
       "name": "Upload to Drive as Google Doc",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        2200,
+        3300,
         -100
       ],
       "credentials": {
@@ -348,14 +560,14 @@
     },
     {
       "parameters": {
-        "jsCode": "const j = $('Render Google Doc request').first().json;\nconst url = $json.webViewLink || `https://docs.google.com/document/d/${$json.id}/edit`;\nconst now = new Date().toISOString();\nreturn [{ json: {\n  doc_id: $json.id, doc_url: url, doc_name: j.doc_name, title: j.title, session: j.session, turns: j.turns,\n  registry: { created_at: now, title: j.title, customer: j.session.username || '', chat_id: j.session.chat_id,\n              session_id: j.session.session_id, turns: j.turns, status: 'Draft', doc_url: url },\n  session_row: { session_id: j.session.session_id, status: 'completed', brd_title: j.title, brd_url: url,\n                 last_activity_at: now, error: '' },\n} }];"
+        "jsCode": "const j = $('Render Google Doc request').first().json;\nconst url = $json.webViewLink || `https://docs.google.com/document/d/${$json.id}/edit`;\nconst now = new Date().toISOString();\nreturn [{ json: {\n  doc_id: $json.id, doc_url: url, doc_name: j.doc_name, title: j.title, session: j.session, turns: j.turns,\n  registry: { created_at: now, title: j.title, customer: j.session.username || '', chat_id: j.session.chat_id,\n              session_id: j.session.session_id, turns: j.turns, status: 'Draft', doc_url: url },\n  session_row: { session_id: j.session.session_id, status: 'completed', brd_title: j.title, brd_url: url,\n                 last_activity_at: now, error: '', brd_created_at: now,\n                 cost_usd: Math.round((Number(j.cost_usd) || 0) * 1e6) / 1e6 },\n} }];"
       },
-      "id": "8a638a5e-994b-40bd-bb03-60584d3de378",
+      "id": "2bc9654f-ee36-4b1e-a799-92dcf2981295",
       "name": "Published",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2420,
+        3520,
         -100
       ]
     },
@@ -363,12 +575,12 @@
       "parameters": {
         "jsCode": "return [{ json: $json.registry }];"
       },
-      "id": "11d10f5b-4bab-4046-a3bd-3f5a5c394ca7",
+      "id": "41abd089-cddf-4c11-8a30-a1781d83df7a",
       "name": "Registry row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2640,
+        3740,
         -200
       ]
     },
@@ -398,12 +610,12 @@
           "handlingExtraData": "ignoreIt"
         }
       },
-      "id": "28ad1902-12e0-4fe2-86e4-90f063bf8b89",
+      "id": "547b9000-0215-4581-95ce-376b0dcca374",
       "name": "Register in BRD registry",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
       "position": [
-        2860,
+        3960,
         -200
       ],
       "credentials": {
@@ -418,12 +630,12 @@
       "parameters": {
         "jsCode": "return [{ json: $('Published').first().json.session_row }];"
       },
-      "id": "cdd26380-00a0-45a3-bf3f-2c2e1f5fa6b9",
+      "id": "5062ea00-2b38-40d6-a37b-be847aeb036f",
       "name": "Session row (completed)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3080,
+        4180,
         -200
       ]
     },
@@ -456,12 +668,12 @@
         },
         "options": {}
       },
-      "id": "d88edae0-2dba-4929-8442-8d962df5238e",
+      "id": "d58a1f63-6824-4f96-821e-e4ef267dba04",
       "name": "Mark session completed",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        3300,
+        4400,
         -200
       ],
       "onError": "continueRegularOutput"
@@ -470,12 +682,12 @@
       "parameters": {
         "jsCode": "const p = $('Published').first().json;\nreturn [\n  { json: { audience: 'customer', chat_id: p.session.chat_id, kind: 'success', title: 'BRD готов',\n            text: `Документ «${p.title}» сформирован и опубликован:\\n${p.doc_url}\\n\\nКоманда развития ИИ-среды получила уведомление и свяжется с вами для согласования. Начать новую беседу — /new`, source: 'brd_generator' } },\n  { json: { audience: 'team', kind: 'info', title: 'Новый BRD',\n            text: `«${p.title}»\\nИнициатор: ${p.session.username || p.session.chat_id}\\nОтветов в интервью: ${p.turns}\\nСтатус: Draft\\n${p.doc_url}`, source: 'brd_generator' } },\n];"
       },
-      "id": "004c65b1-a324-4d29-a13b-5d01a7a4d153",
+      "id": "f0acc897-45e5-42fa-a4c3-402b21658bed",
       "name": "Success notifications",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3520,
+        4620,
         -200
       ]
     },
@@ -499,38 +711,73 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "426cda20-8184-4226-a1a7-f49eca76f677",
+      "id": "b7e0fcc5-c2eb-460a-8fa1-3c321ea9aaf3",
       "name": "Notify via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        3740,
+        4840,
         -200
       ]
     },
     {
       "parameters": {
-        "jsCode": "// Неудача: возвращаем сессию в active (заказчик может повторить /done), сообщаем саппорту и заказчику.\nlet s = {};\ntry { s = $('Load session').all().map((i) => i.json).find((r) => r && r.session_id) || {}; } catch (e) {}\nconst j = $input.first().json || {};\nconst e = j.error;\nconst msg = (typeof e === 'string' ? e : (e && (e.message || e.description)) || JSON.stringify(e || 'Unknown error')).slice(0, 800);\nreturn [{ json: { session_id: s.session_id || '', chat_id: s.chat_id || '', username: s.username || '', error: msg } }];"
+        "jsCode": "// Агентная нода v2.x при maxIterations завершается УСПЕШНО с этим текстом; v3.x — падает с ошибкой «Max iterations (N) reached».\nconst STOP_RE = /Agent stopped due to (max iterations|iteration limit)|Max iterations \\(\\d+\\) reached/i;\n// Лимит ключа/баланса провайдера: OpenRouter 402/403 (limit_source openrouter_key_limit), DeepSeek 402 Insufficient Balance.\nconst MONEY_RE = /\\b402\\b|insufficient (credits|balance)|payment required|openrouter_key_limit|key limit|budget limit/i;\nconst errStr = (e) => (!e ? '' : typeof e === 'string' ? e : [e.message, e.description, e.httpCode].filter(Boolean).join(' ') || JSON.stringify(e)).slice(0, 800);\n// Оценка стоимости одного прогона агента сверху: каждый вызов LLM получает system + prompt + результаты инструментов.\nconst estimateRun = (sysChars, promptChars, outText, steps, pIn, pOut, cpt) => {\n  steps = Array.isArray(steps) ? steps : [];\n  const calls = steps.length + 1;\n  const obs = steps.reduce((a, s) => a + String(s.observation ?? '').length, 0);\n  const acts = steps.reduce((a, s) => a + JSON.stringify(s.action ?? {}).length, 0);\n  const inChars = calls * (sysChars + promptChars) + obs * calls;\n  const outChars = String(outText || '').length + acts;\n  return { calls, steps: steps.length, usd: (inChars * pIn + outChars * pOut) / cpt / 1e6 };\n};\n// Неудача: возвращаем сессию в active (заказчик может повторить /done — это вторая попытка), сообщаем саппорту и заказчику.\n// Лимит ключа (402/403) или падение агента v3 по maxIterations — это предел, а не сбой: уходит в ветку Limit stop.\nlet s = {};\ntry { s = $('Load session').all().map((i) => i.json).find((r) => r && r.session_id) || {}; } catch (e) {}\nconst j = $input.first().json || {};\nconst e = j.error;\nconst msg = (typeof e === 'string' ? e : (e && (e.message || e.description)) || JSON.stringify(e || 'Unknown error')).slice(0, 800);\nconst cfg = $('Config').first().json;\nlet limit = null;\nif (MONEY_RE.test(msg)) limit = { limit_type: 'cost_key', limit_value: 'лимит ключа OpenRouter', observed: msg.slice(0, 200) };\nelse if (STOP_RE.test(msg)) limit = { limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: msg.slice(0, 200) };\nreturn [{ json: { session_id: s.session_id || '', chat_id: s.chat_id || '', username: s.username || '', error: msg,\n  limit, session: s } }];"
       },
-      "id": "7b4654ca-c4f6-4b0d-82ad-f5412c7e3a85",
+      "id": "48021222-a69c-422a-9f0d-fe221883e558",
       "name": "Generation failed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2200,
+        3300,
         260
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "48651336-454a-4953-8280-7987e01557a4",
+              "leftValue": "={{ !!$json.limit }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "546d3ac5-702e-4844-afd3-cb28649aaf08",
+      "name": "Provider limit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3300,
+        460
       ]
     },
     {
       "parameters": {
         "jsCode": "if (!$json.session_id) return [];\nreturn [{ json: { session_id: $json.session_id, status: 'active', error: $json.error, last_activity_at: new Date().toISOString() } }];"
       },
-      "id": "97f156a3-ff8b-44fa-89b2-84eaa7c8d89d",
+      "id": "815e24ad-ede6-4dad-a1f6-bb855d1e44c8",
       "name": "Session row (back to active)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2420,
+        3520,
         160
       ]
     },
@@ -563,12 +810,12 @@
         },
         "options": {}
       },
-      "id": "6050596e-65f3-44a0-84cf-81ba813d707d",
+      "id": "a6c7a336-69bb-4940-bbe5-29a1aa45f71b",
       "name": "Return session to active",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
       "position": [
-        2640,
+        3740,
         160
       ],
       "onError": "continueRegularOutput"
@@ -577,12 +824,12 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'brd_generator',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'BRD-04',\n    severity: 'error',\n    alert: true,\n    chat_id: String(j.chat_id || ''),\n    message: String('Не удалось сформировать или опубликовать BRD: ' + j.error || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String('session_id=' + j.session_id || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
       },
-      "id": "5e420ac4-20a0-4819-8dff-b6dac03fe7ef",
+      "id": "ab5c6bc0-07ad-4b02-96fe-8f0a17448156",
       "name": "Failure error payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2420,
+        3520,
         360
       ]
     },
@@ -606,12 +853,12 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "f35c82cf-7a89-4604-bc4a-7bbc87c36461",
+      "id": "84451b73-61d1-4566-b7d2-9356865526ea",
       "name": "Log via BRD-00",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        2640,
+        3740,
         360
       ]
     },
@@ -619,12 +866,12 @@
       "parameters": {
         "jsCode": "if (!$json.chat_id) return [];\nreturn [{ json: { audience: 'customer', chat_id: $json.chat_id, kind: 'warning', title: 'Не удалось сформировать BRD',\n  text: 'Произошла техническая ошибка при формировании документа. Ваша беседа сохранена, команда поддержки уже уведомлена. Попробуйте отправить /done ещё раз через несколько минут.',\n  source: 'brd_generator' } }];"
       },
-      "id": "ab33755c-0fc0-48a9-9f48-03633fde3f4d",
+      "id": "39ce6512-7428-49a9-8892-5f100694514a",
       "name": "Apology to customer",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2420,
+        3520,
         540
       ]
     },
@@ -648,29 +895,238 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "dbf7fc7c-2582-4af7-a5ab-89294b9538c3",
+      "id": "49364e70-e42f-4bff-bcd8-56e460e99e6a",
       "name": "Notify customer via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        2640,
+        3740,
         540
       ]
     },
     {
       "parameters": {
-        "content": "## BRD-04 — генерация и публикация BRD\nВызывается асинхронно из BRD-03 (`session_id`). Для отладки — **Manual test** с session_id из brd_sessions.\n1. Транскрипт интервью + шаблон BRD (mlops-deployment-intake-v2) → **BRD writer** (DeepSeek + KnowledgeBase) пишет BRD в три приёма: разделы 0–5, 6–7, 8–12 (у DeepSeek лимит 8000 токенов на ответ).\n2. Проверка: есть ≥ 11 из 13 разделов.\n3. Markdown → HTML → загрузка в Drive с конвертацией в **Google Doc** (таблицы и заголовки сохраняются) в папку `BRD_FOLDER_ID`.\n4. Строка в реестре BRD (Google Sheet, лист brd_registry), сессия → `completed`.\n5. Ссылка заказчику и в чат команды (через BRD-02).\nПри ошибке сессия возвращается в `active`, заказчик может повторить /done; саппорт получает алерт.",
-        "width": 760,
-        "height": 360,
+        "jsCode": "const j = $input.first().json;\nconst s = j.session || {};\nconst l = j.limit;\nconst now = new Date().toISOString();\nconst row = { session_id: s.session_id, status: 'needs_review', last_activity_at: now,\n              limit_hit: `${l.limit_type}: ${String(l.observed).slice(0, 80)} / ${l.limit_value}` };\nif (j.cost_usd !== undefined) row.cost_usd = Math.round(Number(j.cost_usd) * 1e6) / 1e6;\nreturn [{ json: { session_row: row, limit: l, session: s,\n  customer: { audience: 'customer', chat_id: s.chat_id, kind: 'warning', title: 'BRD не сформирован автоматически',\n              text: 'Я остановил беседу: сработало ограничение агента. Ваши ответы сохранены, беседа передана команде развития ИИ-среды — с вами свяжутся и решат, как продолжить. Повторять сообщения не нужно.', source: 'brd_generator' },\n  queue: { ...l, workflow: $workflow.name, workflow_id: $workflow.id, execution_id: $execution.id,\n           session_id: s.session_id || '', chat_id: s.chat_id || '', username: s.username || '',\n           details: `Генерация BRD остановлена, сессия needs_review. Ответов в интервью: ${s.turn_count ?? '—'}, попыток генерации: ${s.brd_attempts ?? 0}.` },\n} }];"
+      },
+      "id": "84b66e1f-f0a9-4096-a360-da2cce1b1fcd",
+      "name": "Limit stop",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4180,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "dataToSave": {
+          "values": [
+            {
+              "key": "outcome",
+              "value": "limit_stopped"
+            }
+          ]
+        }
+      },
+      "id": "7a2e616c-ca8f-4526-8757-ea67de75fb3b",
+      "name": "Outcome: limit_stopped",
+      "type": "n8n-nodes-base.executionData",
+      "typeVersion": 1.1,
+      "position": [
+        4400,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $('Limit stop').first().json;\nreturn j.session_row.session_id ? [{ json: j.session_row }] : [];"
+      },
+      "id": "1bb75fca-ed4c-4773-823c-c7d30b63b7e6",
+      "name": "Session row (needs_review)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4620,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "brd_sessions"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.session_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "a0766687-6f0a-413b-8bbd-ebb8b5a00615",
+      "name": "Freeze session",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        4840,
+        380
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $('Limit stop').first().json;\nreturn j.customer.chat_id ? [{ json: j.customer }] : [];"
+      },
+      "id": "24c2697f-1cde-4291-997a-ca73bfc54a16",
+      "name": "Customer limit message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4620,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "__WF_NOTIFY__",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "e34f3943-ad7a-4608-a062-be549dab3c81",
+      "name": "Notify customer (limit) via BRD-02",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        4840,
+        540
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Limit stop').first().json.queue }];"
+      },
+      "id": "f7f40748-65ad-40e1-a9be-941a375bc84a",
+      "name": "Queue payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4620,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "__WF_QUEUE__",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "fdf7c58b-98c1-4efc-91b4-fc42f540abed",
+      "name": "Escalate via BRD-07",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        4840,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "dataToSave": {
+          "values": [
+            {
+              "key": "outcome",
+              "value": "done"
+            }
+          ]
+        }
+      },
+      "id": "c38d1761-c1da-4f97-8a4e-a4c991be85b5",
+      "name": "Outcome: done",
+      "type": "n8n-nodes-base.executionData",
+      "typeVersion": 1.1,
+      "position": [
+        3740,
+        -360
+      ]
+    },
+    {
+      "parameters": {
+        "dataToSave": {
+          "values": [
+            {
+              "key": "outcome",
+              "value": "error"
+            }
+          ]
+        }
+      },
+      "id": "34037a64-d524-49dd-a318-ead789e67b8e",
+      "name": "Outcome: error",
+      "type": "n8n-nodes-base.executionData",
+      "typeVersion": 1.1,
+      "position": [
+        3740,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## BRD-04 — генерация и публикация BRD\nВызывается асинхронно из BRD-03 (`session_id`). Для отладки — **Manual test** с session_id из brd_sessions.\n0. **Check limits** — потолки до генерации: попыток на сессию ≤ 2, BRD от заказчика за 24 ч < 2, всего за 24 ч < 5, расход сессии < $1.0.\n1. Транскрипт интервью + шаблон BRD (mlops-deployment-intake-v2) → **BRD writer** (OpenRouter + KnowledgeBase, `maxIterations = 6`) пишет BRD в три приёма: разделы 0–5, 6–7, 8–12 (лимит 8000 токенов на ответ).\n2. Проверка: ни одна часть не остановлена по пределу шагов; есть ≥ 11 из 13 разделов.\n3. Markdown → HTML → загрузка в Drive с конвертацией в **Google Doc** (таблицы и заголовки сохраняются) в папку `BRD_FOLDER_ID`.\n4. Строка в реестре BRD (Google Sheet, лист brd_registry), сессия → `completed`.\n5. Ссылка заказчику и в чат команды (через BRD-02).\n**Сбой** → сессия в `active`, заказчик может повторить /done (вторая попытка); саппорт получает алерт.\n**Потолок** (шаги, попытки, число BRD, бюджет, лимит ключа 402/403) → **Limit stop**: сессия `needs_review`, сообщение заказчику, ручная очередь **BRD-07**. Повтора нет. Таймаут прогона — Settings → Timeout 900 с (зависшие `generating` подбирает BRD-05).",
+        "width": 820,
+        "height": 500,
         "color": 4
       },
-      "id": "26040932-f660-4183-819e-3614f02c8058",
-      "name": "Note 28",
+      "id": "3d3d2df1-95b3-45aa-8bed-35fc66135e83",
+      "name": "Note 45",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
         -40,
-        -480
+        -620
       ]
     }
   ],
@@ -723,6 +1179,75 @@
       "main": [
         [
           {
+            "node": "Load all sessions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load all sessions": {
+      "main": [
+        [
+          {
+            "node": "Check limits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check limits": {
+      "main": [
+        [
+          {
+            "node": "Within limits?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generation failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Within limits?": {
+      "main": [
+        [
+          {
+            "node": "Attempt row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Limit stop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attempt row": {
+      "main": [
+        [
+          {
+            "node": "Record attempt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record attempt": {
+      "main": [
+        [
+          {
             "node": "Build BRD request",
             "type": "main",
             "index": 0
@@ -748,7 +1273,7 @@
         ]
       ]
     },
-    "DeepSeek (BRD)": {
+    "LLM (BRD)": {
       "ai_languageModel": [
         [
           {
@@ -801,6 +1326,24 @@
     },
     "Validate BRD": {
       "main": [
+        [
+          {
+            "node": "Stopped by limit?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stopped by limit?": {
+      "main": [
+        [
+          {
+            "node": "Limit stop",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Valid?",
@@ -862,6 +1405,11 @@
         [
           {
             "node": "Registry row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Outcome: done",
             "type": "main",
             "index": 0
           }
@@ -927,6 +1475,24 @@
       "main": [
         [
           {
+            "node": "Provider limit?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Provider limit?": {
+      "main": [
+        [
+          {
+            "node": "Limit stop",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Session row (back to active)",
             "type": "main",
             "index": 0
@@ -938,6 +1504,11 @@
           },
           {
             "node": "Apology to customer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Outcome: error",
             "type": "main",
             "index": 0
           }
@@ -976,6 +1547,71 @@
           }
         ]
       ]
+    },
+    "Limit stop": {
+      "main": [
+        [
+          {
+            "node": "Outcome: limit_stopped",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Outcome: limit_stopped": {
+      "main": [
+        [
+          {
+            "node": "Session row (needs_review)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Customer limit message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Queue payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session row (needs_review)": {
+      "main": [
+        [
+          {
+            "node": "Freeze session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer limit message": {
+      "main": [
+        [
+          {
+            "node": "Notify customer (limit) via BRD-02",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue payload": {
+      "main": [
+        [
+          {
+            "node": "Escalate via BRD-07",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -984,7 +1620,8 @@
     "saveManualExecutions": true,
     "saveDataErrorExecution": "all",
     "saveDataSuccessExecution": "all",
-    "errorWorkflow": "__WF_ERRORS__"
+    "errorWorkflow": "__WF_ERRORS__",
+    "executionTimeout": 900
   },
   "pinData": {},
   "meta": {

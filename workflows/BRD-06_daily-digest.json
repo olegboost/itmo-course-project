@@ -12,7 +12,7 @@
           ]
         }
       },
-      "id": "211a7504-fe2a-49da-96c0-bd99b2f1d1f5",
+      "id": "e11666a2-e271-4c73-869d-910ef6106181",
       "name": "Daily 09:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -23,7 +23,7 @@
     },
     {
       "parameters": {},
-      "id": "ef92bd31-fa9a-48a8-ba51-13c2caeddb16",
+      "id": "6384a61a-f543-468b-9354-f7d4c17cfa53",
       "name": "Manual run",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -37,19 +37,19 @@
         "assignments": {
           "assignments": [
             {
-              "id": "72cdd1d9-3615-4053-92bd-d6670bdb5065",
+              "id": "a02622ce-1f01-463b-87e9-da1a973cd0bb",
               "name": "LOGS_SHEET_ID",
               "value": "__CFG_LOGS_SHEET_ID__",
               "type": "string"
             },
             {
-              "id": "9e671599-045b-45e9-9544-4fadae90ae1b",
+              "id": "9812de7d-8c2b-4ff6-b758-d09594aaa6c1",
               "name": "ERRORS_SHEET_TAB",
               "value": "errors",
               "type": "string"
             },
             {
-              "id": "4de14d5d-d368-44d7-a10b-cf5ea4abe2f9",
+              "id": "660d6db2-3eae-4bbf-87f2-5e8707a64f13",
               "name": "PERIOD_HOURS",
               "value": 24,
               "type": "number"
@@ -58,7 +58,7 @@
         },
         "options": {}
       },
-      "id": "6e007b73-392f-4285-b3a0-06f924e48670",
+      "id": "98ef34f6-b986-4bbf-8ea1-3116bd58d7d0",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -78,7 +78,7 @@
         },
         "returnAll": true
       },
-      "id": "7c172aa9-cee9-46c7-ad04-f4056bb7b46c",
+      "id": "4400dc1e-9e83-418b-97cc-f4320deac652",
       "name": "Load sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -100,7 +100,7 @@
         },
         "returnAll": true
       },
-      "id": "88a5146a-f1d2-47d6-b17c-777d5b7826c5",
+      "id": "8fb8c8d5-dcce-455f-89ce-8c570ef41819",
       "name": "Load KB state",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -127,7 +127,7 @@
         },
         "options": {}
       },
-      "id": "ba812c92-cc3d-41fb-be50-7fa91b5cf948",
+      "id": "093052ca-6181-40cf-891c-498d30d6827b",
       "name": "Load errors",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -147,14 +147,40 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg = $('Config').first().json;\nconst since = Date.now() - (Number(cfg.PERIOD_HOURS) || 24) * 3600 * 1000;\nconst inPeriod = (t) => t && new Date(t).getTime() >= since;\nconst sessions = $('Load sessions').all().map((i) => i.json).filter((r) => r && r.session_id);\nconst kb = $('Load KB state').all().map((i) => i.json).filter((r) => r && r.file_id);\nconst errors = $('Load errors').all().map((i) => i.json).filter((r) => r && r.timestamp && inPeriod(r.timestamp));\n\nconst started = sessions.filter((s) => inPeriod(s.started_at));\nconst completed = sessions.filter((s) => s.status === 'completed' && inPeriod(s.last_activity_at));\nconst abandoned = sessions.filter((s) => s.status === 'abandoned' && inPeriod(s.last_activity_at));\nconst active = sessions.filter((s) => s.status === 'active');\nconst generating = sessions.filter((s) => s.status === 'generating');\n\nconst byWf = {};\nfor (const e of errors) { const k = e.workflow || e.component || '—'; byWf[k] = (byWf[k] || 0) + 1; }\nconst kbOk = kb.filter((r) => r.status === 'ok');\nconst kbErr = kb.filter((r) => r.status === 'error');\n\nconst lines = [];\nlines.push(`Интервью: начато ${started.length}, завершено BRD ${completed.length}, брошено ${abandoned.length}; сейчас активно ${active.length}` + (generating.length ? `, формируется ${generating.length}` : ''));\nif (completed.length) {\n  lines.push('', 'Новые BRD:');\n  for (const s of completed) lines.push(`• ${s.brd_title || 'Без названия'} — ${s.username || s.chat_id}\\n  ${s.brd_url}`);\n}\nif (active.length) {\n  lines.push('', 'Активные беседы:');\n  for (const s of active.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ответов ${s.turn_count}, последняя активность ${String(s.last_activity_at).slice(0, 16).replace('T', ' ')} UTC`);\n}\nlines.push('', `База знаний: документов в индексе ${kbOk.length}, фрагментов ${kbOk.reduce((x, r) => x + (Number(r.chunk_count) || 0), 0)}` + (kbErr.length ? `, с ошибкой ${kbErr.length} (${kbErr.map((r) => r.name).join(', ')})` : ''));\nlines.push('', errors.length ? `Ошибки за сутки: ${errors.length} — ` + Object.entries(byWf).map(([k, v]) => `${k}: ${v}`).join('; ') : 'Ошибок за сутки нет.');\nreturn [{ json: { audience: 'team', kind: 'report', title: 'Дайджест BRD-агента за сутки', text: lines.join('\\n'), source: 'digest' } }];"
+        "method": "GET",
+        "url": "https://openrouter.ai/api/v1/key",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
       },
-      "id": "62d74e5b-4f61-42c5-b7de-546b8b834a0f",
+      "id": "10473d46-1376-4a04-a851-8356f91fe8c2",
+      "name": "OpenRouter key usage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        90
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "__CRED_HTTP_OPENROUTER__",
+          "name": "OpenRouter API key (header)"
+        }
+      },
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Config').first().json;\nconst since = Date.now() - (Number(cfg.PERIOD_HOURS) || 24) * 3600 * 1000;\nconst inPeriod = (t) => t && new Date(t).getTime() >= since;\nconst sessions = $('Load sessions').all().map((i) => i.json).filter((r) => r && r.session_id);\nconst kb = $('Load KB state').all().map((i) => i.json).filter((r) => r && r.file_id);\nconst errors = $('Load errors').all().map((i) => i.json).filter((r) => r && r.timestamp && inPeriod(r.timestamp));\n\nconst started = sessions.filter((s) => inPeriod(s.started_at));\nconst completed = sessions.filter((s) => s.status === 'completed' && inPeriod(s.last_activity_at));\nconst abandoned = sessions.filter((s) => s.status === 'abandoned' && inPeriod(s.last_activity_at));\nconst active = sessions.filter((s) => s.status === 'active');\nconst generating = sessions.filter((s) => s.status === 'generating');\nconst review = sessions.filter((s) => s.status === 'needs_review');\nlet key = null;\ntry { key = $('OpenRouter key usage').first().json.data || null; } catch (e) {}\n\nconst byWf = {};\nfor (const e of errors) { const k = e.workflow || e.component || '—'; byWf[k] = (byWf[k] || 0) + 1; }\nconst kbOk = kb.filter((r) => r.status === 'ok');\nconst kbErr = kb.filter((r) => r.status === 'error');\n\nconst lines = [];\nlines.push(`Интервью: начато ${started.length}, завершено BRD ${completed.length}, брошено ${abandoned.length}; сейчас активно ${active.length}` + (generating.length ? `, формируется ${generating.length}` : ''));\nif (completed.length) {\n  lines.push('', 'Новые BRD:');\n  for (const s of completed) lines.push(`• ${s.brd_title || 'Без названия'} — ${s.username || s.chat_id}\\n  ${s.brd_url}`);\n}\nif (review.length) {\n  lines.push('', `Остановлено по пределу, ждут решения команды (needs_review, лист manual_queue): ${review.length}`);\n  for (const s of review.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ${s.limit_hit || 'предел'}`);\n}\nif (active.length) {\n  lines.push('', 'Активные беседы:');\n  for (const s of active.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ответов ${s.turn_count}, последняя активность ${String(s.last_activity_at).slice(0, 16).replace('T', ' ')} UTC`);\n}\nlines.push('', `База знаний: документов в индексе ${kbOk.length}, фрагментов ${kbOk.reduce((x, r) => x + (Number(r.chunk_count) || 0), 0)}` + (kbErr.length ? `, с ошибкой ${kbErr.length} (${kbErr.map((r) => r.name).join(', ')})` : ''));\nif (key) {\n  const usd = (v) => (v == null ? '—' : '$' + Number(v).toFixed(2));\n  lines.push('', `OpenRouter: расход за сутки ${usd(key.usage_daily)}, за неделю ${usd(key.usage_weekly)}; лимит ключа ${usd(key.limit)}` +\n    (key.limit_reset ? ` (${key.limit_reset})` : '') + (key.limit_remaining != null ? `, осталось ${usd(key.limit_remaining)}` : ''));\n}\nlines.push('', errors.length ? `Ошибки за сутки: ${errors.length} — ` + Object.entries(byWf).map(([k, v]) => `${k}: ${v}`).join('; ') : 'Ошибок за сутки нет.');\nreturn [{ json: { audience: 'team', kind: 'report', title: 'Дайджест BRD-агента за сутки', text: lines.join('\\n'), source: 'digest' } }];"
+      },
+      "id": "58af8618-1416-4728-9128-7affb6c69cf5",
       "name": "Build digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1100,
+        1320,
         90
       ]
     },
@@ -178,24 +204,24 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "7715542a-58ed-4831-8037-a43dbd83882a",
+      "id": "83b1dea2-6916-4191-a9ce-955a27b8215b",
       "name": "Notify via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
       "position": [
-        1320,
+        1540,
         90
       ]
     },
     {
       "parameters": {
-        "content": "## BRD-06 — ежедневный дайджест (09:00 МСК)\nСводка за 24 ч в чат команды: начатые, завершённые и брошенные интервью, ссылки на новые BRD, активные беседы, состояние базы знаний, ошибки по воркфлоу (лист errors).",
+        "content": "## BRD-06 — ежедневный дайджест (09:00 МСК)\nСводка за 24 ч в чат команды: начатые, завершённые и брошенные интервью, ссылки на новые BRD, сессии, остановленные по пределу (`needs_review`), активные беседы, расход и лимит ключа OpenRouter, состояние базы знаний, ошибки по воркфлоу (лист errors).",
         "width": 620,
         "height": 180,
         "color": 2
       },
-      "id": "60745eb9-105a-4ed5-aa08-bd3d6d902471",
-      "name": "Note 8",
+      "id": "de41ad89-a4d7-44ad-bef9-7e97fca59390",
+      "name": "Note 9",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
@@ -261,6 +287,17 @@
       ]
     },
     "Load errors": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter key usage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter key usage": {
       "main": [
         [
           {

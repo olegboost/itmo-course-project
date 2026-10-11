@@ -6,6 +6,7 @@
   2. Подставляет конфигурацию (__CFG_*__) и ID credentials (__CRED_*__) из .env.
   3. Создаёт воркфлоу (или обновляет одноимённые) в правильном порядке и
      подставляет ID связанных воркфлоу (__WF_*__): Execute Workflow и Settings → Error workflow.
+     BRD-00 и BRD-07 ссылаются друг на друга, поэтому такие связи дописываются вторым проходом.
   4. С флагом --activate включает воркфлоу с триггерами (BRD-01, 03, 05, 06).
 
 Режим --dry-run ничего не отправляет: пишет готовые к ручному импорту файлы в build/
@@ -30,6 +31,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ORDER = [
     ("BRD-00_errors-and-alerts.json", "__WF_ERRORS__", False),
     ("BRD-02_notify.json", "__WF_NOTIFY__", False),
+    ("BRD-07_manual-queue.json", "__WF_QUEUE__", False),
     ("BRD-04_brd-generator.json", "__WF_BRD_GENERATOR__", False),
     ("BRD-01_kb-sync.json", None, True),
     ("BRD-03_interview-agent.json", None, True),
@@ -38,6 +40,8 @@ ORDER = [
     ("BRD-99_setup-data-tables.json", None, False),
 ]
 API_FIELDS = ("name", "nodes", "connections", "settings")
+# Ручной импорт (без Public API): переменные .env с ID заранее созданных пустых подворкфлоу.
+WF_ENV = ("ERRORS", "NOTIFY", "QUEUE", "BRD_GENERATOR")
 
 
 def load_env(path):
@@ -113,8 +117,8 @@ def main():
 
     env = load_env(Path(args.env))
     mapping = {f"__{k}__": v for k, v in env.items() if (k.startswith("CFG_") or k.startswith("CRED_")) and v}
-    # Ручной импорт (без Public API): ID заранее созданных пустых воркфлоу BRD-00/02/04.
-    for key in ("ERRORS", "NOTIFY", "BRD_GENERATOR"):
+    # Ручной импорт (без Public API): ID заранее созданных пустых воркфлоу BRD-00/02/07/04.
+    for key in WF_ENV:
         if env.get(f"WF_{key}_ID"):
             mapping[f"__WF_{key}__"] = env[f"WF_{key}_ID"]
     left = set()
@@ -127,11 +131,11 @@ def main():
     build.mkdir(exist_ok=True)
     wf_ids = {}
     to_activate = []
+    deployed = {}  # fname -> id: для второго прохода (связи на воркфлоу, созданные позже)
     for fname, placeholder, activate in ORDER:
         wf = json.loads((ROOT / "workflows" / fname).read_text(encoding="utf-8"))
         wf = substitute(wf, {**mapping, **wf_ids})
         strip_missing_creds(wf, env)
-        left |= set(re.findall(r"__(?:CFG|WF)_[A-Z_]+__", json.dumps(wf)))
         (build / fname).write_text(json.dumps(wf, ensure_ascii=False, indent=2), encoding="utf-8")
         if api:
             body = {k: wf[k] for k in API_FIELDS}
@@ -145,10 +149,23 @@ def main():
                 print(f"created  {wid}  {wf['name']}")
             if placeholder:
                 wf_ids[placeholder] = wid
+            deployed[fname] = wid
             if activate:
                 to_activate.append((wid, wf["name"]))
         else:
             print(f"built    build/{fname}")
+
+    # Второй проход: подставить ID воркфлоу, созданных позже ссылающегося (BRD-00 → BRD-07).
+    for fname, _, _ in ORDER:
+        wf = json.loads((build / fname).read_text(encoding="utf-8"))
+        pending = set(re.findall(r"__WF_[A-Z_]+__", json.dumps(wf))) & set(wf_ids)
+        if pending:
+            wf = substitute(wf, wf_ids)
+            (build / fname).write_text(json.dumps(wf, ensure_ascii=False, indent=2), encoding="utf-8")
+            if api:
+                api.call("PUT", f"/workflows/{deployed[fname]}", {k: wf[k] for k in API_FIELDS})
+                print(f"linked   {deployed[fname]}  {wf['name']}  ({', '.join(sorted(pending))})")
+        left |= set(re.findall(r"__(?:CFG|WF)_[A-Z_]+__", json.dumps(wf)))
 
     if api and args.activate:
         for wid, name in to_activate:

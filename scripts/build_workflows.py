@@ -28,7 +28,8 @@ CREDS = {
     "telegram": ("telegramApi", "__CRED_TELEGRAM__", "Telegram BRD bot"),
     "gdrive": ("googleDriveOAuth2Api", "__CRED_GDRIVE__", "Google Drive OAuth2"),
     "gsheets": ("googleSheetsOAuth2Api", "__CRED_GSHEETS__", "Google Sheets OAuth2"),
-    "deepseek": ("deepSeekApi", "__CRED_DEEPSEEK__", "DeepSeek"),
+    "openrouter": ("openRouterApi", "__CRED_OPENROUTER__", "OpenRouter (key with limit)"),
+    "http_openrouter": ("httpHeaderAuth", "__CRED_HTTP_OPENROUTER__", "OpenRouter API key (header)"),
     "openai_cloudru": ("openAiApi", "__CRED_OPENAI_CLOUDRU__", "cloud.ru (OpenAI-compatible)"),
     "pinecone": ("pineconeApi", "__CRED_PINECONE__", "Pinecone"),
     "http_pinecone": ("httpHeaderAuth", "__CRED_HTTP_PINECONE__", "Pinecone API key (header)"),
@@ -38,9 +39,71 @@ CREDS = {
 WF_ERRORS = "__WF_ERRORS__"
 WF_NOTIFY = "__WF_NOTIFY__"
 WF_BRD_GENERATOR = "__WF_BRD_GENERATOR__"
+WF_QUEUE = "__WF_QUEUE__"
 
 SESSIONS_TABLE = "brd_sessions"
 KB_TABLE = "kb_files"
+
+# ---------------------------------------------------------------------------
+# Control layer: потолки агента. Обоснование чисел — docs/control-layer.md.
+# Паспорт инструмента: шаг у человека 240 мин, 5 раз в неделю, 6 прогонов до рабочего результата.
+LIMITS = {
+    "INTERVIEW_MAX_ITERATIONS": 4,   # шагов агента за реплику: 0–2 запроса к KB + ответ = 3, +1 запас
+    "BRD_MAX_ITERATIONS": 6,         # шагов агента за часть BRD: 2–4 запроса к KB + ответ = 5, +1 запас
+    "MAX_TURNS": 40,                 # ответов в интервью: ~6 мин на ответ × 40 ≈ 240 мин работы человека
+    "SESSION_BUDGET_USD": 1.0,       # оценка расхода на сессию: ~6 прогонов × ~$0.17
+    "INTERVIEW_TIMEOUT_SEC": 180,    # таймаут LLM 120 с + Telegram/KB
+    "BRD_TIMEOUT_SEC": 900,          # норма генерации 3–5 мин ×3 запас
+    "BRD_ATTEMPTS_PER_SESSION": 2,   # первая попытка + один повтор после сбоя; дальше — человек
+    "BRD_PER_CHAT_PER_DAY": 2,       # BRD от одного заказчика за 24 ч
+    "BRD_PER_DAY": 5,                # BRD за 24 ч всего = недельная норма (5 в неделю)
+}
+# Цена модели (USD за 1M токенов) — для оценки расхода; задаётся в .env вместе с моделью.
+CHARS_PER_TOKEN = 3  # грубая оценка для русского текста; сверяется с фактом OpenRouter в cost-attack
+
+# Общий JS: распознавание пределов и оценка расхода. Вставляется в Code-узлы.
+LIMIT_JS = r"""
+// Агентная нода v2.x при maxIterations завершается УСПЕШНО с этим текстом; v3.x — падает с ошибкой «Max iterations (N) reached».
+const STOP_RE = /Agent stopped due to (max iterations|iteration limit)|Max iterations \(\d+\) reached/i;
+// Лимит ключа/баланса провайдера: OpenRouter 402/403 (limit_source openrouter_key_limit), DeepSeek 402 Insufficient Balance.
+const MONEY_RE = /\b402\b|insufficient (credits|balance)|payment required|openrouter_key_limit|key limit|budget limit/i;
+const errStr = (e) => (!e ? '' : typeof e === 'string' ? e : [e.message, e.description, e.httpCode].filter(Boolean).join(' ') || JSON.stringify(e)).slice(0, 800);
+// Оценка стоимости одного прогона агента сверху: каждый вызов LLM получает system + prompt + результаты инструментов.
+const estimateRun = (sysChars, promptChars, outText, steps, pIn, pOut, cpt) => {
+  steps = Array.isArray(steps) ? steps : [];
+  const calls = steps.length + 1;
+  const obs = steps.reduce((a, s) => a + String(s.observation ?? '').length, 0);
+  const acts = steps.reduce((a, s) => a + JSON.stringify(s.action ?? {}).length, 0);
+  const inChars = calls * (sysChars + promptChars) + obs * calls;
+  const outChars = String(outText || '').length + acts;
+  return { calls, steps: steps.length, usd: (inChars * pIn + outChars * pOut) / cpt / 1e6 };
+};
+""".strip()
+
+
+def llm_config():
+    """Поля Config для оценки расхода (значения из .env, приводятся Number() в коде)."""
+    return {
+        "LLM_MODEL": "__CFG_LLM_MODEL__",
+        "LLM_PRICE_IN": "__CFG_LLM_PRICE_IN__",
+        "LLM_PRICE_OUT": "__CFG_LLM_PRICE_OUT__",
+        "CHARS_PER_TOKEN": CHARS_PER_TOKEN,
+        "SESSION_BUDGET_USD": LIMITS["SESSION_BUDGET_USD"],
+    }
+
+
+def openrouter_model(w, name, pos, temperature, max_tokens, timeout):
+    return w.add(name, "@n8n/n8n-nodes-langchain.lmChatOpenRouter", 1, {
+        "model": "__CFG_LLM_MODEL__",
+        "options": {"temperature": temperature, "maxTokens": max_tokens, "timeout": timeout, "maxRetries": 2},
+    }, pos, creds=["openrouter"])
+
+
+def mark_outcome(w, name, expr, pos):
+    """Execution Data: «сделано» и «остановлено по пределу» различимы в списке executions (фильтр outcome)."""
+    return w.add(name, "n8n-nodes-base.executionData", 1.1, {
+        "dataToSave": {"values": [{"key": "outcome", "value": expr}]},
+    }, pos)
 
 
 def uid():
@@ -48,8 +111,9 @@ def uid():
 
 
 class WF:
-    def __init__(self, name, error_workflow=True):
+    def __init__(self, name, error_workflow=True, timeout=None):
         self.name = name
+        self.dx = 0  # сдвиг по X для добавляемых узлов (раскладка на холсте)
         self.nodes = []
         self.connections = {}
         self.settings = {
@@ -61,6 +125,8 @@ class WF:
         }
         if error_workflow:
             self.settings["errorWorkflow"] = WF_ERRORS
+        if timeout:
+            self.settings["executionTimeout"] = timeout  # потолок времени прогона, секунды
 
     def add(self, name, type_, version, params, pos, creds=None, **extra):
         node = {
@@ -69,7 +135,7 @@ class WF:
             "name": name,
             "type": type_,
             "typeVersion": version,
-            "position": list(pos),
+            "position": [pos[0] + self.dx, pos[1]],
         }
         if creds:
             node["credentials"] = {}
@@ -293,10 +359,18 @@ return $input.all().map((it) => {
   if (!r.execution_url && r.execution_id && r.workflow_id && base && !base.startsWith('__')) {
     r.execution_url = `${base}/workflow/${r.workflow_id}/executions/${r.execution_id}`;
   }
+  // Потолки, сработавшие как необработанное падение (таймаут прогона, лимит ключа) → ручная очередь.
+  // Обработанные пределы воркфлоу отправляют в очередь сами, здесь их не дублируем.
+  r.limit_type = '';
+  if (r.source === 'unhandled') {
+    const t = `${r.message} ${r.details}`;
+    if (/timed? ?out|timeout|max(imum)? execution time/i.test(t)) r.limit_type = 'time';
+    else if (MONEY_RE.test(t)) r.limit_type = 'cost_key';
+  }
   r.timestamp = new Date().toISOString();
   return { json: r };
 });
-"""), (480, 100))
+""".replace("const cfg = $('Config')", LIMIT_JS + "\nconst cfg = $('Config')", 1)), (480, 100))
     w.add("Append to errors sheet", "n8n-nodes-base.googleSheets", 4.5, sheets_append(
         "={{ $('Config').first().json.ERRORS_SHEET_ID }}", "={{ $('Config').first().json.ERRORS_SHEET_TAB }}"),
         (720, 100), creds=["gsheets"], onError="continueRegularOutput")
@@ -338,9 +412,19 @@ return out;
         "chatId": "={{ $json.chat_id }}", "text": "={{ $json.text }}",
         "additionalFields": {"appendAttribution": False, "disable_web_page_preview": True, "parse_mode": "HTML"},
     }, (1200, 100), creds=["telegram"], onError="continueRegularOutput")
+    w.add("Limit-class errors", "n8n-nodes-base.code", 2, code("""
+return $('Normalize error').all().map((i) => i.json).filter((r) => r.limit_type).map((r) => ({ json: {
+  limit_type: r.limit_type, limit_value: '', observed: r.message, workflow: r.workflow, workflow_id: r.workflow_id,
+  execution_id: r.execution_id, execution_url: r.execution_url, session_id: '', chat_id: r.chat_id || '', username: '',
+  details: `Необработанное падение в узле «${r.node}». Сессию (если есть) найдёт BRD-05 по статусу generating.`,
+} }));
+"""), (960, 300))
+    w.add("Escalate via BRD-07", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_QUEUE, wait=False), (1200, 300))
     w.connect("On workflow error", "Config")
     w.connect("Handled error (from workflows)", "Config")
     w.chain("Config", "Normalize error", "Append to errors sheet", "Format alert (with dedup)", "Alert support chat")
+    w.connect("Append to errors sheet", "Limit-class errors")
+    w.connect("Limit-class errors", "Escalate via BRD-07")
     w.note("""## BRD-00 — ошибки и алерты саппорту
 **Два входа:**
 • **Error Trigger** — любое необработанное падение воркфлоу BRD-01…06 (у них в Settings → Error workflow указан этот воркфлоу).
@@ -348,8 +432,10 @@ return out;
 
 **Дальше:** строка в Google Sheet `errors` для анализа и алерт в Telegram-чат саппорта (`severity` error/critical). Одинаковые алерты подавляются на 15 минут.
 
+Необработанные падения класса «потолок» (таймаут прогона, лимит ключа OpenRouter 402/403) дополнительно уходят в ручную очередь **BRD-07**.
+
 Telegram отправляется напрямую, а не через BRD-02, чтобы не возникло петли, если сломан сам Notify.""",
-           (-40, -340), w=620, h=300, color=3)
+           (-40, -380), w=620, h=340, color=3)
     w.dump("BRD-00_errors-and-alerts.json")
 
 
@@ -431,6 +517,110 @@ return out;
 **Manual test** — проверить бота и чат команды.""",
            (-40, -330), w=640, h=280, color=4)
     w.dump("BRD-02_notify.json")
+
+
+# ===========================================================================
+# BRD-07 — ручная очередь: исход любого сработавшего потолка (fallback к человеку)
+LIMIT_NAMES = {
+    "steps": "Шаги агента за прогон (maxIterations)",
+    "turns": "Длина интервью (ответов заказчика)",
+    "cost_session": "Бюджет сессии, USD (оценка)",
+    "cost_key": "Лимит ключа OpenRouter, USD в неделю",
+    "time": "Время прогона (таймаут)",
+    "brd_attempts": "Попытки генерации BRD на сессию",
+    "artifacts_chat": "BRD от одного заказчика за 24 ч",
+    "artifacts_day": "BRD всего за 24 ч",
+}
+
+
+def build_queue():
+    w = WF("BRD-07 Manual Queue (limits)")
+    w.add("When a limit is hit", "n8n-nodes-base.executeWorkflowTrigger", 1.1, {"inputSource": "passthrough"}, (0, 0))
+    w.add("Manual test", "n8n-nodes-base.manualTrigger", 1, {}, (0, 200))
+    w.add("Test limit", "n8n-nodes-base.set", 3.4, p_set({
+        "limit_type": "steps", "limit_value": LIMITS["INTERVIEW_MAX_ITERATIONS"], "observed": "тест",
+        "workflow": "BRD-07 Manual test", "session_id": "", "chat_id": "", "username": "",
+        "details": "Проверка ручной очереди: строка в manual_queue и сообщение в чат команды.",
+    }), (220, 200))
+    w.add("Config", "n8n-nodes-base.set", 3.4, p_set({
+        "LOGS_SHEET_ID": "__CFG_LOGS_SHEET_ID__",
+        "QUEUE_TAB": "manual_queue",
+        "ASSIGNEE": "Команда ИИ-среды",
+        "N8N_BASE_URL": "__CFG_N8N_BASE_URL__",
+    }, include_other=True), (440, 0))
+    names_js = json.dumps(LIMIT_NAMES, ensure_ascii=False)
+    w.add("Queue rows", "n8n-nodes-base.code", 2, code(f"""
+// Вход: limit_type, limit_value, observed, workflow, workflow_id, execution_id, session_id, chat_id, username, details.
+// Исход у всех потолков один: строка в очереди к роли с правом решить. Перезапуска нет.
+const cfg = $('Config').first().json;
+const NAMES = {names_js};
+const base = String(cfg.N8N_BASE_URL || '').replace(/\\/$/, '');
+const now = new Date().toISOString();
+return $input.all().map((it, k) => {{
+  const j = it.json || {{}};
+  let url = j.execution_url || '';
+  if (!url && j.execution_id && j.workflow_id && base && !base.startsWith('__')) url = `${{base}}/workflow/${{j.workflow_id}}/executions/${{j.execution_id}}`;
+  return {{ json: {{
+    queued_at: now,
+    queue_id: `Q-${{Date.now().toString(36)}}-${{k}}`,
+    limit_type: j.limit_type || 'unknown',
+    limit_name: NAMES[j.limit_type] || String(j.limit_type || 'неизвестный потолок'),
+    limit_value: String(j.limit_value ?? ''),
+    observed: String(j.observed ?? '').slice(0, 300),
+    workflow: j.workflow || '',
+    session_id: j.session_id || '',
+    chat_id: String(j.chat_id || ''),
+    customer: j.username || '',
+    details: String(j.details || '').slice(0, 1000),
+    execution_url: url,
+    outcome: 'остановлено по пределу → ручная очередь (без перезапуска)',
+    assignee: cfg.ASSIGNEE,
+    status: 'new',
+    resolution: '',
+    resolved_at: '',
+  }} }};
+}});
+"""), (660, 0))
+    w.add("Append to manual_queue", "n8n-nodes-base.googleSheets", 4.5, sheets_append(
+        "={{ $('Config').first().json.LOGS_SHEET_ID }}", "={{ $('Config').first().json.QUEUE_TAB }}"),
+        (880, 0), creds=["gsheets"], onError="continueErrorOutput")
+    w.add("Team message", "n8n-nodes-base.code", 2, code("""
+// Сообщение в чат команды отправляется, даже если запись в Sheets не удалась: прогон не должен потеряться.
+return $('Queue rows').all().map((i) => i.json).map((q) => ({ json: {
+  audience: 'team', kind: 'warning', title: 'Остановлено по пределу → ручная очередь',
+  text: [
+    `Потолок: ${q.limit_name} = ${q.limit_value || '—'} (факт: ${q.observed || '—'})`,
+    `Workflow: ${q.workflow || '—'}`,
+    q.customer || q.chat_id ? `Заказчик: ${q.customer || q.chat_id}` : '',
+    q.session_id ? `Session ID: ${q.session_id}` : '',
+    q.details ? `Детали: ${q.details}` : '',
+    q.execution_url ? `Execution: ${q.execution_url}` : '',
+    `Очередь: лист manual_queue, ${q.queue_id}. Разбирает: ${q.assignee}. Перезапуск не выполнялся.`,
+  ].filter(Boolean).join('\\n'),
+  source: 'manual_queue' } }));
+"""), (1100, 0))
+    w.add("Notify team via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (1320, 0))
+    w.add("Sheet error payload", "n8n-nodes-base.code", 2, code(error_payload_js(
+        "manual_queue", "Append to manual_queue", alert=True,
+        msg_expr="'Не удалось записать прогон в ручную очередь (manual_queue): ' + errText(j)")), (1100, 200))
+    w.add("Log via BRD-00", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_ERRORS, wait=False), (1320, 200))
+    w.connect("When a limit is hit", "Config")
+    w.connect("Manual test", "Test limit")
+    w.connect("Test limit", "Config")
+    w.chain("Config", "Queue rows", "Append to manual_queue", "Team message", "Notify team via BRD-02")
+    w.connect("Append to manual_queue", "Sheet error payload", out=1)
+    w.connect("Append to manual_queue", "Team message", out=1)
+    w.connect("Sheet error payload", "Log via BRD-00")
+    w.note("""## BRD-07 — ручная очередь (fallback к человеку)
+Сюда приходит **любой** сработавший потолок control layer: шаги агента, длина интервью, бюджет сессии, лимит ключа OpenRouter, таймаут, лимиты на число BRD.
+
+**Исход:** строка в листе `manual_queue` (таблица «BRD agent — logs») со статусом `new` + предупреждение в чат команды ИИ-среды. Сессия заказчика заморожена (`needs_review`) — это делает вызывающий воркфлоу.
+
+**Перезапуска нет:** повтор после предела кормит разгон. Решение принимает команда: продолжить (`status=active` в brd_sessions), сформировать BRD вручную (BRD-04 → Manual test) или закрыть (`cancelled`). В очереди: `status` → `resolved`, `resolution`, `resolved_at`.
+
+**Manual test** — проверить очередь и уведомление.""",
+           (-40, -400), w=700, h=350, color=5)
+    w.dump("BRD-07_manual-queue.json")
 
 
 # ===========================================================================
@@ -872,18 +1062,25 @@ HELP = (
     "/new — начать новую беседу\\n/status — статус текущей беседы\\n/done — завершить интервью и сформировать BRD\\n"
     "/cancel — отменить беседу\\n/help — эта справка\\n\\nМожно писать текстом или отправлять голосовые сообщения."
 )
+LIMIT_REPLY = (
+    "Я остановил беседу: сработало ограничение агента. Ваши ответы сохранены, беседа передана команде развития "
+    "ИИ-среды — с вами свяжутся и решат, как продолжить. Повторять сообщения не нужно."
+)
 
 
 def build_interview():
-    w = WF("BRD-03 Interview Agent (Telegram)")
+    w = WF("BRD-03 Interview Agent (Telegram)", timeout=LIMITS["INTERVIEW_TIMEOUT_SEC"])
     w.add("Telegram Trigger", "n8n-nodes-base.telegramTrigger", 1.2, {"updates": ["message"], "additionalFields": {}},
           (0, 200), creds=["telegram"])
     w.add("Config", "n8n-nodes-base.set", 3.4, p_set({
         "MIN_TURNS_FOR_DONE": 4,
         "SOFT_MAX_TURNS": 30,
+        "MAX_TURNS": LIMITS["MAX_TURNS"],
+        "MAX_ITERATIONS": LIMITS["INTERVIEW_MAX_ITERATIONS"],  # справочно; сам потолок — в узле Interview agent
         "HISTORY_LIMIT": 60,
         "STT_URL": "__CFG_STT_URL__",
         "STT_MODEL": "__CFG_STT_MODEL__",
+        **llm_config(),
     }, include_other=True), (220, 200))
     w.add("Parse message", "n8n-nodes-base.code", 2, code("""
 const m = $json.message || {};
@@ -953,7 +1150,7 @@ return [{{ json: {{ chat_id: msg.chat_id, reply: 'Я понимаю тексто
 const cfg = $('Config').first().json;
 const msg = $('Use transcript').isExecuted ? $('Use transcript').first().json : $('Parse message').first().json;
 const rows = $input.all().map((i) => i.json).filter((r) => r && r.session_id);
-const open = rows.filter((r) => ['active', 'generating'].includes(r.status))
+const open = rows.filter((r) => ['active', 'generating', 'needs_review'].includes(r.status))
   .sort((a, b) => String(b.started_at).localeCompare(String(a.started_at)))[0] || null;
 const now = new Date().toISOString();
 const GREETING = '{GREETING}';
@@ -963,15 +1160,30 @@ const newSession = () => ({{
   session_id: `${{msg.chat_id}}-${{Date.now()}}`, chat_id: msg.chat_id, user_id: msg.user_id, username: msg.username,
   status: 'active', history: '[]', turn_count: 0, started_at: now, last_activity_at: now,
   reminder_count: 0, last_reminder_at: '', brd_title: '', brd_url: '', error: '',
+  cost_usd: 0, limit_hit: '', brd_attempts: 0, brd_created_at: '',
 }});
 const res = {{ chat_id: msg.chat_id, username: msg.username, user_text: msg.text, reply: '', saves: [],
-              run_agent: false, start_brd: false, session: null, history: [], prompt: '' }};
+              run_agent: false, start_brd: false, session: null, history: [], prompt: '', limit: null }};
 const cmd = msg.command;
+// Потолок сработал до вызова LLM: сохраняем реплику, замораживаем сессию, отдаём в ручную очередь.
+const stopByLimit = (s, h, type, value, observed) => {{
+  const hh = h.concat([{{ role: 'user', content: msg.text, ts: now }}]);
+  const st = {{ ...s, history: JSON.stringify(hh), status: 'needs_review', last_activity_at: now,
+               limit_hit: `${{type}}: ${{observed}} / ${{value}}` }};
+  res.saves.push(st); res.session = st;
+  res.limit = {{ limit_type: type, limit_value: value, observed }};
+  res.reply = LIMIT_REPLY;
+}};
+const LIMIT_REPLY = '{LIMIT_REPLY}';
 
 if (!msg.text) {{
   res.reply = 'Не получилось разобрать сообщение. Пожалуйста, напишите текстом.';
 }} else if (cmd === 'help') {{
   res.reply = HELP;
+}} else if (open && open.status === 'needs_review') {{
+  // Повтор после предела запрещён: новую беседу не начинаем, пока команда не разберёт очередь.
+  res.reply = 'Беседа остановлена по ограничению агента и передана команде развития ИИ-среды — с вами свяжутся. ' +
+              'Ваши ответы сохранены, повторять их не нужно.';
 }} else if (open && open.status === 'generating') {{
   res.reply = 'BRD по вашей задаче уже формируется — пришлю ссылку, как только документ будет готов (обычно 3–5 минут).';
 }} else if (cmd === 'start' || cmd === 'new') {{
@@ -1004,6 +1216,15 @@ if (!msg.text) {{
   const limit = Number(cfg.HISTORY_LIMIT) || 60;
   const recent = h.slice(-limit);
   const turn = Number(s.turn_count || 0) + 1;
+  const spent = Number(s.cost_usd) || 0;
+  if (turn > Number(cfg.MAX_TURNS)) {{
+    stopByLimit(s, h, 'turns', cfg.MAX_TURNS, turn);
+    return [{{ json: res }}];
+  }}
+  if (spent >= Number(cfg.SESSION_BUDGET_USD)) {{
+    stopByLimit(s, h, 'cost_session', cfg.SESSION_BUDGET_USD, '$' + spent.toFixed(3));
+    return [{{ json: res }}];
+  }}
   const dialog = recent.map((m) => (m.role === 'user' ? 'Заказчик: ' : 'Интервьюер: ') + m.content).join('\\n\\n');
   res.session = s; res.history = h; res.run_agent = true;
   res.prompt = [
@@ -1024,11 +1245,10 @@ return [{{ json: res }}];
     w.add("Interview agent", "@n8n/n8n-nodes-langchain.agent", 2.2, {
         "promptType": "define",
         "text": "={{ $('Route').first().json.prompt }}",
-        "options": {"systemMessage": INTERVIEW_PROMPT, "maxIterations": 6},
+        "options": {"systemMessage": INTERVIEW_PROMPT, "maxIterations": LIMITS["INTERVIEW_MAX_ITERATIONS"],
+                    "returnIntermediateSteps": True},
     }, (2420, 0), onError="continueErrorOutput")
-    w.add("DeepSeek (interview)", "@n8n/n8n-nodes-langchain.lmChatDeepSeek", 1, {
-        "model": "deepseek-chat", "options": {"temperature": 0.3, "maxTokens": 2000, "timeout": 120000, "maxRetries": 2},
-    }, (2300, 220), creds=["deepseek"])
+    openrouter_model(w, "LLM (interview)", (2300, 220), temperature=0.3, max_tokens=2000, timeout=120000)
     w.add("KnowledgeBase", "@n8n/n8n-nodes-langchain.vectorStorePinecone", 1.1, {
         "mode": "retrieve-as-tool", "toolName": "KnowledgeBase",
         "toolDescription": "Поиск во внутренней базе знаний команды ИИ-среды: регламенты вывода ИИ-сервисов в ПЭ, runbook'и online/batch, стандарты именования и упаковки MLflow, политика ИБ и классы данных, чек-лист готовности, FAQ, реестр действующих ИИ-сервисов, стандарт и примеры BRD. Запрос — короткая фраза на русском.",
@@ -1039,31 +1259,62 @@ return [{{ json: res }}];
     w.add("Embeddings (cloud.ru)", "@n8n/n8n-nodes-langchain.embeddingsOpenAi", 1.2, {
         "model": "__CFG_EMBEDDING_MODEL__", "options": {"dimensions": 1536},
     }, (2560, 400), creds=["openai_cloudru"])
-    w.add("Process answer", "n8n-nodes-base.code", 2, code("""
+    w.add("Process answer", "n8n-nodes-base.code", 2, code(LIMIT_JS + f"""
 const r = $('Route').first().json;
-let out = String($json.output ?? $json.text ?? '').trim();
-const ready = out.includes('<<BRD_READY>>');
-out = out.replace(/<<BRD_READY>>/g, '').replace(/\\*\\*(.+?)\\*\\*/g, '$1').replace(/^#{1,6}\\s+/gm, '').trim();
+const cfg = $('Config').first().json;
+const raw = String($json.output ?? $json.text ?? '').trim();
+const now = new Date().toISOString();
+// Расход прогона (оценка сверху) копится в сессии — это бюджет сессии.
+const run = estimateRun({len(INTERVIEW_PROMPT)}, String(r.prompt || '').length, raw, $json.intermediateSteps,
+  Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 3);
+const spent = (Number(r.session.cost_usd) || 0) + run.usd;
+const budget = Number(cfg.SESSION_BUDGET_USD);
+const LIMIT_REPLY = '{LIMIT_REPLY}';
+// Предел без исхода — тихая потеря: служебный текст агента заказчику НЕ отправляем.
+let limit = null;
+if (STOP_RE.test(raw)) limit = {{ limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: `${{run.steps}} шагов, ответа нет` }};
+else if (spent >= budget) limit = {{ limit_type: 'cost_session', limit_value: budget, observed: '$' + spent.toFixed(3) }};
+if (limit) {{
+  const history = r.history.concat([{{ role: 'user', content: r.user_text, ts: now }}]);
+  const s = {{ ...r.session, history: JSON.stringify(history), last_activity_at: now, status: 'needs_review', cost_usd: spent,
+              limit_hit: `${{limit.limit_type}}: ${{limit.observed}} / ${{limit.limit_value}}` }};
+  return [{{ json: {{ chat_id: r.chat_id, reply: LIMIT_REPLY, saves: [s], session: s, start_brd: false, limit,
+                     run_cost_usd: run.usd, run_steps: run.steps }} }}];
+}}
+const ready = raw.includes('<<BRD_READY>>');
+let out = raw.replace(/<<BRD_READY>>/g, '').replace(/\\*\\*(.+?)\\*\\*/g, '$1').replace(/^#{{1,6}}\\s+/gm, '').trim();
 if (!out) out = ready ? 'Спасибо!' : 'Извините, не получилось сформулировать ответ. Повторите, пожалуйста, последнее сообщение.';
-const now = new Date().toISOString();
 const history = r.history.concat([
-  { role: 'user', content: r.user_text, ts: now },
-  { role: 'assistant', content: out, ts: now },
+  {{ role: 'user', content: r.user_text, ts: now }},
+  {{ role: 'assistant', content: out, ts: now }},
 ]);
-const s = { ...r.session, history: JSON.stringify(history), turn_count: Number(r.session.turn_count || 0) + 1,
-            last_activity_at: now, reminder_count: 0, status: ready ? 'generating' : 'active' };
+const s = {{ ...r.session, history: JSON.stringify(history), turn_count: Number(r.session.turn_count || 0) + 1,
+            last_activity_at: now, reminder_count: 0, status: ready ? 'generating' : 'active', cost_usd: spent }};
 const reply = ready ? out + '\\n\\nФормирую BRD — это займёт 3–5 минут. Пришлю ссылку на документ.' : out;
-return [{ json: { chat_id: r.chat_id, reply, saves: [s], session: s, start_brd: ready } }];
+return [{{ json: {{ chat_id: r.chat_id, reply, saves: [s], session: s, start_brd: ready, limit: null,
+                   run_cost_usd: run.usd, run_steps: run.steps }} }}];
 """), (2860, 0))
-    w.add("Agent failed", "n8n-nodes-base.code", 2, code("""
-// Ошибка LLM/инструментов: сохраняем реплику заказчика, чтобы не потерять, и извиняемся.
+    w.add("Agent failed", "n8n-nodes-base.code", 2, code(LIMIT_JS + f"""
+// Ошибка LLM/инструментов: сохраняем реплику заказчика, чтобы не потерять.
+// Исчерпан лимит ключа (402/403) или агент v3 упал по maxIterations — это предел, а не сбой: в ручную очередь.
 const r = $('Route').first().json;
+const cfg = $('Config').first().json;
 const now = new Date().toISOString();
-const history = r.history.concat([{ role: 'user', content: r.user_text, ts: now }]);
-const s = { ...r.session, history: JSON.stringify(history), last_activity_at: now, status: 'active' };
-return [{ json: { chat_id: r.chat_id, saves: [s], session: s, start_brd: false, error: $json.error,
-  reply: 'Извините, у меня технический сбой — ваше сообщение сохранено, команда поддержки уже уведомлена. Попробуйте повторить ответ через пару минут.' } }];
+const e = errStr($json.error);
+const history = r.history.concat([{{ role: 'user', content: r.user_text, ts: now }}]);
+let limit = null;
+if (MONEY_RE.test(e)) limit = {{ limit_type: 'cost_key', limit_value: 'лимит ключа OpenRouter', observed: e.slice(0, 200) }};
+else if (STOP_RE.test(e)) limit = {{ limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: e.slice(0, 200) }};
+if (limit) {{
+  const s = {{ ...r.session, history: JSON.stringify(history), last_activity_at: now, status: 'needs_review',
+              limit_hit: `${{limit.limit_type}}: ${{limit.observed.slice(0, 80)}}` }};
+  return [{{ json: {{ chat_id: r.chat_id, saves: [s], session: s, start_brd: false, limit, reply: '{LIMIT_REPLY}' }} }}];
+}}
+const s = {{ ...r.session, history: JSON.stringify(history), last_activity_at: now, status: 'active' }};
+return [{{ json: {{ chat_id: r.chat_id, saves: [s], session: s, start_brd: false, error: $json.error, limit: null,
+  reply: 'Извините, у меня технический сбой — ваше сообщение сохранено, команда поддержки уже уведомлена. Попробуйте повторить ответ через пару минут.' }} }}];
 """), (2860, 200))
+    w.add("Real error?", "n8n-nodes-base.if", 2, if_true("={{ !$json.limit }}"), (3080, 260))
     w.add("Agent error payload", "n8n-nodes-base.code", 2, code(error_payload_js(
         "interview_agent", "Interview agent", alert=True, chat_expr="j.chat_id",
         msg_expr="'Сбой агента-интервьюера: ' + errText(j)")), (3080, 380))
@@ -1077,6 +1328,8 @@ return $json.saves.map((s) => {
   const { id, createdAt, updatedAt, ...row } = s;
   row.turn_count = Number(row.turn_count) || 0;
   row.reminder_count = Number(row.reminder_count) || 0;
+  row.cost_usd = Math.round((Number(row.cost_usd) || 0) * 1e6) / 1e6;
+  row.brd_attempts = Number(row.brd_attempts) || 0;
   return { json: row };
 });
 """), (3740, 40))
@@ -1120,6 +1373,16 @@ return [{ json: { session_id: t.session.session_id, chat_id: t.chat_id } }];
 """), (4840, 40))
     w.add("Start BRD-04 (async)", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_BRD_GENERATOR, wait=False),
           (5060, 40))
+    mark_outcome(w, "Mark outcome", "={{ $json.limit ? 'limit_stopped' : ($json.error ? 'error' : 'done') }}",
+                 (3520, -120))
+    w.add("Limit hit?", "n8n-nodes-base.if", 2, if_true("={{ !!$json.limit }}"), (3740, -120))
+    w.add("Queue payload", "n8n-nodes-base.code", 2, code("""
+const t = $json;
+return [{ json: { ...t.limit, workflow: $workflow.name, workflow_id: $workflow.id, execution_id: $execution.id,
+  session_id: t.session?.session_id || '', chat_id: t.chat_id, username: t.session?.username || '',
+  details: `Сессия заморожена (needs_review), ответов: ${t.session?.turn_count ?? '—'}, расход (оценка): $${(Number(t.session?.cost_usd) || 0).toFixed(3)}` } }];
+"""), (3960, -200))
+    w.add("Escalate via BRD-07", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_QUEUE, wait=False), (4180, -200))
 
     w.chain("Telegram Trigger", "Config", "Parse message", "Message type")
     w.connect("Message type", "Get voice file", out=0)
@@ -1138,16 +1401,19 @@ return [{ json: { session_id: t.session.session_id, chat_id: t.chat_id } }];
     w.connect("Run agent?", "Typing…", out=0)
     w.connect("Run agent?", "Turn result", out=1)
     w.connect("Typing…", "Interview agent")
-    w.connect("DeepSeek (interview)", "Interview agent", kind="ai_languageModel")
+    w.connect("LLM (interview)", "Interview agent", kind="ai_languageModel")
     w.connect("KnowledgeBase", "Interview agent", kind="ai_tool")
     w.connect("Embeddings (cloud.ru)", "KnowledgeBase", kind="ai_embedding")
     w.connect("Interview agent", "Process answer", out=0)
     w.connect("Interview agent", "Agent failed", out=1)
     w.connect("Process answer", "Turn result")
     w.connect("Agent failed", "Turn result")
-    w.connect("Agent failed", "Agent error payload")
+    w.connect("Agent failed", "Real error?")
+    w.connect("Real error?", "Agent error payload", out=0)
     w.connect("Agent error payload", "Log agent error via BRD-00")
     w.connect("Turn result", "Has rows to save?")
+    w.connect("Turn result", "Mark outcome")
+    w.chain("Mark outcome", "Limit hit?", "Queue payload", "Escalate via BRD-07")
     w.connect("Has rows to save?", "Rows to save", out=0)
     w.connect("Has rows to save?", "Reply parts", out=1)
     w.connect("Rows to save", "Save session")
@@ -1162,23 +1428,30 @@ return [{ json: { session_id: t.session.session_id, chat_id: t.chat_id } }];
     w.connect("Start BRD?", "BRD job", out=0)
     w.connect("BRD job", "Start BRD-04 (async)")
 
-    w.note("""## BRD-03 — агент-интервьюер (Telegram)
+    w.note(f"""## BRD-03 — агент-интервьюер (Telegram)
 Заказчик пишет боту в личку (текст или голос → Whisper cloud.ru).
 **Состояние** беседы — Data Table **brd_sessions** (история JSON, статус, счётчики).
 **Команды:** /start, /new, /status, /done, /cancel, /help. Сообщения в групповых чатах игнорируются.
 
-**Агент** (DeepSeek + инструмент KnowledgeBase → Pinecone) ведёт интервью по правилам скилла mlops-deployment-intake-v2: один вопрос за ход, без приписанных оценок, данные для ИБ только собираются.
+**Агент** (OpenRouter + инструмент KnowledgeBase → Pinecone) ведёт интервью по правилам скилла mlops-deployment-intake-v2: один вопрос за ход, без приписанных оценок, данные для ИБ только собираются.
 Когда заказчик подтверждает резюме, агент ставит маркер `<<BRD_READY>>` → статус `generating` → асинхронный запуск **BRD-04**.
 
+**Control layer** (числа — docs/control-layer.md):
+• шаги: `maxIterations = {LIMITS["INTERVIEW_MAX_ITERATIONS"]}` в узле Interview agent; текст «Agent stopped…» заказчику не уходит;
+• длина интервью: > {LIMITS["MAX_TURNS"]} ответов → стоп;
+• деньги: бюджет сессии ${LIMITS["SESSION_BUDGET_USD"]} (оценка в `cost_usd`) + лимит ключа OpenRouter (402/403);
+• время: Settings → Timeout {LIMITS["INTERVIEW_TIMEOUT_SEC"]} с.
+Исход любого потолка: сессия `needs_review`, заказчику — сообщение, прогон → **BRD-07** (ручная очередь). Перезапуска нет. В executions: `outcome = done | limit_stopped | error`.
+
 Ошибки (STT, LLM, Data Table, Telegram) → BRD-00 (лист errors + алерт саппорту); заказчик получает вежливое сообщение.""",
-           (-40, -440), w=760, h=380, color=6)
+           (-40, -560), w=760, h=500, color=6)
     w.dump("BRD-03_interview-agent.json")
 
 
 # ===========================================================================
 # BRD-04 — генерация BRD и публикация в Google Drive
 def build_brd_generator():
-    w = WF("BRD-04 BRD Generator & Publisher")
+    w = WF("BRD-04 BRD Generator & Publisher", timeout=LIMITS["BRD_TIMEOUT_SEC"])
     w.add("When called by BRD-03", "n8n-nodes-base.executeWorkflowTrigger", 1.1, {"inputSource": "passthrough"}, (0, 0))
     w.add("Manual test", "n8n-nodes-base.manualTrigger", 1, {}, (0, 200))
     w.add("Test input", "n8n-nodes-base.set", 3.4, p_set({"session_id": "PASTE_SESSION_ID_FROM_brd_sessions"}),
@@ -1188,14 +1461,46 @@ def build_brd_generator():
         "LOGS_SHEET_ID": "__CFG_LOGS_SHEET_ID__",
         "BRD_REGISTRY_TAB": "brd_registry",
         "MIN_SECTIONS": 11,
+        "MAX_ITERATIONS": LIMITS["BRD_MAX_ITERATIONS"],  # справочно; сам потолок — в узле BRD writer
+        "BRD_ATTEMPTS_PER_SESSION": LIMITS["BRD_ATTEMPTS_PER_SESSION"],
+        "BRD_PER_CHAT_PER_DAY": LIMITS["BRD_PER_CHAT_PER_DAY"],
+        "BRD_PER_DAY": LIMITS["BRD_PER_DAY"],
+        **llm_config(),
     }, include_other=True), (440, 0))
     w.add("Load session", "n8n-nodes-base.dataTable", 1,
           dt_get(SESSIONS_TABLE, [("session_id", "={{ $json.session_id }}")]), (660, 0),
           alwaysOutputData=True, executeOnce=True)
+    w.add("Load all sessions", "n8n-nodes-base.dataTable", 1, dt_get(SESSIONS_TABLE), (880, 0),
+          alwaysOutputData=True, executeOnce=True)
+    w.add("Check limits", "n8n-nodes-base.code", 2, code("""
+// Потолки до генерации: попытки на сессию, число BRD за 24 ч (на заказчика и всего), бюджет сессии.
+const cfg = $('Config').first().json;
+const s = $('Load session').all().map((i) => i.json).find((r) => r && r.session_id);
+if (!s) throw new Error('Сессия не найдена: ' + cfg.session_id);
+const all = $input.all().map((i) => i.json).filter((r) => r && r.session_id);
+const since = Date.now() - 24 * 3600 * 1000;
+const recent = all.filter((r) => r.brd_created_at && new Date(r.brd_created_at).getTime() >= since);
+const byChat = recent.filter((r) => String(r.chat_id) === String(s.chat_id)).length;
+const attempt = (Number(s.brd_attempts) || 0) + 1;
+const spent = Number(s.cost_usd) || 0;
+let limit = null;
+if (attempt > Number(cfg.BRD_ATTEMPTS_PER_SESSION)) limit = { limit_type: 'brd_attempts', limit_value: cfg.BRD_ATTEMPTS_PER_SESSION, observed: attempt };
+else if (byChat >= Number(cfg.BRD_PER_CHAT_PER_DAY)) limit = { limit_type: 'artifacts_chat', limit_value: cfg.BRD_PER_CHAT_PER_DAY, observed: byChat + 1 };
+else if (recent.length >= Number(cfg.BRD_PER_DAY)) limit = { limit_type: 'artifacts_day', limit_value: cfg.BRD_PER_DAY, observed: recent.length + 1 };
+else if (spent >= Number(cfg.SESSION_BUDGET_USD)) limit = { limit_type: 'cost_session', limit_value: cfg.SESSION_BUDGET_USD, observed: '$' + spent.toFixed(3) };
+return [{ json: { ok: !limit, limit, session: s, attempt } }];
+"""), (1100, 0), onError="continueErrorOutput")
+    w.add("Within limits?", "n8n-nodes-base.if", 2, if_true("={{ $json.ok }}"), (1320, 0))
+    w.add("Attempt row", "n8n-nodes-base.code", 2, code("""
+// Попытку фиксируем ДО вызова LLM: даже если прогон упадёт по таймауту, повтор будет посчитан.
+return [{ json: { session_id: $json.session.session_id, brd_attempts: $json.attempt } }];
+"""), (1540, -100))
+    w.add("Record attempt", "n8n-nodes-base.dataTable", 1,
+          dt_upsert(SESSIONS_TABLE, "session_id", "={{ $json.session_id }}"), (1760, -100))
     tpl_js = json.dumps(BRD_TEMPLATE, ensure_ascii=False)
+    w.dx = 1100  # основной конвейер — правее проверки потолков
     w.add("Build BRD request", "n8n-nodes-base.code", 2, code(f"""
-const s = $input.all().map((i) => i.json).find((r) => r && r.session_id);
-if (!s) throw new Error('Сессия не найдена: ' + $('Config').first().json.session_id);
+const s = $('Check limits').first().json.session;
 let history = [];
 try {{ history = JSON.parse(s.history || '[]'); }} catch (e) {{ throw new Error('Повреждена история сессии ' + s.session_id); }}
 const transcript = history.map((m) => (m.role === 'user' ? 'ЗАКАЗЧИК: ' : 'ИНТЕРВЬЮЕР: ') + m.content).join('\\n\\n');
@@ -1227,11 +1532,11 @@ return PARTS.map((p) => ({{ json: {{ session: s, today, turns: Number(s.turn_cou
 """), (880, 0), onError="continueErrorOutput")
     w.add("BRD writer", "@n8n/n8n-nodes-langchain.agent", 2.2, {
         "promptType": "define", "text": "={{ $json.prompt }}",
-        "options": {"systemMessage": BRD_WRITER_PROMPT, "maxIterations": 8},
+        "options": {"systemMessage": BRD_WRITER_PROMPT, "maxIterations": LIMITS["BRD_MAX_ITERATIONS"],
+                    "returnIntermediateSteps": True},
     }, (1100, 0), onError="continueErrorOutput", retryOnFail=True, maxTries=2, waitBetweenTries=5000)  # runs once per part
-    w.add("DeepSeek (BRD)", "@n8n/n8n-nodes-langchain.lmChatDeepSeek", 1, {
-        "model": "deepseek-chat", "options": {"temperature": 0.2, "maxTokens": 8000, "timeout": 300000, "maxRetries": 2},
-    }, (980, 220), creds=["deepseek"])
+    # retryOnFail — повтор только после СБОЯ (v2.x при maxIterations не падает, а возвращает текст — его ловит Validate BRD).
+    openrouter_model(w, "LLM (BRD)", (980, 220), temperature=0.2, max_tokens=8000, timeout=300000)
     w.add("KnowledgeBase", "@n8n/n8n-nodes-langchain.vectorStorePinecone", 1.1, {
         "mode": "retrieve-as-tool", "toolName": "KnowledgeBase",
         "toolDescription": "Поиск во внутренней базе знаний: регламенты вывода ИИ-сервисов в ПЭ, runbook'и, стандарты, политика ИБ, чек-лист готовности, FAQ, реестр ИИ-сервисов, стандарт BRD. Используй, чтобы сослаться на применимые требования.",
@@ -1242,27 +1547,42 @@ return PARTS.map((p) => ({{ json: {{ session: s, today, turns: Number(s.turn_cou
     w.add("Embeddings (cloud.ru)", "@n8n/n8n-nodes-langchain.embeddingsOpenAi", 1.2, {
         "model": "__CFG_EMBEDDING_MODEL__", "options": {"dimensions": 1536},
     }, (1240, 400), creds=["openai_cloudru"])
-    w.add("Validate BRD", "n8n-nodes-base.code", 2, code("""
+    w.add("Validate BRD", "n8n-nodes-base.code", 2, code(LIMIT_JS + f"""
 const req = $('Build BRD request').first().json;
+const cfg = $('Config').first().json;
 // Склеиваем три части (разделы 0–5, 6–7, 8–12). Если какая-то часть упала, её обработает ветка ошибки.
-const outs = $input.all().map((i) => String(i.json.output ?? i.json.text ?? '').trim());
+const items = $input.all();
+const outs = items.map((i) => String(i.json.output ?? i.json.text ?? '').trim());
 if (outs.length < 3) return [];
-const clean = (t, k) => {
+// Расход трёх прогонов (оценка сверху) и проверка потолка шагов по каждой части.
+const prompts = $('Build BRD request').all().map((i) => String(i.json.prompt || '').length);
+let usd = 0, stopped = null;
+items.forEach((it, k) => {{
+  const run = estimateRun({len(BRD_WRITER_PROMPT)}, prompts[k] || 0, outs[k], it.json.intermediateSteps,
+    Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 3);
+  usd += run.usd;
+  if (!stopped && STOP_RE.test(outs[k])) stopped = {{ part: k + 1, steps: run.steps }};
+}});
+const cost_usd = (Number(req.session.cost_usd) || 0) + usd;
+if (stopped) return [{{ json: {{ valid: false, session: req.session, cost_usd,
+  limit: {{ limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: `часть ${{stopped.part}} из 3: ${{stopped.steps}} шагов, текста нет` }} }} }}];
+const clean = (t, k) => {{
   t = t.replace(/^```(?:markdown|md)?\\s*\\n/i, '').replace(/\\n```\\s*$/, '').trim();
   if (k > 0) t = t.replace(/^#\\s+BRD:.*\\n+/, '');
   return t;
-};
+}};
 let md = outs.map(clean).join('\\n\\n');
-const sections = new Set([...md.matchAll(/^##\\s+(\\d{1,2})\\./gm)].map((m) => Number(m[1])));
-const min = Number($('Config').first().json.MIN_SECTIONS) || 11;
+const sections = new Set([...md.matchAll(/^##\\s+(\\d{{1,2}})\\./gm)].map((m) => Number(m[1])));
+const min = Number(cfg.MIN_SECTIONS) || 11;
 let title = (md.match(/^#\\s+BRD:\\s*(.+)$/m) || [])[1] || '';
 if (!title) title = ((md.match(/\\|\\s*Название задачи\\/проекта\\s*\\|\\s*([^|]+)\\|/) || [])[1] || '').trim();
 title = (title || 'Без названия').replace(/[\\\\/:*?"<>|]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 90);
 const valid = sections.size >= min && md.length > 1500;
-return [{ json: { valid, md, title, sections: sections.size, length: md.length,
-  error: valid ? '' : `BRD не прошёл проверку: разделов ${sections.size} (нужно ≥ ${min}), длина ${md.length}`,
-  session: req.session, today: req.today, turns: req.turns } }];
+return [{{ json: {{ valid, md, title, sections: sections.size, length: md.length, cost_usd, limit: null,
+  error: valid ? '' : `BRD не прошёл проверку: разделов ${{sections.size}} (нужно ≥ ${{min}}), длина ${{md.length}}`,
+  session: req.session, today: req.today, turns: req.turns }} }}];
 """), (1540, 0))
+    w.add("Stopped by limit?", "n8n-nodes-base.if", 2, if_true("={{ !!$json.limit }}"), (1760, 100))
     w.add("Valid?", "n8n-nodes-base.if", 2, if_true("={{ $json.valid }}"), (1760, 0))
     w.add("Render Google Doc request", "n8n-nodes-base.code", 2, code(f"""
 {MD2HTML_JS}
@@ -1306,7 +1626,8 @@ return [{ json: {
   registry: { created_at: now, title: j.title, customer: j.session.username || '', chat_id: j.session.chat_id,
               session_id: j.session.session_id, turns: j.turns, status: 'Draft', doc_url: url },
   session_row: { session_id: j.session.session_id, status: 'completed', brd_title: j.title, brd_url: url,
-                 last_activity_at: now, error: '' },
+                 last_activity_at: now, error: '', brd_created_at: now,
+                 cost_usd: Math.round((Number(j.cost_usd) || 0) * 1e6) / 1e6 },
 } }];
 """), (2420, -100))
     w.add("Registry row", "n8n-nodes-base.code", 2, code("return [{ json: $json.registry }];"), (2640, -200))
@@ -1329,15 +1650,22 @@ return [
 """), (3520, -200))
     w.add("Notify via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (3740, -200))
 
-    w.add("Generation failed", "n8n-nodes-base.code", 2, code("""
-// Неудача: возвращаем сессию в active (заказчик может повторить /done), сообщаем саппорту и заказчику.
+    w.add("Generation failed", "n8n-nodes-base.code", 2, code(LIMIT_JS + """
+// Неудача: возвращаем сессию в active (заказчик может повторить /done — это вторая попытка), сообщаем саппорту и заказчику.
+// Лимит ключа (402/403) или падение агента v3 по maxIterations — это предел, а не сбой: уходит в ветку Limit stop.
 let s = {};
 try { s = $('Load session').all().map((i) => i.json).find((r) => r && r.session_id) || {}; } catch (e) {}
 const j = $input.first().json || {};
 const e = j.error;
 const msg = (typeof e === 'string' ? e : (e && (e.message || e.description)) || JSON.stringify(e || 'Unknown error')).slice(0, 800);
-return [{ json: { session_id: s.session_id || '', chat_id: s.chat_id || '', username: s.username || '', error: msg } }];
+const cfg = $('Config').first().json;
+let limit = null;
+if (MONEY_RE.test(msg)) limit = { limit_type: 'cost_key', limit_value: 'лимит ключа OpenRouter', observed: msg.slice(0, 200) };
+else if (STOP_RE.test(msg)) limit = { limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: msg.slice(0, 200) };
+return [{ json: { session_id: s.session_id || '', chat_id: s.chat_id || '', username: s.username || '', error: msg,
+  limit, session: s } }];
 """), (2200, 260))
+    w.add("Provider limit?", "n8n-nodes-base.if", 2, if_true("={{ !!$json.limit }}"), (2200, 460))
     w.add("Session row (back to active)", "n8n-nodes-base.code", 2, code("""
 if (!$json.session_id) return [];
 return [{ json: { session_id: $json.session_id, status: 'active', error: $json.error, last_activity_at: new Date().toISOString() } }];
@@ -1357,18 +1685,55 @@ return [{ json: { audience: 'customer', chat_id: $json.chat_id, kind: 'warning',
 """), (2420, 540))
     w.add("Notify customer via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (2640, 540))
 
+    # Исход любого потолка BRD-04: сессия needs_review + сообщение заказчику + ручная очередь. Повтора нет.
+    w.add("Limit stop", "n8n-nodes-base.code", 2, code(f"""
+const j = $input.first().json;
+const s = j.session || {{}};
+const l = j.limit;
+const now = new Date().toISOString();
+const row = {{ session_id: s.session_id, status: 'needs_review', last_activity_at: now,
+              limit_hit: `${{l.limit_type}}: ${{String(l.observed).slice(0, 80)}} / ${{l.limit_value}}` }};
+if (j.cost_usd !== undefined) row.cost_usd = Math.round(Number(j.cost_usd) * 1e6) / 1e6;
+return [{{ json: {{ session_row: row, limit: l, session: s,
+  customer: {{ audience: 'customer', chat_id: s.chat_id, kind: 'warning', title: 'BRD не сформирован автоматически',
+              text: '{LIMIT_REPLY}', source: 'brd_generator' }},
+  queue: {{ ...l, workflow: $workflow.name, workflow_id: $workflow.id, execution_id: $execution.id,
+           session_id: s.session_id || '', chat_id: s.chat_id || '', username: s.username || '',
+           details: `Генерация BRD остановлена, сессия needs_review. Ответов в интервью: ${{s.turn_count ?? '—'}}, попыток генерации: ${{s.brd_attempts ?? 0}}.` }},
+}} }}];
+"""), (3080, 460))
+    mark_outcome(w, "Outcome: limit_stopped", "limit_stopped", (3300, 460))
+    w.add("Session row (needs_review)", "n8n-nodes-base.code", 2, code(
+        "const j = $('Limit stop').first().json;\nreturn j.session_row.session_id ? [{ json: j.session_row }] : [];"),
+        (3520, 380))
+    w.add("Freeze session", "n8n-nodes-base.dataTable", 1,
+          dt_upsert(SESSIONS_TABLE, "session_id", "={{ $json.session_id }}"), (3740, 380), onError="continueRegularOutput")
+    w.add("Customer limit message", "n8n-nodes-base.code", 2, code(
+        "const j = $('Limit stop').first().json;\nreturn j.customer.chat_id ? [{ json: j.customer }] : [];"), (3520, 540))
+    w.add("Notify customer (limit) via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (3740, 540))
+    w.add("Queue payload", "n8n-nodes-base.code", 2, code("return [{ json: $('Limit stop').first().json.queue }];"),
+          (3520, 700))
+    w.add("Escalate via BRD-07", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_QUEUE, wait=False), (3740, 700))
+    mark_outcome(w, "Outcome: done", "done", (2640, -360))
+    mark_outcome(w, "Outcome: error", "error", (2640, 720))
+
     w.connect("When called by BRD-03", "Config")
     w.connect("Manual test", "Test input")
     w.connect("Test input", "Config")
-    w.chain("Config", "Load session", "Build BRD request")
+    w.chain("Config", "Load session", "Load all sessions", "Check limits", "Within limits?")
+    w.connect("Check limits", "Generation failed", out=1)
+    w.chain("Within limits?", "Attempt row", "Record attempt", "Build BRD request")
+    w.connect("Within limits?", "Limit stop", out=1)
     w.connect("Build BRD request", "BRD writer", out=0)
     w.connect("Build BRD request", "Generation failed", out=1)
-    w.connect("DeepSeek (BRD)", "BRD writer", kind="ai_languageModel")
+    w.connect("LLM (BRD)", "BRD writer", kind="ai_languageModel")
     w.connect("KnowledgeBase", "BRD writer", kind="ai_tool")
     w.connect("Embeddings (cloud.ru)", "KnowledgeBase", kind="ai_embedding")
     w.connect("BRD writer", "Validate BRD", out=0)
     w.connect("BRD writer", "Generation failed", out=1)
-    w.connect("Validate BRD", "Valid?")
+    w.connect("Validate BRD", "Stopped by limit?")
+    w.connect("Stopped by limit?", "Limit stop", out=0)
+    w.connect("Stopped by limit?", "Valid?", out=1)
     w.connect("Valid?", "Render Google Doc request", out=0)
     w.connect("Valid?", "Generation failed", out=1)
     w.connect("Render Google Doc request", "Upload to Drive as Google Doc")
@@ -1376,21 +1741,35 @@ return [{ json: { audience: 'customer', chat_id: $json.chat_id, kind: 'warning',
     w.connect("Upload to Drive as Google Doc", "Generation failed", out=1)
     w.chain("Published", "Registry row", "Register in BRD registry", "Session row (completed)",
             "Mark session completed", "Success notifications", "Notify via BRD-02")
-    w.connect("Generation failed", "Session row (back to active)")
-    w.connect("Generation failed", "Failure error payload")
-    w.connect("Generation failed", "Apology to customer")
+    w.connect("Published", "Outcome: done")
+    w.connect("Generation failed", "Provider limit?")
+    w.connect("Provider limit?", "Limit stop", out=0)
+    w.connect("Provider limit?", "Session row (back to active)", out=1)
+    w.connect("Provider limit?", "Failure error payload", out=1)
+    w.connect("Provider limit?", "Apology to customer", out=1)
+    w.connect("Provider limit?", "Outcome: error", out=1)
     w.connect("Session row (back to active)", "Return session to active")
     w.connect("Failure error payload", "Log via BRD-00")
     w.connect("Apology to customer", "Notify customer via BRD-02")
-    w.note("""## BRD-04 — генерация и публикация BRD
+    w.connect("Limit stop", "Outcome: limit_stopped")
+    w.connect("Outcome: limit_stopped", "Session row (needs_review)")
+    w.connect("Outcome: limit_stopped", "Customer limit message")
+    w.connect("Outcome: limit_stopped", "Queue payload")
+    w.connect("Session row (needs_review)", "Freeze session")
+    w.connect("Customer limit message", "Notify customer (limit) via BRD-02")
+    w.connect("Queue payload", "Escalate via BRD-07")
+    w.dx = 0
+    w.note(f"""## BRD-04 — генерация и публикация BRD
 Вызывается асинхронно из BRD-03 (`session_id`). Для отладки — **Manual test** с session_id из brd_sessions.
-1. Транскрипт интервью + шаблон BRD (mlops-deployment-intake-v2) → **BRD writer** (DeepSeek + KnowledgeBase) пишет BRD в три приёма: разделы 0–5, 6–7, 8–12 (у DeepSeek лимит 8000 токенов на ответ).
-2. Проверка: есть ≥ 11 из 13 разделов.
+0. **Check limits** — потолки до генерации: попыток на сессию ≤ {LIMITS["BRD_ATTEMPTS_PER_SESSION"]}, BRD от заказчика за 24 ч < {LIMITS["BRD_PER_CHAT_PER_DAY"]}, всего за 24 ч < {LIMITS["BRD_PER_DAY"]}, расход сессии < ${LIMITS["SESSION_BUDGET_USD"]}.
+1. Транскрипт интервью + шаблон BRD (mlops-deployment-intake-v2) → **BRD writer** (OpenRouter + KnowledgeBase, `maxIterations = {LIMITS["BRD_MAX_ITERATIONS"]}`) пишет BRD в три приёма: разделы 0–5, 6–7, 8–12 (лимит 8000 токенов на ответ).
+2. Проверка: ни одна часть не остановлена по пределу шагов; есть ≥ 11 из 13 разделов.
 3. Markdown → HTML → загрузка в Drive с конвертацией в **Google Doc** (таблицы и заголовки сохраняются) в папку `BRD_FOLDER_ID`.
 4. Строка в реестре BRD (Google Sheet, лист brd_registry), сессия → `completed`.
 5. Ссылка заказчику и в чат команды (через BRD-02).
-При ошибке сессия возвращается в `active`, заказчик может повторить /done; саппорт получает алерт.""",
-           (-40, -480), w=760, h=360, color=4)
+**Сбой** → сессия в `active`, заказчик может повторить /done (вторая попытка); саппорт получает алерт.
+**Потолок** (шаги, попытки, число BRD, бюджет, лимит ключа 402/403) → **Limit stop**: сессия `needs_review`, сообщение заказчику, ручная очередь **BRD-07**. Повтора нет. Таймаут прогона — Settings → Timeout {LIMITS["BRD_TIMEOUT_SEC"]} с (зависшие `generating` подбирает BRD-05).""",
+           (-40, -620), w=820, h=500, color=4)
     w.dump("BRD-04_brd-generator.json")
 
 
@@ -1407,17 +1786,33 @@ def build_reminders():
         "CLOSE_AFTER_HOURS": 72,
         "WORK_HOUR_FROM": 9,
         "WORK_HOUR_TO": 20,
+        # потолок времени генерации: таймаут BRD-04 + 5 мин запаса; дольше в generating — прогон потерян
+        "GENERATION_STUCK_MIN": LIMITS["BRD_TIMEOUT_SEC"] // 60 + 5,
     }), (220, 90))
     w.add("Load active sessions", "n8n-nodes-base.dataTable", 1,
-          dt_get(SESSIONS_TABLE, [("status", "active")]), (440, 90), alwaysOutputData=True, executeOnce=True)
+          dt_get(SESSIONS_TABLE, [("status", "active"), ("status", "generating")], match="anyCondition"),
+          (440, 90), alwaysOutputData=True, executeOnce=True)
     w.add("Plan reminders", "n8n-nodes-base.code", 2, code("""
 const cfg = $('Config').first().json;
 const now = new Date();
 const hourMsk = Number(now.toLocaleString('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }));
 const workTime = hourMsk >= Number(cfg.WORK_HOUR_FROM) && hourMsk < Number(cfg.WORK_HOUR_TO);
 const H = 3600 * 1000;
-const sessions = $input.all().map((i) => i.json).filter((r) => r && r.session_id && r.status === 'active');
-const saves = [], notifications = [];
+const all = $input.all().map((i) => i.json).filter((r) => r && r.session_id);
+const sessions = all.filter((r) => r.status === 'active');
+const saves = [], notifications = [], escalations = [];
+// Сторож потолка времени: BRD-04 мог быть снят по таймауту и не успеть записать исход.
+for (const s of all.filter((r) => r.status === 'generating')) {
+  const min = (now - new Date(s.last_activity_at)) / 60000;
+  if (min < Number(cfg.GENERATION_STUCK_MIN)) continue;
+  saves.push({ session_id: s.session_id, status: 'needs_review', last_activity_at: now.toISOString(),
+               limit_hit: `time: ${Math.round(min)} мин в generating / ${cfg.GENERATION_STUCK_MIN}` });
+  notifications.push({ audience: 'customer', chat_id: s.chat_id, kind: 'warning', title: 'BRD не сформирован автоматически',
+    text: 'LIMIT_REPLY_JS', source: 'reminders' });
+  escalations.push({ limit_type: 'time', limit_value: `${cfg.GENERATION_STUCK_MIN} мин`, observed: `${Math.round(min)} мин в статусе generating`,
+    workflow: 'BRD-04 BRD Generator & Publisher (найдено BRD-05)', session_id: s.session_id, chat_id: s.chat_id, username: s.username || '',
+    details: 'Генерация не завершилась и не записала исход (вероятно, снята по таймауту). Сессия переведена в needs_review.' });
+}
 for (const s of sessions) {
   const idleH = (now - new Date(s.last_activity_at)) / H;
   const sinceRemH = s.last_reminder_at ? (now - new Date(s.last_reminder_at)) / H : Infinity;
@@ -1437,14 +1832,17 @@ for (const s of sessions) {
             '\\n\\nПросто ответьте на него. Если информации уже достаточно — /done, если задача неактуальна — /cancel.', source: 'reminders' });
   }
 }
-return [{ json: { checked: sessions.length, work_time: workTime, saves, notifications } }];
-"""), (660, 90))
+return [{ json: { checked: sessions.length, work_time: workTime, saves, notifications, escalations } }];
+""".replace("LIMIT_REPLY_JS", LIMIT_REPLY)), (660, 90))
     w.add("Session updates", "n8n-nodes-base.code", 2, code("return $json.saves.map((s) => ({ json: s }));"), (880, 0))
     w.add("Update sessions", "n8n-nodes-base.dataTable", 1,
           dt_upsert(SESSIONS_TABLE, "session_id", "={{ $json.session_id }}"), (1100, 0))
     w.add("Messages", "n8n-nodes-base.code", 2, code(
         "return $('Plan reminders').first().json.notifications.map((n) => ({ json: n }));"), (880, 180))
     w.add("Notify via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (1100, 180))
+    w.add("Escalations", "n8n-nodes-base.code", 2, code(
+        "return $('Plan reminders').first().json.escalations.map((e) => ({ json: e }));"), (880, 360))
+    w.add("Escalate via BRD-07", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_QUEUE, wait=False), (1100, 360))
     w.connect("Every hour", "Config")
     w.connect("Manual run", "Config")
     w.chain("Config", "Load active sessions", "Plan reminders")
@@ -1452,11 +1850,14 @@ return [{ json: { checked: sessions.length, work_time: workTime, saves, notifica
     w.connect("Plan reminders", "Messages")
     w.connect("Session updates", "Update sessions")
     w.connect("Messages", "Notify via BRD-02")
-    w.note("""## BRD-05 — напоминания
-Каждый час (в :15) проверяет активные беседы в **brd_sessions**:
+    w.connect("Plan reminders", "Escalations")
+    w.connect("Escalations", "Escalate via BRD-07")
+    w.note("""## BRD-05 — напоминания и сторож генерации
+Каждый час (в :15) проверяет беседы в **brd_sessions**:
 • нет ответа ≥ 24 ч → напоминание заказчику с последним вопросом (не больше 2 раз, только с 9:00 до 20:00 МСК);
-• после 2 напоминаний и ≥ 72 ч тишины → сессия `abandoned`, сообщение заказчику и в чат команды.
-Пороги задаются в **Config**.""", (-40, -300), w=620, h=230, color=2)
+• после 2 напоминаний и ≥ 72 ч тишины → сессия `abandoned`, сообщение заказчику и в чат команды;
+• **сторож потолка времени:** сессия в `generating` дольше `GENERATION_STUCK_MIN` → `needs_review` + ручная очередь **BRD-07**.
+Сессии `needs_review` не трогает: их разбирает команда. Пороги задаются в **Config**.""", (-40, -340), w=640, h=270, color=2)
     w.dump("BRD-05_reminders.json")
 
 
@@ -1482,6 +1883,10 @@ def build_digest():
         "sheetName": {"__rl": True, "value": "={{ $('Config').first().json.ERRORS_SHEET_TAB }}", "mode": "name"},
         "options": {},
     }, (880, 90), creds=["gsheets"], alwaysOutputData=True, executeOnce=True, onError="continueRegularOutput")
+    # Расход по ключу OpenRouter (денежный потолок живёт у провайдера) — GET /api/v1/key.
+    w.add("OpenRouter key usage", "n8n-nodes-base.httpRequest", 4.2,
+          http_json("GET", "https://openrouter.ai/api/v1/key"), (1100, 90), creds=["http_openrouter"],
+          alwaysOutputData=True, executeOnce=True, onError="continueRegularOutput")
     w.add("Build digest", "n8n-nodes-base.code", 2, code("""
 const cfg = $('Config').first().json;
 const since = Date.now() - (Number(cfg.PERIOD_HOURS) || 24) * 3600 * 1000;
@@ -1495,6 +1900,9 @@ const completed = sessions.filter((s) => s.status === 'completed' && inPeriod(s.
 const abandoned = sessions.filter((s) => s.status === 'abandoned' && inPeriod(s.last_activity_at));
 const active = sessions.filter((s) => s.status === 'active');
 const generating = sessions.filter((s) => s.status === 'generating');
+const review = sessions.filter((s) => s.status === 'needs_review');
+let key = null;
+try { key = $('OpenRouter key usage').first().json.data || null; } catch (e) {}
 
 const byWf = {};
 for (const e of errors) { const k = e.workflow || e.component || '—'; byWf[k] = (byWf[k] || 0) + 1; }
@@ -1507,20 +1915,30 @@ if (completed.length) {
   lines.push('', 'Новые BRD:');
   for (const s of completed) lines.push(`• ${s.brd_title || 'Без названия'} — ${s.username || s.chat_id}\\n  ${s.brd_url}`);
 }
+if (review.length) {
+  lines.push('', `Остановлено по пределу, ждут решения команды (needs_review, лист manual_queue): ${review.length}`);
+  for (const s of review.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ${s.limit_hit || 'предел'}`);
+}
 if (active.length) {
   lines.push('', 'Активные беседы:');
   for (const s of active.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ответов ${s.turn_count}, последняя активность ${String(s.last_activity_at).slice(0, 16).replace('T', ' ')} UTC`);
 }
 lines.push('', `База знаний: документов в индексе ${kbOk.length}, фрагментов ${kbOk.reduce((x, r) => x + (Number(r.chunk_count) || 0), 0)}` + (kbErr.length ? `, с ошибкой ${kbErr.length} (${kbErr.map((r) => r.name).join(', ')})` : ''));
+if (key) {
+  const usd = (v) => (v == null ? '—' : '$' + Number(v).toFixed(2));
+  lines.push('', `OpenRouter: расход за сутки ${usd(key.usage_daily)}, за неделю ${usd(key.usage_weekly)}; лимит ключа ${usd(key.limit)}` +
+    (key.limit_reset ? ` (${key.limit_reset})` : '') + (key.limit_remaining != null ? `, осталось ${usd(key.limit_remaining)}` : ''));
+}
 lines.push('', errors.length ? `Ошибки за сутки: ${errors.length} — ` + Object.entries(byWf).map(([k, v]) => `${k}: ${v}`).join('; ') : 'Ошибок за сутки нет.');
 return [{ json: { audience: 'team', kind: 'report', title: 'Дайджест BRD-агента за сутки', text: lines.join('\\n'), source: 'digest' } }];
-"""), (1100, 90))
-    w.add("Notify via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (1320, 90))
+"""), (1320, 90))
+    w.add("Notify via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (1540, 90))
     w.connect("Daily 09:00", "Config")
     w.connect("Manual run", "Config")
-    w.chain("Config", "Load sessions", "Load KB state", "Load errors", "Build digest", "Notify via BRD-02")
+    w.chain("Config", "Load sessions", "Load KB state", "Load errors", "OpenRouter key usage", "Build digest",
+            "Notify via BRD-02")
     w.note("""## BRD-06 — ежедневный дайджест (09:00 МСК)
-Сводка за 24 ч в чат команды: начатые, завершённые и брошенные интервью, ссылки на новые BRD, активные беседы, состояние базы знаний, ошибки по воркфлоу (лист errors).""",
+Сводка за 24 ч в чат команды: начатые, завершённые и брошенные интервью, ссылки на новые BRD, сессии, остановленные по пределу (`needs_review`), активные беседы, расход и лимит ключа OpenRouter, состояние базы знаний, ошибки по воркфлоу (лист errors).""",
            (-40, -240), w=620, h=180, color=2)
     w.dump("BRD-06_daily-digest.json")
 
@@ -1543,6 +1961,8 @@ def build_setup():
         ("status", "string"), ("history", "string"), ("turn_count", "number"), ("started_at", "string"),
         ("last_activity_at", "string"), ("reminder_count", "number"), ("last_reminder_at", "string"),
         ("brd_title", "string"), ("brd_url", "string"), ("error", "string"),
+        # control layer
+        ("cost_usd", "number"), ("limit_hit", "string"), ("brd_attempts", "number"), ("brd_created_at", "string"),
     ], (220, 0))
     table(KB_TABLE, [
         ("file_id", "string"), ("name", "string"), ("mime_type", "string"), ("doc_code", "string"),
@@ -1560,6 +1980,7 @@ if __name__ == "__main__":
     print("Building workflows →", OUT)
     build_errors()
     build_notify()
+    build_queue()
     build_kb_sync()
     build_interview()
     build_brd_generator()
