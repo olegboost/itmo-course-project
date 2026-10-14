@@ -779,7 +779,9 @@ def build_kb_sync():
         "authentication": "oAuth2",
         "resource": "fileFolder",
         "searchMethod": "query",
-        "queryString": "={{ \"'\" + $json.KB_FOLDER_ID + \"' in parents and mimeType != 'application/vnd.google-apps.folder'\" }}",
+        # trashed = false обязателен: Drive API по умолчанию отдаёт и файлы из корзины,
+        # а n8n сам добавляет его, только если заполнен Filter (у нас он пустой).
+        "queryString": "={{ \"'\" + $json.KB_FOLDER_ID + \"' in parents and mimeType != 'application/vnd.google-apps.folder' and trashed = false\" }}",
         "returnAll": True,
         "filter": {},
         "options": {"fields": ["*"]},
@@ -791,7 +793,8 @@ def build_kb_sync():
 // новые / изменённые (modifiedTime) / удалённые / без изменений / неподдерживаемые.
 const cfg = $('Config').first().json;
 const exclude = cfg.KB_EXCLUDE_REGEX ? new RegExp(cfg.KB_EXCLUDE_REGEX) : null;
-const files = $('List files in KB folder').all().map((i) => i.json).filter((f) => f && f.id);
+// Страховка к trashed = false в запросе: файлы из корзины в индекс не попадают никогда.
+const files = $('List files in KB folder').all().map((i) => i.json).filter((f) => f && f.id && f.trashed !== true);
 const state = {};
 for (const r of $('Load KB state').all().map((i) => i.json)) if (r && r.file_id) state[r.file_id] = r;
 
@@ -826,6 +829,15 @@ for (const f of files) {
     prev_chunk_count: Number(prev && prev.chunk_count) || 0,
   });
 }
+// Два файла с одним кодом DOC-xx (например, .docx и его Google-копия) — дубли в индексе.
+// Не удаляем сами: какой файл главный, решает человек; предупреждаем в отчёте.
+const byCode = {};
+for (const f of files) {
+  if (!seen.has(f.id)) continue;
+  const code = ((f.name.match(/DOC-\\d+/i) || [''])[0]).toUpperCase();
+  if (code) (byCode[code] = byCode[code] || []).push(f.name);
+}
+const duplicates = Object.entries(byCode).filter(([, names]) => names.length > 1).map(([code, names]) => ({ code, names }));
 const to_delete = Object.values(state).filter((r) => !seen.has(r.file_id)).map((r) => {
   const n = Math.max(1, Number(r.chunk_count) || 0);
   return { file_id: r.file_id, name: r.name || '', prev_chunk_count: Number(r.chunk_count) || 0,
@@ -833,7 +845,7 @@ const to_delete = Object.values(state).filter((r) => !seen.has(r.file_id)).map((
 });
 return [{ json: {
   run_id: $execution.id, started_at: new Date().toISOString(),
-  to_process, to_delete, unchanged, unsupported, excluded,
+  to_process, to_delete, unchanged, unsupported, excluded, duplicates,
 } }];
 """), (880, y + 90))
     w.add("Any removed files?", "n8n-nodes-base.if", 2, if_true("={{ $json.to_delete.length > 0 }}"), (1100, y + 90))
@@ -1014,8 +1026,11 @@ const lines = [
   `Фрагментов записано в Pinecone: ${s.chunks}`,
 ];
 if (s.unsupported) lines.push(`Пропущено (формат не поддерживается): ${plan.unsupported.map((u) => u.name).join(', ')}`);
+const dups = plan.duplicates || [];
+if (dups.length) lines.push(`⚠️ Один документ лежит в папке несколько раз — в индексе дубли, оставьте один файл: ` +
+  dups.map((d) => `${d.code}: ${d.names.join(' / ')}`).join('; '));
 if (errors.length) lines.push(`Ошибки (${errors.length}): ` + errors.map((e) => `${e.name} — ${String(e.error).slice(0, 150)}`).join('; '));
-const notifications = [{ audience: 'team', kind: errors.length ? 'warning' : 'report',
+const notifications = [{ audience: 'team', kind: errors.length || dups.length ? 'warning' : 'report',
   title: 'Обновление базы знаний' + (changed || errors.length ? '' : ' — без изменений'), text: lines.join('\\n'), source: 'kb_sync' }];
 if (errors.length) notifications.push({ audience: 'support', kind: 'alert', title: 'Ошибки синхронизации базы знаний',
   text: lines.join('\\n') + `\\nДетали — лист kb_sync_log, run_id=${plan.run_id}`, source: 'kb_sync' });

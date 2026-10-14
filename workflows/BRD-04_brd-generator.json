@@ -5,7 +5,7 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "d958938d-3659-4528-b30f-d2bf9063135e",
+      "id": "c3a71dce-6afe-4217-8729-e9f6b70147d9",
       "name": "When called by BRD-03",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -16,7 +16,7 @@
     },
     {
       "parameters": {},
-      "id": "8829aa73-a52f-4a41-9b8a-1bec4f7ad43c",
+      "id": "8d1d3766-7fc3-4531-8ee2-aa2d3cdbea4e",
       "name": "Manual test",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -30,7 +30,7 @@
         "assignments": {
           "assignments": [
             {
-              "id": "c061da79-b533-4cf6-a76d-831441c28f8b",
+              "id": "12aae21c-72db-4272-8549-7b09a17ba897",
               "name": "session_id",
               "value": "PASTE_SESSION_ID_FROM_brd_sessions",
               "type": "string"
@@ -39,7 +39,7 @@
         },
         "options": {}
       },
-      "id": "7934c873-391d-40cb-9cb8-5e439ae99c90",
+      "id": "ab4b5721-a527-4bb9-9fe2-0230b365c357",
       "name": "Test input",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -53,109 +53,109 @@
         "assignments": {
           "assignments": [
             {
-              "id": "6df5f43f-82d9-44d5-8e88-121ea91cd2a2",
+              "id": "855bbc5a-bbff-47b6-9b01-c77cb9f0e146",
               "name": "BRD_FOLDER_ID",
               "value": "__CFG_BRD_FOLDER_ID__",
               "type": "string"
             },
             {
-              "id": "68035e42-d2d3-4b30-84dc-0e6e40256ac1",
+              "id": "c232e0f9-fd9c-4a13-9257-8ace6924b357",
               "name": "LOGS_SHEET_ID",
               "value": "__CFG_LOGS_SHEET_ID__",
               "type": "string"
             },
             {
-              "id": "ad995226-5c00-4ec9-a5b6-1e7f2f12af78",
+              "id": "35bef62b-2a94-4ce1-a6f3-796b4d125cbc",
               "name": "BRD_REGISTRY_TAB",
               "value": "brd_registry",
               "type": "string"
             },
             {
-              "id": "3b640056-66c0-4760-911f-88cc28b44574",
+              "id": "1624eb0e-4538-4a30-ac5a-5b0fecc52279",
               "name": "RUNS_TAB",
               "value": "brd_runs",
               "type": "string"
             },
             {
-              "id": "88f5c29d-9f98-404d-849e-322d54f84a7e",
+              "id": "8e2ca6c3-590c-4c12-bec0-ceaf71d6660c",
               "name": "N8N_BASE_URL",
               "value": "__CFG_N8N_BASE_URL__",
               "type": "string"
             },
             {
-              "id": "dcde1fbd-9e40-4a14-b29f-e2afe6ba3822",
+              "id": "3697794b-e8e4-418f-8912-e05d4aa711d4",
               "name": "MAX_ITERATIONS",
               "value": 6,
               "type": "number"
             },
             {
-              "id": "7f941c04-b335-43ed-8d63-76dbfe858fe8",
+              "id": "5fab0d93-7f89-431b-bc28-ddf2fe77b5d7",
               "name": "MAX_REPAIRS",
               "value": 1,
               "type": "number"
             },
             {
-              "id": "5190b768-7774-4b73-98be-2eaa2cb0f677",
+              "id": "13d98557-72b2-4240-8bbd-3f1f9f9a6ec7",
               "name": "WRITER_MODEL",
               "value": "__CFG_WRITER_MODEL__",
               "type": "string"
             },
             {
-              "id": "ed580f97-f43f-4f23-b3be-d01f9bdee60d",
+              "id": "caddcfe9-b3ca-449e-b88d-b6c20dfd3319",
               "name": "WRITER_PRICE_IN",
               "value": "__CFG_WRITER_PRICE_IN__",
               "type": "string"
             },
             {
-              "id": "af6c362a-0932-4d23-8dc5-03f6475fc6e4",
+              "id": "7b539c52-fe2e-4c5a-9a45-dc4f96d65131",
               "name": "WRITER_PRICE_OUT",
               "value": "__CFG_WRITER_PRICE_OUT__",
               "type": "string"
             },
             {
-              "id": "b83652f8-3e58-45d5-95db-8fd0d4e29f21",
+              "id": "d33fe85c-9617-424c-b29a-9cce8b82c806",
               "name": "BRD_ATTEMPTS_PER_SESSION",
               "value": 2,
               "type": "number"
             },
             {
-              "id": "3a24f436-8625-41b2-8856-3208d5fb44d4",
+              "id": "5f548955-e170-45ab-9efc-03114ab8dc2f",
               "name": "BRD_PER_CHAT_PER_DAY",
               "value": 2,
               "type": "number"
             },
             {
-              "id": "4e0f213a-e86d-4835-9612-8ca06d9c2324",
+              "id": "4a7a56dc-23c5-4540-afb4-2de867c64fcd",
               "name": "BRD_PER_DAY",
               "value": 5,
               "type": "number"
             },
             {
-              "id": "9b7de6ad-641c-43e1-a563-8be2daf43c82",
+              "id": "227da577-6716-4dc2-bd1f-1c6730dfa7ab",
               "name": "LLM_MODEL",
               "value": "__CFG_LLM_MODEL__",
               "type": "string"
             },
             {
-              "id": "062abca0-c5c0-4829-a772-d3529d92c891",
+              "id": "a6418f3f-e5a0-4fdd-86e7-deaf8158d3b0",
               "name": "LLM_PRICE_IN",
               "value": "__CFG_LLM_PRICE_IN__",
               "type": "string"
             },
             {
-              "id": "800bd768-1c84-4eb6-898c-334ebac47c20",
+              "id": "83e9b79f-3680-43d4-873a-f814fa34b458",
               "name": "LLM_PRICE_OUT",
               "value": "__CFG_LLM_PRICE_OUT__",
               "type": "string"
             },
             {
-              "id": "d858b185-6418-4cf9-a138-3d6b7aaf9488",
+              "id": "28d72882-f235-4218-9667-b51cb7f54b4c",
               "name": "CHARS_PER_TOKEN",
               "value": 2,
               "type": "number"
             },
             {
-              "id": "d8a0fc8e-798c-452d-83ab-5b6b7dc1f71e",
+              "id": "66937976-661e-4dfb-a87b-d86a56af12e1",
               "name": "SESSION_BUDGET_USD",
               "value": 1.0,
               "type": "number"
@@ -165,7 +165,7 @@
         "options": {},
         "includeOtherFields": true
       },
-      "id": "9afd83e4-d45b-429b-9e31-5bb093e5d34f",
+      "id": "fe3f642c-b6be-4736-b6b7-317236ca2f5a",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -195,7 +195,7 @@
           ]
         }
       },
-      "id": "f6c93a7f-13b6-4709-9717-dc4e44633809",
+      "id": "efd2c81b-0023-48be-bb77-ad87b4199a65",
       "name": "Load session",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -217,7 +217,7 @@
         },
         "returnAll": true
       },
-      "id": "e081ed4f-7361-462b-bd67-106f33e805e3",
+      "id": "b991071f-7087-4274-a6cb-bfac480ce78f",
       "name": "Load all sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -232,7 +232,7 @@
       "parameters": {
         "jsCode": "// Потолки до генерации: попытки на сессию, число BRD за 24 ч (на заказчика и всего), бюджет сессии.\nconst cfg = $('Config').first().json;\nconst s = $('Load session').all().map((i) => i.json).find((r) => r && r.session_id);\nif (!s) throw new Error('Сессия не найдена: ' + cfg.session_id);\nconst all = $input.all().map((i) => i.json).filter((r) => r && r.session_id);\nconst since = Date.now() - 24 * 3600 * 1000;\nconst recent = all.filter((r) => r.brd_created_at && new Date(r.brd_created_at).getTime() >= since);\nconst byChat = recent.filter((r) => String(r.chat_id) === String(s.chat_id)).length;\nconst attempt = (Number(s.brd_attempts) || 0) + 1;\nconst spent = Number(s.cost_usd) || 0;\nlet limit = null;\nif (attempt > Number(cfg.BRD_ATTEMPTS_PER_SESSION)) limit = { limit_type: 'brd_attempts', limit_value: cfg.BRD_ATTEMPTS_PER_SESSION, observed: attempt };\nelse if (byChat >= Number(cfg.BRD_PER_CHAT_PER_DAY)) limit = { limit_type: 'artifacts_chat', limit_value: cfg.BRD_PER_CHAT_PER_DAY, observed: byChat + 1 };\nelse if (recent.length >= Number(cfg.BRD_PER_DAY)) limit = { limit_type: 'artifacts_day', limit_value: cfg.BRD_PER_DAY, observed: recent.length + 1 };\nelse if (spent >= Number(cfg.SESSION_BUDGET_USD)) limit = { limit_type: 'cost_session', limit_value: cfg.SESSION_BUDGET_USD, observed: '$' + spent.toFixed(3) };\nreturn [{ json: { ok: !limit, limit, session: s, attempt } }];"
       },
-      "id": "63266c66-9c8a-4045-b64d-1dd018e2e54c",
+      "id": "8f36ed24-1e29-460b-b088-27a937432640",
       "name": "Check limits",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -253,7 +253,7 @@
           },
           "conditions": [
             {
-              "id": "bd958bfb-ecd0-4ddd-b761-af5013844894",
+              "id": "eccff7c7-d01e-4a8e-81e5-56d9e17dbe0d",
               "leftValue": "={{ $json.ok }}",
               "rightValue": "",
               "operator": {
@@ -268,7 +268,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "859a2d4e-3e53-42f9-822b-0284f2f9327b",
+      "id": "3ffc24e7-8f09-4c28-acbb-5d06b9e5bf07",
       "name": "Within limits?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -281,7 +281,7 @@
       "parameters": {
         "jsCode": "// Попытку фиксируем ДО вызова LLM: даже если прогон упадёт по таймауту, повтор будет посчитан.\nreturn [{ json: { session_id: $json.session.session_id, brd_attempts: $json.attempt } }];"
       },
-      "id": "69c70003-e89c-4325-ab53-917093dab10e",
+      "id": "25fc096a-2342-4ed0-81da-ab2fe5e39239",
       "name": "Attempt row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -319,7 +319,7 @@
         },
         "options": {}
       },
-      "id": "ba72d65f-9bcf-4c07-8696-30c850a17c5b",
+      "id": "d3e642bc-c276-4fe9-8c71-d08877a4f610",
       "name": "Record attempt",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -336,7 +336,7 @@
         "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
-      "id": "d89acb83-e391-45c8-b4d6-5e0e597d7af0",
+      "id": "356bb27b-873d-4ea4-8ebd-89c1289ccaba",
       "name": "Key usage (before)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -358,7 +358,7 @@
       "parameters": {
         "jsCode": "const s = $('Check limits').first().json.session;\nlet history = [];\ntry { history = JSON.parse(s.history || '[]'); } catch (e) { throw new Error('Повреждена история сессии ' + s.session_id); }\nconst transcript = history.map((m) => (m.role === 'user' ? 'ЗАКАЗЧИК: ' : 'ИНТЕРВЬЮЕР: ') + m.content).join('\\n\\n');\nconst today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' });\nconst TEMPLATE = \"# Business Requirements Document (BRD) — Шаблон\\n\\n> Универсальный шаблон BRD, используемый как критерий приёмки задачи. Подходит для ML-систем, но применим к любой задаче — незначимые разделы отмечайте \\\"N/A\\\".\\n\\n## 0. Метаданные\\n\\n| Поле | Значение |\\n|---|---|\\n| Название задачи/проекта | |\\n| ID задачи | |\\n| Автор | |\\n| Дата создания | |\\n| Версия документа | |\\n| Статус | Draft / Review / Approved |\\n| Заказчик / Product Owner | |\\n| Согласующие (Approvers) | |\\n\\n## 1. Резюме (Executive Summary)\\n\\nКратко (3–5 предложений): что делаем, зачем, какой ожидаемый эффект.\\n\\n## 2. Бизнес-контекст и проблема\\n\\n- Проблема / боль, которую решаем\\n- Текущее состояние (as-is)\\n- Целевое состояние (to-be)\\n- Связь со стратегией продукта/компании\\n\\n## 3. Цели и метрики успеха\\n\\n| Цель | Метрика (KPI) | Baseline | Целевое значение | Срок |\\n|---|---|---|---|---|\\n| | | | | |\\n\\nОтдельно для ML-задач:\\n- Бизнес-метрика (revenue, conversion, retention и т.д.)\\n- Продуктовая метрика (engagement, latency to value и т.д.)\\n- Модельная метрика (precision/recall, AUC, RMSE, perplexity и т.д.)\\n\\n## 4. Стейкхолдеры\\n\\n| Роль | Имя | Интерес/ответственность |\\n|---|---|---|\\n| Product Owner | | |\\n| Инженерия | | |\\n| Data Science / ML | | |\\n| Юридический/Комплаенс | | |\\n| Конечный пользователь | | |\\n\\n## 5. Scope\\n\\n### 5.1 In Scope\\n-\\n\\n### 5.2 Out of Scope\\n-\\n\\n### 5.3 Допущения (Assumptions)\\n-\\n\\n### 5.4 Ограничения (Constraints)\\n- Бюджет:\\n- Сроки:\\n- Технологический стек:\\n- Регуляторные:\\n\\n## 6. Функциональные требования (Functional Requirements)\\n\\nФормат: ID, описание, приоритет (MoSCoW), критерий приёмки.\\n\\n| ID | Требование | Приоритет | Критерий приёмки (Given/When/Then) |\\n|---|---|---|---|\\n| FR-01 | | Must | Given ... When ... Then ... |\\n| FR-02 | | Should | |\\n| FR-03 | | Could | |\\n\\n### 6.1 Пользовательские сценарии / User Stories\\n- Как <роль>, я хочу <действие>, чтобы <ценность>.\\n\\n### 6.2 Функциональные требования к ML-компоненту (если применимо)\\n- Вход/выход модели (формат, схема данных)\\n- Тип задачи (классификация/регрессия/генерация/ранжирование и т.д.)\\n- Логика инференса (batch/real-time/streaming)\\n- Поведение при неопределённости модели (fallback, human-in-the-loop)\\n- Explainability / интерпретируемость предсказаний\\n- Персонализация / сегментация (если есть)\\n\\n## 7. Нефункциональные требования (Non-Functional Requirements)\\n\\n### 7.1 Производительность и масштабируемость\\n| Требование | Целевое значение |\\n|---|---|\\n| Latency (p50/p95/p99) | |\\n| Throughput (RPS/QPS) | |\\n| Объём данных (текущий/прогноз роста) | |\\n| Пиковая нагрузка | |\\n| Горизонтальное масштабирование | |\\n\\n### 7.2 Доступность и надёжность\\n- SLA / uptime (например, 99.9%)\\n- RTO / RPO\\n- Disaster recovery план\\n- Стратегия деградации (graceful degradation, circuit breaker)\\n- Retry/timeout policy\\n\\n### 7.3 Данные\\n- Источники данных и их владельцы\\n- Объём, скорость поступления, свежесть (data freshness)\\n- Качество данных: критерии валидации, обработка пропусков/выбросов\\n- Data lineage и версионирование (data + feature store)\\n- Схема данных / контракт данных (data contract)\\n- Retention policy\\n\\n### 7.4 ML-специфичные требования\\n- Требования к обучающим данным (объём, баланс классов, разметка)\\n- Частота переобучения (retraining cadence) и триггеры\\n- Мониторинг дрейфа данных и модели (data drift, concept drift)\\n- Стратегия A/B-тестирования / shadow-деплой перед полным релизом\\n- Версионирование моделей и воспроизводимость экспериментов\\n- Требования к offline/online метрикам и порогам качества для деплоя\\n- Champion/challenger стратегия\\n\\n### 7.5 Безопасность и приватность\\n- Аутентификация / авторизация\\n- Шифрование данных (at rest / in transit)\\n- PII-данные: маскирование, анонимизация\\n- Соответствие регуляциям (GDPR, 152-ФЗ и т.п.)\\n- Аудит доступа\\n- Модельная безопасность (adversarial-устойчивость, prompt injection — если LLM)\\n\\n### 7.6 Наблюдаемость (Observability)\\n- Логирование (структура, уровень, хранение)\\n- Метрики (бизнес, системные, модельные) и дашборды\\n- Алертинг (пороги, каналы оповещения, ответственные)\\n- Трейсинг запросов (distributed tracing)\\n\\n### 7.7 Совместимость и интеграции\\n- Внешние API/системы, с которыми интеграция\\n- Форматы обмена данными\\n- Обратная совместимость\\n- Поддерживаемые платформы/браузеры/устройства\\n\\n### 7.8 Эксплуатационные требования (Operability)\\n- Требования к деплою (CI/CD, blue-green, canary)\\n- Требования к откату (rollback)\\n- Требования к инфраструктуре (compute, GPU/CPU, память)\\n- Стоимость эксплуатации (cost per inference, TCO)\\n\\n### 7.9 Юзабилити и доступность\\n- Требования к UX (если есть интерфейс)\\n- Accessibility (WCAG и т.п.)\\n- Локализация/языки\\n\\n## 8. Критерии приёмки задачи (Definition of Done)\\n\\nОбязательный чек-лист для закрытия задачи:\\n\\n- [ ] Все FR из раздела 6 реализованы и покрыты тестами\\n- [ ] Все NFR из раздела 7 выполнены и измерены\\n- [ ] Целевые метрики из раздела 3 достигнуты (или зафиксирован план их достижения)\\n- [ ] Проведено код-ревью / модель-ревью\\n- [ ] Написана и пройдена документация (README, runbook)\\n- [ ] Настроены мониторинг и алерты в проде\\n- [ ] Проведено нагрузочное тестирование (если применимо)\\n- [ ] Проведена проверка безопасности/приватности данных\\n- [ ] Получено согласование от всех approvers из раздела 0/4\\n- [ ] План отката/rollback описан и проверен\\n\\n## 9. Риски и зависимости\\n\\n| Риск | Вероятность | Влияние | Митигация |\\n|---|---|---|---|\\n| | | | |\\n\\n| Зависимость | Владелец | Статус |\\n|---|---|---|\\n| | | |\\n\\n## 10. Сроки и вехи (Timeline)\\n\\n| Веха | Дата | Ответственный |\\n|---|---|---|\\n| Согласование BRD | | |\\n| MVP / прототип | | |\\n| Тестирование | | |\\n| Релиз | | |\\n\\n## 11. Открытые вопросы (Open Questions)\\n\\n- [ ]\\n\\n## 12. История изменений\\n\\n| Версия | Дата | Автор | Изменения |\\n|---|---|---|---|\\n| 0.1 | | | Первая версия |\";\nconst prompt = [\n  'ВХОДНЫЕ МЕТАДАННЫЕ:',\n  `- Дата создания: ${today}`,\n  `- Автор: BRD-агент (n8n) по итогам интервью с ${s.username || s.chat_id}`,\n  `- Инициатор (Telegram): ${s.username || s.chat_id}`,\n  `- Session ID: ${s.session_id}`,\n  '',\n  'ШАБЛОН BRD:',\n  TEMPLATE,\n  '',\n  'ТРАНСКРИПТ ИНТЕРВЬЮ:',\n  transcript,\n  '',\n  'Составь полный BRD по шаблону.',\n].join('\\n');\n// BRD длиннее лимита ответа DeepSeek (8000 токенов), поэтому пишем его в три приёма; агент обрабатывает items по очереди.\nconst PARTS = [\n  { part: 1, label: '0–5', hint: 'Сейчас напиши ТОЛЬКО разделы 0–5 (начни со строки `# BRD: <название>`).' },\n  { part: 2, label: '6–7', hint: 'Сейчас напиши ТОЛЬКО разделы 6 и 7 (начни с `## 6.`).' },\n  { part: 3, label: '8–12', hint: 'Сейчас напиши ТОЛЬКО разделы 8–12 (начни с `## 8.`).' },\n];\nreturn PARTS.map((p) => ({ json: { session: s, today, turns: Number(s.turn_count) || 0, part: p.part, transcript,\n  prompt: prompt + '\\n\\nЧАСТЬ ' + p.part + ' из 3 (разделы ' + p.label + '). ' + p.hint } }));"
       },
-      "id": "91b38a2c-4172-4373-b0e3-c6b53476cb0a",
+      "id": "0a24ed92-b229-446d-b6c7-5d3a769e3520",
       "name": "Build BRD request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -378,7 +378,7 @@
           "returnIntermediateSteps": true
         }
       },
-      "id": "4cec8774-179c-4a40-aac3-3ecff347c16a",
+      "id": "cfa43b56-1758-4f23-b3b5-377e0b537462",
       "name": "BRD writer",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
@@ -401,7 +401,7 @@
           "maxRetries": 2
         }
       },
-      "id": "c196ff2d-ed11-4cbf-b725-3950050c4742",
+      "id": "f488d9f8-7043-4062-935f-a9ce04238cba",
       "name": "LLM (writer)",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
@@ -431,7 +431,7 @@
           "pineconeNamespace": "__CFG_PINECONE_NAMESPACE__"
         }
       },
-      "id": "d54cbd9f-c863-4d50-b126-c54b41352956",
+      "id": "8e4447c7-bbb3-4a52-8710-5043e66030db",
       "name": "KnowledgeBase",
       "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
       "typeVersion": 1.1,
@@ -453,7 +453,7 @@
           "dimensions": 1536
         }
       },
-      "id": "2092ef80-b639-4311-b54e-26ba493adcc6",
+      "id": "d977f8b0-9e32-4a29-a45c-6552223448aa",
       "name": "Embeddings (cloud.ru)",
       "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
       "typeVersion": 1.2,
@@ -472,7 +472,7 @@
       "parameters": {
         "jsCode": "// Агентная нода v2.x при maxIterations завершается УСПЕШНО с этим текстом; v3.x — падает с ошибкой «Max iterations (N) reached».\nconst STOP_RE = /Agent stopped due to (max iterations|iteration limit)|Max iterations \\(\\d+\\) reached/i;\n// Лимит ключа/баланса провайдера: OpenRouter 402/403 (limit_source openrouter_key_limit), DeepSeek 402 Insufficient Balance.\nconst MONEY_RE = /\\b402\\b|insufficient (credits|balance)|payment required|openrouter_key_limit|key limit|budget limit/i;\nconst errStr = (e) => (!e ? '' : typeof e === 'string' ? e : [e.message, e.description, e.httpCode].filter(Boolean).join(' ') || JSON.stringify(e)).slice(0, 800);\n// Оценка стоимости одного прогона агента сверху: каждый вызов LLM получает system + prompt + результаты инструментов.\nconst estimateRun = (sysChars, promptChars, outText, steps, pIn, pOut, cpt) => {\n  steps = Array.isArray(steps) ? steps : [];\n  const calls = steps.length + 1;\n  const obs = steps.reduce((a, s) => a + String(s.observation ?? '').length, 0);\n  const acts = steps.reduce((a, s) => a + JSON.stringify(s.action ?? {}).length, 0);\n  const inChars = calls * (sysChars + promptChars) + obs * calls;\n  const outChars = String(outText || '').length + acts;\n  return { calls, steps: steps.length, usd: (inChars * pIn + outChars * pOut) / cpt / 1e6 };\n};\nconst splitBrd = (md) => {\n  const re = /^##\\s+(\\d{1,2})\\.[^\\n]*$/gm;\n  const hits = [...md.matchAll(re)];\n  const secs = {};\n  hits.forEach((m, k) => { secs[Number(m[1])] = md.slice(m.index, k + 1 < hits.length ? hits[k + 1].index : md.length).trim(); });\n  return { preamble: (hits.length ? md.slice(0, hits[0].index) : md).trim(), secs };\n};\nconst joinBrd = (preamble, secs) => [preamble, ...Object.keys(secs).map(Number).sort((a, b) => a - b).map((n) => secs[n])]\n  .filter(Boolean).join('\\n\\n');\n// В JS \\w не совпадает с кириллицей — окончания русских слов ловим через [а-яё]*.\nconst EXTERNAL_RE = /ChatGPT|OpenAI|GPT-?4|YandexGPT|GigaChat|внешн[а-яё]*\\s+(LLM|API|модел)/i;\nconst validateBrd = (md, transcript) => {\n  const { preamble, secs } = splitBrd(md);\n  const v = [];\n  const add = (section, rule, msg) => v.push({ section, rule, msg });\n  for (let n = 0; n <= 12; n++) if (!secs[n]) add(n, 'section_missing', `Нет раздела ${n} (заголовок «## ${n}. …» как в шаблоне)`);\n  if (!/^#\\s+BRD:/m.test(preamble)) add(0, 'title', 'Нет заголовка «# BRD: <название>» в начале документа');\n  if (secs[0] && !(/Draft/i.test(secs[0]) && /0\\.1/.test(secs[0]))) add(0, 'meta', 'В разделе 0 должны быть «Версия документа: 0.1» и «Статус: Draft»');\n  if (secs[4] && !(/DevOps/i.test(secs[4]) && /ИБ/.test(secs[4]))) add(4, 'stakeholders', 'В разделе 4 нет фиксированных ролей: Инфраструктура — DevOps, Безопасность — ИБ');\n  if (secs[6] && !/FR-?\\d/.test(secs[6])) add(6, 'fr_ids', 'В разделе 6 нет таблицы требований с ID FR-01…');\n  if (secs[6] && !/Given|Дано/i.test(secs[6])) add(6, 'fr_acceptance', 'В разделе 6 у требований нет критериев приёмки Given/When/Then');\n  if (secs[7]) {\n    const s75 = (secs[7].split(/^###\\s+7\\.5[^\\n]*$/m)[1] || '').split(/^###\\s/m)[0];\n    if (!s75) add(7, 'sec75_missing', 'В разделе 7 нет подраздела «### 7.5 Безопасность и приватность»');\n    else if (!/согласовыва[а-яё]*\\s+отдельно\\s+с\\s+ИБ/i.test(s75)) add(7, 'sec75_ib', 'В 7.5 нет строки «Конкретные меры безопасности согласовываются отдельно с ИБ»');\n  }\n  if (secs[8]) {\n    if (!/-\\s*\\[[ xXх]\\][^\\n]*MLflow/i.test(secs[8])) add(8, 'dod_mlflow', 'В разделе 8 нет отдельного чек-бокса про модель в MLflow');\n    if (!/-\\s*\\[[ xXх]\\][^\\n]*GitLab/i.test(secs[8])) add(8, 'dod_gitlab', 'В разделе 8 нет отдельного чек-бокса про код в GitLab');\n    if (!/-\\s*\\[[ xXх]\\][^\\n]*(ИБ[^\\n]*архитект|архитект[^\\n]*ИБ)/i.test(secs[8])) add(8, 'dod_ib', 'В разделе 8 нет пункта «Согласование архитектуры с ИБ и архитекторами»');\n  }\n  const tbd = (md.replace(secs[11] || '', '').match(/\\bTBD\\b/g) || []).length;\n  if (secs[11] && tbd > 0 && !/^\\s*(-|\\d+\\.|\\|)/m.test(secs[11].split('\\n').slice(1).join('\\n')))\n    add(11, 'open_questions', `В документе ${tbd} TBD, а раздел 11 «Открытые вопросы» пуст`);\n  if (EXTERNAL_RE.test(transcript || '') && !(EXTERNAL_RE.test(secs[9] || '') || EXTERNAL_RE.test(secs[11] || '')))\n    add(9, 'external_risk', 'В интервью звучало предложение внешней модели/API, но в разделах 9 и 11 нет риска несоответствия закрытому контуру');\n  return v;\n};\nconst req = $('Build BRD request').first().json;\nconst cfg = $('Config').first().json;\n// Склеиваем три части (разделы 0–5, 6–7, 8–12). Если какая-то часть упала, её обработает ветка ошибки.\nconst items = $input.all();\nconst outs = items.map((i) => String(i.json.output ?? i.json.text ?? '').trim());\nif (outs.length < 3) return [];\n// Расход трёх прогонов (оценка сверху) и проверка потолка шагов по каждой части.\nconst prompts = $('Build BRD request').all().map((i) => String(i.json.prompt || '').length);\nlet usd = 0, stopped = null;\nitems.forEach((it, k) => {\n  const run = estimateRun(4317, prompts[k] || 0, outs[k], it.json.intermediateSteps,\n    Number(cfg.WRITER_PRICE_IN) || 0, Number(cfg.WRITER_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 2);\n  usd += run.usd;\n  if (!stopped && STOP_RE.test(outs[k])) stopped = { part: k + 1, steps: run.steps };\n});\nconst cost_usd = (Number(req.session.cost_usd) || 0) + usd;\nif (stopped) return [{ json: { valid: false, session: req.session, cost_usd,\n  limit: { limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: `часть ${stopped.part} из 3: ${stopped.steps} шагов, текста нет` } } }];\nconst clean = (t, k) => {\n  t = t.replace(/^```(?:markdown|md)?\\s*\\n/i, '').replace(/\\n```\\s*$/, '').trim();\n  if (k > 0) t = t.replace(/^#\\s+BRD:.*\\n+/, '');\n  return t;\n};\nlet md = outs.map(clean).join('\\n\\n');\n// Какие запросы к базе знаний писатель решил сделать сам — по частям (доказательство «инструмент выбирает агент»).\nconst q = (st) => { const t = st?.action?.toolInput; return typeof t === 'string' ? t : (t?.input ?? t?.query ?? JSON.stringify(t ?? '')); };\nconst kbSteps = items.flatMap((it, k) => (it.json.intermediateSteps || []).map((st) => `ч${k + 1}: ${q(st)}`));\nconst violations = validateBrd(md, req.transcript);\nlet title = (md.match(/^#\\s+BRD:\\s*(.+)$/m) || [])[1] || '';\nif (!title) title = ((md.match(/\\|\\s*Название задачи\\/проекта\\s*\\|\\s*([^|]+)\\|/) || [])[1] || '').trim();\ntitle = (title || 'Без названия').replace(/[\\\\/:*?\"<>|]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 90);\nconst valid = violations.length === 0;\nreturn [{ json: { valid, md, title, violations, first_violations: violations, cost_usd, limit: null,\n  kb_calls: kbSteps.length, kb_queries: kbSteps.join(' | ').slice(0, 1500), repaired: false,\n  error: valid ? '' : 'BRD не прошёл проверку: ' + violations.map((x) => x.msg).join('; '),\n  session: req.session, transcript: req.transcript, today: req.today, turns: req.turns } }];"
       },
-      "id": "3970a2a0-06be-43c7-af71-4b3008c1a934",
+      "id": "276f60f5-1808-4b86-9219-9d36bc02d6c6",
       "name": "Validate BRD",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -492,7 +492,7 @@
           },
           "conditions": [
             {
-              "id": "f270c1e6-b082-4f0c-849b-978a1c48d156",
+              "id": "d7b0d44b-6d3a-4e1a-b3c2-46d68adfedd1",
               "leftValue": "={{ !!$json.limit }}",
               "rightValue": "",
               "operator": {
@@ -507,7 +507,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "df820cc4-08a2-43fd-8f01-9a51217a3750",
+      "id": "c5a6c71a-c917-430f-9cf2-01a15764b418",
       "name": "Stopped by limit?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -527,7 +527,7 @@
           },
           "conditions": [
             {
-              "id": "0daa95c2-3a49-4bf9-af56-ec387ee20b89",
+              "id": "29361dac-c5b4-4637-8f02-5e1d9d7e5d65",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -542,7 +542,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "0e9783ea-809f-4b17-832b-a0409de92986",
+      "id": "0f25d99f-9db3-412c-b1e0-544dc3f7a036",
       "name": "Valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -555,7 +555,7 @@
       "parameters": {
         "jsCode": "const splitBrd = (md) => {\n  const re = /^##\\s+(\\d{1,2})\\.[^\\n]*$/gm;\n  const hits = [...md.matchAll(re)];\n  const secs = {};\n  hits.forEach((m, k) => { secs[Number(m[1])] = md.slice(m.index, k + 1 < hits.length ? hits[k + 1].index : md.length).trim(); });\n  return { preamble: (hits.length ? md.slice(0, hits[0].index) : md).trim(), secs };\n};\nconst joinBrd = (preamble, secs) => [preamble, ...Object.keys(secs).map(Number).sort((a, b) => a - b).map((n) => secs[n])]\n  .filter(Boolean).join('\\n\\n');\n// В JS \\w не совпадает с кириллицей — окончания русских слов ловим через [а-яё]*.\nconst EXTERNAL_RE = /ChatGPT|OpenAI|GPT-?4|YandexGPT|GigaChat|внешн[а-яё]*\\s+(LLM|API|модел)/i;\nconst validateBrd = (md, transcript) => {\n  const { preamble, secs } = splitBrd(md);\n  const v = [];\n  const add = (section, rule, msg) => v.push({ section, rule, msg });\n  for (let n = 0; n <= 12; n++) if (!secs[n]) add(n, 'section_missing', `Нет раздела ${n} (заголовок «## ${n}. …» как в шаблоне)`);\n  if (!/^#\\s+BRD:/m.test(preamble)) add(0, 'title', 'Нет заголовка «# BRD: <название>» в начале документа');\n  if (secs[0] && !(/Draft/i.test(secs[0]) && /0\\.1/.test(secs[0]))) add(0, 'meta', 'В разделе 0 должны быть «Версия документа: 0.1» и «Статус: Draft»');\n  if (secs[4] && !(/DevOps/i.test(secs[4]) && /ИБ/.test(secs[4]))) add(4, 'stakeholders', 'В разделе 4 нет фиксированных ролей: Инфраструктура — DevOps, Безопасность — ИБ');\n  if (secs[6] && !/FR-?\\d/.test(secs[6])) add(6, 'fr_ids', 'В разделе 6 нет таблицы требований с ID FR-01…');\n  if (secs[6] && !/Given|Дано/i.test(secs[6])) add(6, 'fr_acceptance', 'В разделе 6 у требований нет критериев приёмки Given/When/Then');\n  if (secs[7]) {\n    const s75 = (secs[7].split(/^###\\s+7\\.5[^\\n]*$/m)[1] || '').split(/^###\\s/m)[0];\n    if (!s75) add(7, 'sec75_missing', 'В разделе 7 нет подраздела «### 7.5 Безопасность и приватность»');\n    else if (!/согласовыва[а-яё]*\\s+отдельно\\s+с\\s+ИБ/i.test(s75)) add(7, 'sec75_ib', 'В 7.5 нет строки «Конкретные меры безопасности согласовываются отдельно с ИБ»');\n  }\n  if (secs[8]) {\n    if (!/-\\s*\\[[ xXх]\\][^\\n]*MLflow/i.test(secs[8])) add(8, 'dod_mlflow', 'В разделе 8 нет отдельного чек-бокса про модель в MLflow');\n    if (!/-\\s*\\[[ xXх]\\][^\\n]*GitLab/i.test(secs[8])) add(8, 'dod_gitlab', 'В разделе 8 нет отдельного чек-бокса про код в GitLab');\n    if (!/-\\s*\\[[ xXх]\\][^\\n]*(ИБ[^\\n]*архитект|архитект[^\\n]*ИБ)/i.test(secs[8])) add(8, 'dod_ib', 'В разделе 8 нет пункта «Согласование архитектуры с ИБ и архитекторами»');\n  }\n  const tbd = (md.replace(secs[11] || '', '').match(/\\bTBD\\b/g) || []).length;\n  if (secs[11] && tbd > 0 && !/^\\s*(-|\\d+\\.|\\|)/m.test(secs[11].split('\\n').slice(1).join('\\n')))\n    add(11, 'open_questions', `В документе ${tbd} TBD, а раздел 11 «Открытые вопросы» пуст`);\n  if (EXTERNAL_RE.test(transcript || '') && !(EXTERNAL_RE.test(secs[9] || '') || EXTERNAL_RE.test(secs[11] || '')))\n    add(9, 'external_risk', 'В интервью звучало предложение внешней модели/API, но в разделах 9 и 11 нет риска несоответствия закрытому контуру');\n  return v;\n};\nconst j = $json;\nconst TEMPLATE = \"# Business Requirements Document (BRD) — Шаблон\\n\\n> Универсальный шаблон BRD, используемый как критерий приёмки задачи. Подходит для ML-систем, но применим к любой задаче — незначимые разделы отмечайте \\\"N/A\\\".\\n\\n## 0. Метаданные\\n\\n| Поле | Значение |\\n|---|---|\\n| Название задачи/проекта | |\\n| ID задачи | |\\n| Автор | |\\n| Дата создания | |\\n| Версия документа | |\\n| Статус | Draft / Review / Approved |\\n| Заказчик / Product Owner | |\\n| Согласующие (Approvers) | |\\n\\n## 1. Резюме (Executive Summary)\\n\\nКратко (3–5 предложений): что делаем, зачем, какой ожидаемый эффект.\\n\\n## 2. Бизнес-контекст и проблема\\n\\n- Проблема / боль, которую решаем\\n- Текущее состояние (as-is)\\n- Целевое состояние (to-be)\\n- Связь со стратегией продукта/компании\\n\\n## 3. Цели и метрики успеха\\n\\n| Цель | Метрика (KPI) | Baseline | Целевое значение | Срок |\\n|---|---|---|---|---|\\n| | | | | |\\n\\nОтдельно для ML-задач:\\n- Бизнес-метрика (revenue, conversion, retention и т.д.)\\n- Продуктовая метрика (engagement, latency to value и т.д.)\\n- Модельная метрика (precision/recall, AUC, RMSE, perplexity и т.д.)\\n\\n## 4. Стейкхолдеры\\n\\n| Роль | Имя | Интерес/ответственность |\\n|---|---|---|\\n| Product Owner | | |\\n| Инженерия | | |\\n| Data Science / ML | | |\\n| Юридический/Комплаенс | | |\\n| Конечный пользователь | | |\\n\\n## 5. Scope\\n\\n### 5.1 In Scope\\n-\\n\\n### 5.2 Out of Scope\\n-\\n\\n### 5.3 Допущения (Assumptions)\\n-\\n\\n### 5.4 Ограничения (Constraints)\\n- Бюджет:\\n- Сроки:\\n- Технологический стек:\\n- Регуляторные:\\n\\n## 6. Функциональные требования (Functional Requirements)\\n\\nФормат: ID, описание, приоритет (MoSCoW), критерий приёмки.\\n\\n| ID | Требование | Приоритет | Критерий приёмки (Given/When/Then) |\\n|---|---|---|---|\\n| FR-01 | | Must | Given ... When ... Then ... |\\n| FR-02 | | Should | |\\n| FR-03 | | Could | |\\n\\n### 6.1 Пользовательские сценарии / User Stories\\n- Как <роль>, я хочу <действие>, чтобы <ценность>.\\n\\n### 6.2 Функциональные требования к ML-компоненту (если применимо)\\n- Вход/выход модели (формат, схема данных)\\n- Тип задачи (классификация/регрессия/генерация/ранжирование и т.д.)\\n- Логика инференса (batch/real-time/streaming)\\n- Поведение при неопределённости модели (fallback, human-in-the-loop)\\n- Explainability / интерпретируемость предсказаний\\n- Персонализация / сегментация (если есть)\\n\\n## 7. Нефункциональные требования (Non-Functional Requirements)\\n\\n### 7.1 Производительность и масштабируемость\\n| Требование | Целевое значение |\\n|---|---|\\n| Latency (p50/p95/p99) | |\\n| Throughput (RPS/QPS) | |\\n| Объём данных (текущий/прогноз роста) | |\\n| Пиковая нагрузка | |\\n| Горизонтальное масштабирование | |\\n\\n### 7.2 Доступность и надёжность\\n- SLA / uptime (например, 99.9%)\\n- RTO / RPO\\n- Disaster recovery план\\n- Стратегия деградации (graceful degradation, circuit breaker)\\n- Retry/timeout policy\\n\\n### 7.3 Данные\\n- Источники данных и их владельцы\\n- Объём, скорость поступления, свежесть (data freshness)\\n- Качество данных: критерии валидации, обработка пропусков/выбросов\\n- Data lineage и версионирование (data + feature store)\\n- Схема данных / контракт данных (data contract)\\n- Retention policy\\n\\n### 7.4 ML-специфичные требования\\n- Требования к обучающим данным (объём, баланс классов, разметка)\\n- Частота переобучения (retraining cadence) и триггеры\\n- Мониторинг дрейфа данных и модели (data drift, concept drift)\\n- Стратегия A/B-тестирования / shadow-деплой перед полным релизом\\n- Версионирование моделей и воспроизводимость экспериментов\\n- Требования к offline/online метрикам и порогам качества для деплоя\\n- Champion/challenger стратегия\\n\\n### 7.5 Безопасность и приватность\\n- Аутентификация / авторизация\\n- Шифрование данных (at rest / in transit)\\n- PII-данные: маскирование, анонимизация\\n- Соответствие регуляциям (GDPR, 152-ФЗ и т.п.)\\n- Аудит доступа\\n- Модельная безопасность (adversarial-устойчивость, prompt injection — если LLM)\\n\\n### 7.6 Наблюдаемость (Observability)\\n- Логирование (структура, уровень, хранение)\\n- Метрики (бизнес, системные, модельные) и дашборды\\n- Алертинг (пороги, каналы оповещения, ответственные)\\n- Трейсинг запросов (distributed tracing)\\n\\n### 7.7 Совместимость и интеграции\\n- Внешние API/системы, с которыми интеграция\\n- Форматы обмена данными\\n- Обратная совместимость\\n- Поддерживаемые платформы/браузеры/устройства\\n\\n### 7.8 Эксплуатационные требования (Operability)\\n- Требования к деплою (CI/CD, blue-green, canary)\\n- Требования к откату (rollback)\\n- Требования к инфраструктуре (compute, GPU/CPU, память)\\n- Стоимость эксплуатации (cost per inference, TCO)\\n\\n### 7.9 Юзабилити и доступность\\n- Требования к UX (если есть интерфейс)\\n- Accessibility (WCAG и т.п.)\\n- Локализация/языки\\n\\n## 8. Критерии приёмки задачи (Definition of Done)\\n\\nОбязательный чек-лист для закрытия задачи:\\n\\n- [ ] Все FR из раздела 6 реализованы и покрыты тестами\\n- [ ] Все NFR из раздела 7 выполнены и измерены\\n- [ ] Целевые метрики из раздела 3 достигнуты (или зафиксирован план их достижения)\\n- [ ] Проведено код-ревью / модель-ревью\\n- [ ] Написана и пройдена документация (README, runbook)\\n- [ ] Настроены мониторинг и алерты в проде\\n- [ ] Проведено нагрузочное тестирование (если применимо)\\n- [ ] Проведена проверка безопасности/приватности данных\\n- [ ] Получено согласование от всех approvers из раздела 0/4\\n- [ ] План отката/rollback описан и проверен\\n\\n## 9. Риски и зависимости\\n\\n| Риск | Вероятность | Влияние | Митигация |\\n|---|---|---|---|\\n| | | | |\\n\\n| Зависимость | Владелец | Статус |\\n|---|---|---|\\n| | | |\\n\\n## 10. Сроки и вехи (Timeline)\\n\\n| Веха | Дата | Ответственный |\\n|---|---|---|\\n| Согласование BRD | | |\\n| MVP / прототип | | |\\n| Тестирование | | |\\n| Релиз | | |\\n\\n## 11. Открытые вопросы (Open Questions)\\n\\n- [ ]\\n\\n## 12. История изменений\\n\\n| Версия | Дата | Автор | Изменения |\\n|---|---|---|---|\\n| 0.1 | | | Первая версия |\";\nconst tpl = splitBrd(TEMPLATE).secs;\nconst { secs } = splitBrd(j.md);\nconst nums = [...new Set(j.violations.map((x) => x.section))].sort((a, b) => a - b);\n// Фигурные скобки — переменные шаблона промпта LangChain; в данных их заменяем.\nconst safe = (t) => String(t || '').replace(/[{}]/g, (c) => (c === '{' ? '(' : ')'));\nconst tbdLines = j.md.split('\\n').filter((l) => /\\bTBD\\b/.test(l)).slice(0, 40).join('\\n');\nconst prompt = [\n  'НАРУШЕНИЯ СТАНДАРТА (исправь их):', ...j.violations.map((x) => `- раздел ${x.section}: ${x.msg}`), '',\n  'РАЗДЕЛЫ ДЛЯ ИСПРАВЛЕНИЯ: ' + nums.join(', '), '',\n  'ШАБЛОН ЭТИХ РАЗДЕЛОВ:', ...nums.map((n) => tpl[n] || `## ${n}.`), '',\n  'ТЕКУЩИЙ ТЕКСТ ЭТИХ РАЗДЕЛОВ:', ...nums.map((n) => secs[n] || `(раздела ${n} нет — напиши его по шаблону и транскрипту)`), '',\n  nums.includes(11) ? 'СТРОКИ ДОКУМЕНТА С TBD (для раздела 11):\\n' + tbdLines + '\\n' : '',\n  'ТРАНСКРИПТ ИНТЕРВЬЮ:', j.transcript,\n].join('\\n');\nreturn [{ json: { ...j, fix_sections: nums, fix_prompt: safe(prompt) } }];"
       },
-      "id": "10419361-71ec-4e0b-a5e9-aed66cb9c538",
+      "id": "22b11895-e11d-4817-bcd4-cd9f366b1bb9",
       "name": "Repair request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -577,7 +577,7 @@
           ]
         }
       },
-      "id": "af64542c-e2c2-491f-8786-d0c722cb2d0b",
+      "id": "eab484f2-dd8e-4b97-9617-de266fb6a6f9",
       "name": "BRD fixer",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.7,
@@ -597,7 +597,7 @@
           "maxRetries": 2
         }
       },
-      "id": "53e15bae-3e29-4c43-a29f-45b9d2d04121",
+      "id": "516ee314-0d85-4959-9356-19baa38b1731",
       "name": "LLM (fixer)",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
@@ -616,7 +616,7 @@
       "parameters": {
         "jsCode": "const splitBrd = (md) => {\n  const re = /^##\\s+(\\d{1,2})\\.[^\\n]*$/gm;\n  const hits = [...md.matchAll(re)];\n  const secs = {};\n  hits.forEach((m, k) => { secs[Number(m[1])] = md.slice(m.index, k + 1 < hits.length ? hits[k + 1].index : md.length).trim(); });\n  return { preamble: (hits.length ? md.slice(0, hits[0].index) : md).trim(), secs };\n};\nconst joinBrd = (preamble, secs) => [preamble, ...Object.keys(secs).map(Number).sort((a, b) => a - b).map((n) => secs[n])]\n  .filter(Boolean).join('\\n\\n');\n// В JS \\w не совпадает с кириллицей — окончания русских слов ловим через [а-яё]*.\nconst EXTERNAL_RE = /ChatGPT|OpenAI|GPT-?4|YandexGPT|GigaChat|внешн[а-яё]*\\s+(LLM|API|модел)/i;\nconst validateBrd = (md, transcript) => {\n  const { preamble, secs } = splitBrd(md);\n  const v = [];\n  const add = (section, rule, msg) => v.push({ section, rule, msg });\n  for (let n = 0; n <= 12; n++) if (!secs[n]) add(n, 'section_missing', `Нет раздела ${n} (заголовок «## ${n}. …» как в шаблоне)`);\n  if (!/^#\\s+BRD:/m.test(preamble)) add(0, 'title', 'Нет заголовка «# BRD: <название>» в начале документа');\n  if (secs[0] && !(/Draft/i.test(secs[0]) && /0\\.1/.test(secs[0]))) add(0, 'meta', 'В разделе 0 должны быть «Версия документа: 0.1» и «Статус: Draft»');\n  if (secs[4] && !(/DevOps/i.test(secs[4]) && /ИБ/.test(secs[4]))) add(4, 'stakeholders', 'В разделе 4 нет фиксированных ролей: Инфраструктура — DevOps, Безопасность — ИБ');\n  if (secs[6] && !/FR-?\\d/.test(secs[6])) add(6, 'fr_ids', 'В разделе 6 нет таблицы требований с ID FR-01…');\n  if (secs[6] && !/Given|Дано/i.test(secs[6])) add(6, 'fr_acceptance', 'В разделе 6 у требований нет критериев приёмки Given/When/Then');\n  if (secs[7]) {\n    const s75 = (secs[7].split(/^###\\s+7\\.5[^\\n]*$/m)[1] || '').split(/^###\\s/m)[0];\n    if (!s75) add(7, 'sec75_missing', 'В разделе 7 нет подраздела «### 7.5 Безопасность и приватность»');\n    else if (!/согласовыва[а-яё]*\\s+отдельно\\s+с\\s+ИБ/i.test(s75)) add(7, 'sec75_ib', 'В 7.5 нет строки «Конкретные меры безопасности согласовываются отдельно с ИБ»');\n  }\n  if (secs[8]) {\n    if (!/-\\s*\\[[ xXх]\\][^\\n]*MLflow/i.test(secs[8])) add(8, 'dod_mlflow', 'В разделе 8 нет отдельного чек-бокса про модель в MLflow');\n    if (!/-\\s*\\[[ xXх]\\][^\\n]*GitLab/i.test(secs[8])) add(8, 'dod_gitlab', 'В разделе 8 нет отдельного чек-бокса про код в GitLab');\n    if (!/-\\s*\\[[ xXх]\\][^\\n]*(ИБ[^\\n]*архитект|архитект[^\\n]*ИБ)/i.test(secs[8])) add(8, 'dod_ib', 'В разделе 8 нет пункта «Согласование архитектуры с ИБ и архитекторами»');\n  }\n  const tbd = (md.replace(secs[11] || '', '').match(/\\bTBD\\b/g) || []).length;\n  if (secs[11] && tbd > 0 && !/^\\s*(-|\\d+\\.|\\|)/m.test(secs[11].split('\\n').slice(1).join('\\n')))\n    add(11, 'open_questions', `В документе ${tbd} TBD, а раздел 11 «Открытые вопросы» пуст`);\n  if (EXTERNAL_RE.test(transcript || '') && !(EXTERNAL_RE.test(secs[9] || '') || EXTERNAL_RE.test(secs[11] || '')))\n    add(9, 'external_risk', 'В интервью звучало предложение внешней модели/API, но в разделах 9 и 11 нет риска несоответствия закрытому контуру');\n  return v;\n};\n// Агентная нода v2.x при maxIterations завершается УСПЕШНО с этим текстом; v3.x — падает с ошибкой «Max iterations (N) reached».\nconst STOP_RE = /Agent stopped due to (max iterations|iteration limit)|Max iterations \\(\\d+\\) reached/i;\n// Лимит ключа/баланса провайдера: OpenRouter 402/403 (limit_source openrouter_key_limit), DeepSeek 402 Insufficient Balance.\nconst MONEY_RE = /\\b402\\b|insufficient (credits|balance)|payment required|openrouter_key_limit|key limit|budget limit/i;\nconst errStr = (e) => (!e ? '' : typeof e === 'string' ? e : [e.message, e.description, e.httpCode].filter(Boolean).join(' ') || JSON.stringify(e)).slice(0, 800);\n// Оценка стоимости одного прогона агента сверху: каждый вызов LLM получает system + prompt + результаты инструментов.\nconst estimateRun = (sysChars, promptChars, outText, steps, pIn, pOut, cpt) => {\n  steps = Array.isArray(steps) ? steps : [];\n  const calls = steps.length + 1;\n  const obs = steps.reduce((a, s) => a + String(s.observation ?? '').length, 0);\n  const acts = steps.reduce((a, s) => a + JSON.stringify(s.action ?? {}).length, 0);\n  const inChars = calls * (sysChars + promptChars) + obs * calls;\n  const outChars = String(outText || '').length + acts;\n  return { calls, steps: steps.length, usd: (inChars * pIn + outChars * pOut) / cpt / 1e6 };\n};\n// Вклеиваем исправленные разделы по номерам и проверяем ВЕСЬ документ тем же валидатором ещё раз.\nconst j = $('Repair request').first().json;\nconst cfg = $('Config').first().json;\nconst out = String($json.text ?? $json.output ?? '').replace(/^```(?:markdown|md)?\\s*\\n/i, '').replace(/\\n```\\s*$/, '').trim();\nconst fixed = splitBrd(out).secs;\nconst doc = splitBrd(j.md);\nfor (const n of j.fix_sections) if (fixed[n]) doc.secs[n] = fixed[n];\nconst md = joinBrd(doc.preamble, doc.secs);\nconst violations = validateBrd(md, j.transcript);\nconst run = estimateRun(1996, String(j.fix_prompt).length, out, [],\n  Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 2);\nconst cost_usd = (Number(j.cost_usd) || 0) + run.usd;\nconst valid = violations.length === 0;\n// Потолок паттерна: исправление одно. Не прошло — не повторяем, а отдаём человеку.\nconst limit = valid ? null : { limit_type: 'validator', limit_value: `${cfg.MAX_REPAIRS} исправление`,\n  observed: violations.map((x) => `р.${x.section} ${x.rule}`).join(', ').slice(0, 250) };\nreturn [{ json: { ...j, md, violations, valid, repaired: true, cost_usd, limit,\n  fixed_sections: Object.keys(fixed).join(','), fix_prompt: undefined } }];"
       },
-      "id": "dbbe2632-6e4e-4e61-aef0-f7da98537abb",
+      "id": "b07a5c4f-09d6-4631-9c86-a8e1a736bdd8",
       "name": "Apply fixes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -636,7 +636,7 @@
           },
           "conditions": [
             {
-              "id": "a02aeafc-0a7f-4b39-bec5-ebae3fd3879f",
+              "id": "8c424ba0-4fa3-45ba-b75a-c8c41b0b0d0d",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -651,7 +651,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "d2fca695-d404-4ca8-8a10-c626fe28a273",
+      "id": "acac0333-b9f9-4071-b1cb-25f271c3d277",
       "name": "Valid after fix?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -664,7 +664,7 @@
       "parameters": {
         "jsCode": "function md2html(md) {\n  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n  const inline = (s) => esc(s)\n    .replace(/`([^`]+)`/g, '<code>$1</code>')\n    .replace(/\\*\\*([^*]+)\\*\\*/g, '<b>$1</b>')\n    .replace(/(^|[^*])\\*([^*\\s][^*]*)\\*/g, '$1<i>$2</i>')\n    .replace(/\\[([^\\]]+)\\]\\((https?:[^)\\s]+)\\)/g, '<a href=\"$2\">$1</a>')\n    .replace(/^\\[ \\]\\s*/, '&#9744; ')\n    .replace(/^\\[x\\]\\s*/i, '&#9745; ');\n  const cells = (row) => row.trim().replace(/^\\|/, '').replace(/\\|$/, '').split('|').map((c) => c.trim());\n  const isTableSep = (l) => /^\\s*\\|?\\s*:?-{2,}:?\\s*(\\|\\s*:?-{2,}:?\\s*)*\\|?\\s*$/.test(l);\n  const TD = 'style=\"border:1px solid #999;padding:4px 6px;vertical-align:top\"';\n  const TH = 'style=\"border:1px solid #999;padding:4px 6px;background:#e8eef7;font-weight:bold\"';\n\n  const lines = String(md || '').replace(/\\r\\n/g, '\\n').split('\\n');\n  const out = [];\n  let i = 0;\n  while (i < lines.length) {\n    const line = lines[i];\n    if (/^\\s*```/.test(line)) {\n      const buf = [];\n      i++;\n      while (i < lines.length && !/^\\s*```/.test(lines[i])) buf.push(esc(lines[i++]));\n      i++;\n      out.push('<pre style=\"font-family:monospace;background:#f4f4f4\">' + buf.join('\\n') + '</pre>');\n      continue;\n    }\n    const h = line.match(/^(#{1,6})\\s+(.*)$/);\n    if (h) { out.push(`<h${h[1].length}>${inline(h[2].trim())}</h${h[1].length}>`); i++; continue; }\n    if (/^\\s*(-{3,}|\\*{3,})\\s*$/.test(line)) { out.push('<hr>'); i++; continue; }\n    if (/^\\s*\\|/.test(line) && i + 1 < lines.length && isTableSep(lines[i + 1])) {\n      const head = cells(line);\n      i += 2;\n      const rows = [];\n      while (i < lines.length && /^\\s*\\|/.test(lines[i])) rows.push(cells(lines[i++]));\n      let t = '<table style=\"border-collapse:collapse;width:100%\"><tr>' +\n        head.map((c) => `<th ${TH}>${inline(c)}</th>`).join('') + '</tr>';\n      for (const r of rows) t += '<tr>' + head.map((_, k) => `<td ${TD}>${inline(r[k] || '')}</td>`).join('') + '</tr>';\n      out.push(t + '</table>');\n      continue;\n    }\n    if (/^\\s*[-*+]\\s+/.test(line) || /^\\s*\\d+[.)]\\s+/.test(line)) {\n      const ordered = /^\\s*\\d+[.)]\\s+/.test(line);\n      const re = ordered ? /^\\s*\\d+[.)]\\s+/ : /^\\s*[-*+]\\s+/;\n      const items = [];\n      while (i < lines.length && re.test(lines[i])) {\n        let text = lines[i++].replace(re, '');\n        while (i < lines.length && /^\\s{2,}\\S/.test(lines[i]) && !/^\\s*([-*+]|\\d+[.)])\\s+/.test(lines[i])) text += ' ' + lines[i++].trim();\n        items.push(`<li>${inline(text)}</li>`);\n      }\n      out.push((ordered ? '<ol>' : '<ul>') + items.join('') + (ordered ? '</ol>' : '</ul>'));\n      continue;\n    }\n    if (/^\\s*>/.test(line)) {\n      const buf = [];\n      while (i < lines.length && /^\\s*>/.test(lines[i])) buf.push(inline(lines[i++].replace(/^\\s*>\\s?/, '')));\n      out.push('<blockquote style=\"color:#555;border-left:3px solid #ccc;padding-left:8px\">' + buf.join('<br>') + '</blockquote>');\n      continue;\n    }\n    if (!line.trim()) { i++; continue; }\n    const buf = [];\n    while (i < lines.length && lines[i].trim() && !/^(#{1,6}\\s|\\s*[-*+]\\s|\\s*\\d+[.)]\\s|\\s*\\||\\s*>|\\s*```)/.test(lines[i])) buf.push(inline(lines[i++].trim()));\n    if (!buf.length) { out.push(`<p>${inline(lines[i++])}</p>`); continue; }\n    out.push(`<p>${buf.join('<br>')}</p>`);\n  }\n  return '<html><head><meta charset=\"utf-8\"></head><body style=\"font-family:Arial,sans-serif;font-size:11pt\">' +\n    out.join('\\n') + '</body></html>';\n}\n\nconst j = $json;\nconst cfg = $('Config').first().json;\nconst who = String(j.session.username || j.session.chat_id).replace(/^@/, '');\nconst name = `BRD ${j.today} — ${j.title} (${who})`;\nconst html = md2html(j.md);\nconst boundary = 'brd_' + Date.now().toString(36);\nconst meta = { name, mimeType: 'application/vnd.google-apps.document', parents: [cfg.BRD_FOLDER_ID],\n               description: `BRD по интервью в Telegram. Session ID: ${j.session.session_id}` };\nconst body = `--${boundary}\\r\\nContent-Type: application/json; charset=UTF-8\\r\\n\\r\\n${JSON.stringify(meta)}\\r\\n` +\n             `--${boundary}\\r\\nContent-Type: text/html; charset=UTF-8\\r\\n\\r\\n${html}\\r\\n--${boundary}--`;\nreturn [{ json: { ...j, doc_name: name, body, content_type: `multipart/related; boundary=${boundary}` } }];"
       },
-      "id": "6ddd9a85-6eeb-4f86-a2b0-d2ac25700dc7",
+      "id": "0abd0057-99b2-4861-9885-bf30852630d2",
       "name": "Render Google Doc request",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -704,7 +704,7 @@
           "timeout": 120000
         }
       },
-      "id": "49d2e297-77cc-4b13-87cc-8583fe3ea169",
+      "id": "a813b0e4-1e87-4eb2-8fad-3825a50e8226",
       "name": "Upload to Drive as Google Doc",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -727,7 +727,7 @@
       "parameters": {
         "jsCode": "const j = $('Render Google Doc request').first().json;\nconst url = $json.webViewLink || `https://docs.google.com/document/d/${$json.id}/edit`;\nconst now = new Date().toISOString();\nreturn [{ json: {\n  doc_id: $json.id, doc_url: url, doc_name: j.doc_name, title: j.title, session: j.session, turns: j.turns,\n  registry: { created_at: now, title: j.title, customer: j.session.username || '', chat_id: j.session.chat_id,\n              session_id: j.session.session_id, turns: j.turns, status: 'Draft', doc_url: url },\n  session_row: { session_id: j.session.session_id, status: 'completed', brd_title: j.title, brd_url: url,\n                 last_activity_at: now, error: '', brd_created_at: now,\n                 cost_usd: Math.round((Number(j.cost_usd) || 0) * 1e6) / 1e6 },\n} }];"
       },
-      "id": "5fe985d9-0d4c-4cd9-bb2a-4f9505036d53",
+      "id": "67cf83d6-40a4-46e9-8a59-cda7c6b9699d",
       "name": "Published",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -740,7 +740,7 @@
       "parameters": {
         "jsCode": "return [{ json: $json.registry }];"
       },
-      "id": "06fcbaaf-ca0d-41dc-8a85-a9d7e308eedf",
+      "id": "5768f3e5-11fc-44c6-9f19-bb98d60ce88d",
       "name": "Registry row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -775,7 +775,7 @@
           "handlingExtraData": "ignoreIt"
         }
       },
-      "id": "2126c1d1-e638-4ede-9870-d3354916b902",
+      "id": "8eb8e6d0-bc83-432d-b164-3f6c7250b848",
       "name": "Register in BRD registry",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -795,7 +795,7 @@
       "parameters": {
         "jsCode": "return [{ json: $('Published').first().json.session_row }];"
       },
-      "id": "c9df8032-f331-4d05-9c45-1557cb75d892",
+      "id": "2b920af6-2efd-42f9-92f0-be0abcda237c",
       "name": "Session row (completed)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -833,7 +833,7 @@
         },
         "options": {}
       },
-      "id": "10aa01d2-d86b-4f2e-860e-dbb33104fc5c",
+      "id": "cd0fc0c6-1d6d-4198-8ede-dce0b1d7ea2b",
       "name": "Mark session completed",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -847,7 +847,7 @@
       "parameters": {
         "jsCode": "const p = $('Published').first().json;\n// Тестовые сессии (eval-*) заказчика в Telegram не имеют — им не пишем.\nconst isEval = String(p.session.chat_id).startsWith('eval-');\nreturn [\n  ...(isEval ? [] : [{ json: { audience: 'customer', chat_id: p.session.chat_id, kind: 'success', title: 'BRD готов',\n            text: `Документ «${p.title}» сформирован и опубликован:\\n${p.doc_url}\\n\\nКоманда развития ИИ-среды получила уведомление и свяжется с вами для согласования. Начать новую беседу — /new`, source: 'brd_generator' } }]),\n  { json: { audience: 'team', kind: 'info', title: isEval ? 'Новый BRD (тестовый прогон)' : 'Новый BRD',\n            text: `«${p.title}»\\nИнициатор: ${p.session.username || p.session.chat_id}\\nОтветов в интервью: ${p.turns}\\nСтатус: Draft\\n${p.doc_url}`, source: 'brd_generator' } },\n];"
       },
-      "id": "984ce669-23f7-4aeb-be6a-492430d68447",
+      "id": "5b40c1fa-645d-4c6b-a26e-86bcb821bce3",
       "name": "Success notifications",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -876,7 +876,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "1adeee08-718e-4de1-a54b-57f22e2833aa",
+      "id": "a38d2607-79dc-4396-aee5-4ce9916eef94",
       "name": "Notify via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -889,7 +889,7 @@
       "parameters": {
         "jsCode": "// Агентная нода v2.x при maxIterations завершается УСПЕШНО с этим текстом; v3.x — падает с ошибкой «Max iterations (N) reached».\nconst STOP_RE = /Agent stopped due to (max iterations|iteration limit)|Max iterations \\(\\d+\\) reached/i;\n// Лимит ключа/баланса провайдера: OpenRouter 402/403 (limit_source openrouter_key_limit), DeepSeek 402 Insufficient Balance.\nconst MONEY_RE = /\\b402\\b|insufficient (credits|balance)|payment required|openrouter_key_limit|key limit|budget limit/i;\nconst errStr = (e) => (!e ? '' : typeof e === 'string' ? e : [e.message, e.description, e.httpCode].filter(Boolean).join(' ') || JSON.stringify(e)).slice(0, 800);\n// Оценка стоимости одного прогона агента сверху: каждый вызов LLM получает system + prompt + результаты инструментов.\nconst estimateRun = (sysChars, promptChars, outText, steps, pIn, pOut, cpt) => {\n  steps = Array.isArray(steps) ? steps : [];\n  const calls = steps.length + 1;\n  const obs = steps.reduce((a, s) => a + String(s.observation ?? '').length, 0);\n  const acts = steps.reduce((a, s) => a + JSON.stringify(s.action ?? {}).length, 0);\n  const inChars = calls * (sysChars + promptChars) + obs * calls;\n  const outChars = String(outText || '').length + acts;\n  return { calls, steps: steps.length, usd: (inChars * pIn + outChars * pOut) / cpt / 1e6 };\n};\n// Неудача: возвращаем сессию в active (заказчик может повторить /done — это вторая попытка), сообщаем саппорту и заказчику.\n// Лимит ключа (402/403) или падение агента v3 по maxIterations — это предел, а не сбой: уходит в ветку Limit stop.\nlet s = {};\ntry { s = $('Load session').all().map((i) => i.json).find((r) => r && r.session_id) || {}; } catch (e) {}\nconst j = $input.first().json || {};\nconst e = j.error;\nconst msg = (typeof e === 'string' ? e : (e && (e.message || e.description)) || JSON.stringify(e || 'Unknown error')).slice(0, 800);\nconst cfg = $('Config').first().json;\nlet limit = null;\nif (MONEY_RE.test(msg)) limit = { limit_type: 'cost_key', limit_value: 'лимит ключа OpenRouter', observed: msg.slice(0, 200) };\nelse if (STOP_RE.test(msg)) limit = { limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: msg.slice(0, 200) };\nreturn [{ json: { session_id: s.session_id || '', chat_id: s.chat_id || '', username: s.username || '', error: msg,\n  limit, session: s } }];"
       },
-      "id": "77c4e453-7538-422b-bbb0-ec4176eabbcf",
+      "id": "7a1110ff-254b-43ad-8dbc-794b215f983f",
       "name": "Generation failed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -909,7 +909,7 @@
           },
           "conditions": [
             {
-              "id": "02e80ce3-8996-46c2-a724-c6152c33f3f1",
+              "id": "20a75779-7072-4f1e-9b31-53ab992137a7",
               "leftValue": "={{ !!$json.limit }}",
               "rightValue": "",
               "operator": {
@@ -924,7 +924,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "01f6e242-02c5-4d68-acf1-da37d77bcee2",
+      "id": "085576dc-3511-49ee-b447-d79f5542fe20",
       "name": "Provider limit?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -937,7 +937,7 @@
       "parameters": {
         "jsCode": "if (!$json.session_id) return [];\nreturn [{ json: { session_id: $json.session_id, status: 'active', error: $json.error, last_activity_at: new Date().toISOString() } }];"
       },
-      "id": "cd6ab79d-132a-42f1-9224-d78101ce1aa2",
+      "id": "669adaf3-a779-4e84-8d2c-41c53c17263d",
       "name": "Session row (back to active)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -975,7 +975,7 @@
         },
         "options": {}
       },
-      "id": "c3896352-8a8d-449e-bfe2-d803cd9353a5",
+      "id": "15b958ba-0587-4ec4-870b-98f4c80bc427",
       "name": "Return session to active",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -989,7 +989,7 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'brd_generator',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'BRD-04',\n    severity: 'error',\n    alert: true,\n    chat_id: String(j.chat_id || ''),\n    message: String('Не удалось сформировать или опубликовать BRD: ' + j.error || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String('session_id=' + j.session_id || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
       },
-      "id": "4512218b-59ec-4178-bf4b-3d67e62c29d4",
+      "id": "ea19f0a3-c3db-42a6-a264-e982e21945cd",
       "name": "Failure error payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1018,7 +1018,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "3dac3cda-3e28-4ab2-819b-1d0f0cc4c9ca",
+      "id": "f9b18431-0384-4824-8931-9a91f5e3397a",
       "name": "Log via BRD-00",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -1031,7 +1031,7 @@
       "parameters": {
         "jsCode": "if (!$json.chat_id || String($json.chat_id).startsWith('eval-')) return [];\nreturn [{ json: { audience: 'customer', chat_id: $json.chat_id, kind: 'warning', title: 'Не удалось сформировать BRD',\n  text: 'Произошла техническая ошибка при формировании документа. Ваша беседа сохранена, команда поддержки уже уведомлена. Попробуйте отправить /done ещё раз через несколько минут.',\n  source: 'brd_generator' } }];"
       },
-      "id": "04d0b19b-567c-4f45-9626-c1135b9782c4",
+      "id": "03b8944f-1f51-4087-b320-ff0eceb9fa68",
       "name": "Apology to customer",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1060,7 +1060,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "855346eb-888d-4b73-a845-8150a0da666c",
+      "id": "ff83b12f-9dfc-4c5a-8a81-b2d09a5e3ccd",
       "name": "Notify customer via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -1073,7 +1073,7 @@
       "parameters": {
         "jsCode": "const j = $input.first().json;\nconst s = j.session || {};\nconst l = j.limit;\nconst now = new Date().toISOString();\nconst row = { session_id: s.session_id, status: 'needs_review', last_activity_at: now,\n              limit_hit: `${l.limit_type}: ${String(l.observed).slice(0, 80)} / ${l.limit_value}` };\nif (j.cost_usd !== undefined) row.cost_usd = Math.round(Number(j.cost_usd) * 1e6) / 1e6;\nreturn [{ json: { session_row: row, limit: l, session: s,\n  customer: { audience: 'customer', chat_id: s.chat_id, kind: 'warning', title: 'BRD не сформирован автоматически',\n              text: 'Я остановил беседу: сработало ограничение агента. Ваши ответы сохранены, беседа передана команде развития ИИ-среды — с вами свяжутся и решат, как продолжить. Повторять сообщения не нужно.', source: 'brd_generator' },\n  queue: { ...l, workflow: $workflow.name, workflow_id: $workflow.id, execution_id: $execution.id,\n           session_id: s.session_id || '', chat_id: s.chat_id || '', username: s.username || '',\n           details: `Генерация BRD остановлена, сессия needs_review. Ответов в интервью: ${s.turn_count ?? '—'}, попыток генерации: ${s.brd_attempts ?? 0}.` },\n} }];"
       },
-      "id": "ef2f7bcf-df7d-42cc-9da2-4fd4e7498017",
+      "id": "bb90717d-5488-4822-a2f5-7f5e0e8866db",
       "name": "Limit stop",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1093,7 +1093,7 @@
           ]
         }
       },
-      "id": "10edd6e8-ddae-4d96-abc9-01fb1e42320e",
+      "id": "5d28e2d4-50ff-408a-8174-7d3fe659d5d2",
       "name": "Outcome: limit_stopped",
       "type": "n8n-nodes-base.executionData",
       "typeVersion": 1.1,
@@ -1106,7 +1106,7 @@
       "parameters": {
         "jsCode": "const j = $('Limit stop').first().json;\nreturn j.session_row.session_id ? [{ json: j.session_row }] : [];"
       },
-      "id": "c61586a5-4198-4447-a576-2594fa3346ed",
+      "id": "1d4ca9bd-2411-48f6-808b-0b30ed63418a",
       "name": "Session row (needs_review)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1144,7 +1144,7 @@
         },
         "options": {}
       },
-      "id": "14035580-91a5-406a-97d5-145b1d2bb136",
+      "id": "9a171121-18c3-4ed9-b845-9b10bb9cc3bf",
       "name": "Freeze session",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -1158,7 +1158,7 @@
       "parameters": {
         "jsCode": "const j = $('Limit stop').first().json;\nconst c = String(j.customer.chat_id || '');\nreturn c && !c.startsWith('eval-') ? [{ json: j.customer }] : [];"
       },
-      "id": "c6a8975e-f8df-408b-aefc-2743b9317fac",
+      "id": "c74756b2-ddca-4c95-9a3f-5d9dcc724742",
       "name": "Customer limit message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1187,7 +1187,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "ee0c1e07-bdd9-461b-9fea-35d8d5e7f209",
+      "id": "f9e7a84f-4987-4951-a0a1-68dd04bab1a6",
       "name": "Notify customer (limit) via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -1200,7 +1200,7 @@
       "parameters": {
         "jsCode": "return [{ json: $('Limit stop').first().json.queue }];"
       },
-      "id": "4a4c6d86-0002-45ad-b1c7-06c4cf91f8fd",
+      "id": "b55deeac-6f5f-4fdc-b9b6-8f634f7cac33",
       "name": "Queue payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1229,7 +1229,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "bd27ee3c-a9ab-4026-a2cd-ce8de045fb3a",
+      "id": "ca735c63-c22c-4e89-87d7-d89c8c339ab0",
       "name": "Escalate via BRD-07",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -1242,7 +1242,7 @@
       "parameters": {
         "jsCode": "const p = $('Published').first().json;\nreturn [{ json: { outcome: 'published', session: p.session, title: p.title, doc_url: p.doc_url } }];"
       },
-      "id": "92d3c021-6027-4acf-8966-08696c4c5771",
+      "id": "d44c7411-3100-44c2-91b3-dc009b556732",
       "name": "Run: published",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1255,7 +1255,7 @@
       "parameters": {
         "jsCode": "const j = $('Limit stop').first().json;\nreturn [{ json: { outcome: 'limit_stopped', limit_type: j.limit.limit_type, session: j.session } }];"
       },
-      "id": "0c475dab-5864-45d7-9b9a-7fa9900cb475",
+      "id": "5b2dd210-b1f9-4a16-b5ee-964c27b649cd",
       "name": "Run: stopped",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1268,7 +1268,7 @@
       "parameters": {
         "jsCode": "return [{ json: { outcome: 'error', error: $json.error, session: $json.session || {} } }];"
       },
-      "id": "a25daae4-19b5-4539-bca7-58ffe387a754",
+      "id": "015de300-bec2-4a55-9a5f-11f7f8bf3006",
       "name": "Run: failed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1283,7 +1283,7 @@
         "amount": 15,
         "unit": "seconds"
       },
-      "id": "c63df845-badc-40b8-9c5d-25c2efe6ae2e",
+      "id": "379466e8-e095-4c23-9eec-ba9c9b472ffb",
       "name": "Wait for usage (15 s)",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
@@ -1300,7 +1300,7 @@
         "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
-      "id": "7a55dbcb-8c3c-4d78-aba5-c5fe8138a261",
+      "id": "2039e111-d660-42af-a86d-cefe1b2a042e",
       "name": "Key usage (after)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -1321,7 +1321,7 @@
       "parameters": {
         "jsCode": "const r = $('Wait for usage (15 s)').first().json;\nconst cfg = $('Config').first().json;\nconst node = (n) => { try { return $(n).isExecuted ? ($(n).first()?.json ?? null) : null; } catch (e) { return null; } };\nconst before = node('Key usage (before)')?.data?.usage;\nconst after = $json.data?.usage;\nconst cost = before != null && after != null ? Math.round((after - before) * 1e6) / 1e6 : '';\nconst val = node('Validate BRD');\nconst fix = node('Apply fixes');\nconst verdict = (x) => (!x || !Array.isArray(x.violations) ? '' : x.violations.length ? 'fail' : 'pass');\nconst rules = (x) => (x && Array.isArray(x.violations) ? x.violations.map((v) => `р.${v.section} ${v.rule}`).join(', ') : '');\nconst fin = fix || val;\nconst base = String(cfg.N8N_BASE_URL || '').replace(/\\/$/, '');\nconst s = r.session || {};\nreturn [{ json: {\n  finished_at: new Date().toISOString(), session_id: s.session_id || '', chat_id: s.chat_id || '', title: r.title || val?.title || '',\n  outcome: r.outcome, limit_type: r.limit_type || '',\n  validator_first: verdict(val), violations_first: rules(val),\n  repaired: fix ? 'yes' : 'no', validator_final: verdict(fin), violations_final: rules(fin),\n  kb_calls: val?.kb_calls ?? '', kb_queries: val?.kb_queries ?? '',\n  writer_model: cfg.WRITER_MODEL, fixer_model: fix ? cfg.LLM_MODEL : '',\n  run_cost_usd: cost, cost_estimate_usd: fin ? Math.round((Number(fin.cost_usd) - (Number(s.cost_usd) || 0)) * 1e6) / 1e6 : '',\n  doc_url: r.doc_url || '', error: String(r.error ? (r.error.message || r.error) : '').slice(0, 300),\n  execution_url: base && !base.startsWith('__') ? `${base}/workflow/${$workflow.id}/executions/${$execution.id}` : String($execution.id),\n} }];"
       },
-      "id": "d58dfb84-41f4-42a4-ac70-2f339af323ed",
+      "id": "6202bc5d-9d71-4948-a4fb-5c6aae7782ee",
       "name": "Run row",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1356,7 +1356,7 @@
           "handlingExtraData": "ignoreIt"
         }
       },
-      "id": "512e4c8b-43d9-4dbf-9814-ce275337fc16",
+      "id": "acf95404-d345-4a6b-920b-611ce6789a00",
       "name": "Append to brd_runs",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -1383,7 +1383,7 @@
           ]
         }
       },
-      "id": "8be1d272-0ecf-4fb1-83dc-ea05d08b0432",
+      "id": "1d666337-ff66-4e97-8a63-93a2e23c25fd",
       "name": "Outcome: done",
       "type": "n8n-nodes-base.executionData",
       "typeVersion": 1.1,
@@ -1403,7 +1403,7 @@
           ]
         }
       },
-      "id": "32963770-a8a1-43c6-af71-4234037f55e3",
+      "id": "407fc799-3f94-4f7e-9bd1-33e507c09c48",
       "name": "Outcome: error",
       "type": "n8n-nodes-base.executionData",
       "typeVersion": 1.1,
@@ -1419,7 +1419,7 @@
         "height": 500,
         "color": 4
       },
-      "id": "d5469fa0-b567-4b30-9428-e9178ec84c2b",
+      "id": "485aba67-5b8a-4456-9679-c73a93068d22",
       "name": "Note 58",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,

@@ -12,7 +12,7 @@
           ]
         }
       },
-      "id": "0168c128-604b-4447-9437-0330158fc2b6",
+      "id": "d904a523-92db-4d6c-863f-f17cc7ce4035",
       "name": "Every hour",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -23,7 +23,7 @@
     },
     {
       "parameters": {},
-      "id": "404b5047-c9a9-4e4b-8fdd-f895d7302151",
+      "id": "3715b05a-fb74-4a82-a304-bd3df220b416",
       "name": "Manual run",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -37,37 +37,37 @@
         "assignments": {
           "assignments": [
             {
-              "id": "a78ce433-8725-45a1-a69f-03c97329d290",
+              "id": "2c166881-fdc8-4cd0-a930-8b1cfe18df19",
               "name": "REMIND_AFTER_HOURS",
               "value": 24,
               "type": "number"
             },
             {
-              "id": "de04e7fb-e788-4507-bf24-4efeb631f7fc",
+              "id": "14f33443-f0ba-47ba-a428-b556d0f85dd8",
               "name": "MAX_REMINDERS",
               "value": 2,
               "type": "number"
             },
             {
-              "id": "fb14091d-ba07-4391-bad9-75e59e792f68",
+              "id": "f720cbe3-c10f-4779-837a-56e9d195731e",
               "name": "CLOSE_AFTER_HOURS",
               "value": 72,
               "type": "number"
             },
             {
-              "id": "f2f4aefb-594f-43db-af3a-ddddca662cb3",
+              "id": "5c432213-afac-4436-b47b-3936fd9f23cc",
               "name": "WORK_HOUR_FROM",
               "value": 9,
               "type": "number"
             },
             {
-              "id": "cf0b5751-b009-467e-91ec-d0ba94ea96cc",
+              "id": "eb5d8d1c-b10a-4307-818c-cfa81cf5f941",
               "name": "WORK_HOUR_TO",
               "value": 20,
               "type": "number"
             },
             {
-              "id": "834cb184-73bb-4946-a374-4976aff6e98b",
+              "id": "321d7ae0-a3d0-43f7-8d98-7962860f810f",
               "name": "GENERATION_STUCK_MIN",
               "value": 20,
               "type": "number"
@@ -76,7 +76,7 @@
         },
         "options": {}
       },
-      "id": "edb22b5e-2513-427e-ab31-9029f588f217",
+      "id": "4f24ddfe-7388-4873-8c51-36ac99c40778",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -111,7 +111,7 @@
           ]
         }
       },
-      "id": "a599161f-e3ab-41f7-a690-3809c173299b",
+      "id": "f4ada250-0c4f-453f-8a22-5ce9a2da0f23",
       "name": "Load active sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -126,7 +126,7 @@
       "parameters": {
         "jsCode": "const cfg = $('Config').first().json;\nconst now = new Date();\nconst hourMsk = Number(now.toLocaleString('en-GB', { timeZone: 'Europe/Moscow', hour: '2-digit', hour12: false }));\nconst workTime = hourMsk >= Number(cfg.WORK_HOUR_FROM) && hourMsk < Number(cfg.WORK_HOUR_TO);\nconst H = 3600 * 1000;\nconst all = $input.all().map((i) => i.json).filter((r) => r && r.session_id);\nconst sessions = all.filter((r) => r.status === 'active');\nconst saves = [], notifications = [], escalations = [];\n// Сторож потолка времени: BRD-04 мог быть снят по таймауту и не успеть записать исход.\nfor (const s of all.filter((r) => r.status === 'generating')) {\n  const min = (now - new Date(s.last_activity_at)) / 60000;\n  if (min < Number(cfg.GENERATION_STUCK_MIN)) continue;\n  saves.push({ session_id: s.session_id, status: 'needs_review', last_activity_at: now.toISOString(),\n               limit_hit: `time: ${Math.round(min)} мин в generating / ${cfg.GENERATION_STUCK_MIN}` });\n  notifications.push({ audience: 'customer', chat_id: s.chat_id, kind: 'warning', title: 'BRD не сформирован автоматически',\n    text: 'Я остановил беседу: сработало ограничение агента. Ваши ответы сохранены, беседа передана команде развития ИИ-среды — с вами свяжутся и решат, как продолжить. Повторять сообщения не нужно.', source: 'reminders' });\n  escalations.push({ limit_type: 'time', limit_value: `${cfg.GENERATION_STUCK_MIN} мин`, observed: `${Math.round(min)} мин в статусе generating`,\n    workflow: 'BRD-04 BRD Generator & Publisher (найдено BRD-05)', session_id: s.session_id, chat_id: s.chat_id, username: s.username || '',\n    details: 'Генерация не завершилась и не записала исход (вероятно, снята по таймауту). Сессия переведена в needs_review.' });\n}\nfor (const s of sessions) {\n  const idleH = (now - new Date(s.last_activity_at)) / H;\n  const sinceRemH = s.last_reminder_at ? (now - new Date(s.last_reminder_at)) / H : Infinity;\n  const sent = Number(s.reminder_count) || 0;\n  let lastQ = '';\n  try { const h = JSON.parse(s.history || '[]'); lastQ = ([...h].reverse().find((m) => m.role === 'assistant') || {}).content || ''; } catch (e) {}\n  if (sent >= Number(cfg.MAX_REMINDERS) && idleH >= Number(cfg.CLOSE_AFTER_HOURS)) {\n    saves.push({ session_id: s.session_id, status: 'abandoned', last_activity_at: now.toISOString() });\n    notifications.push({ audience: 'customer', chat_id: s.chat_id, kind: 'info', title: 'Беседа закрыта',\n      text: 'Мы так и не закончили интервью, поэтому я закрыл беседу. Когда будете готовы — напишите /new, и начнём заново.', source: 'reminders' });\n    notifications.push({ audience: 'team', kind: 'info', title: 'Интервью брошено',\n      text: `Инициатор ${s.username || s.chat_id} не завершил интервью (ответов: ${s.turn_count}, напоминаний: ${sent}). Сессия закрыта как abandoned.`, source: 'reminders' });\n  } else if (workTime && sent < Number(cfg.MAX_REMINDERS) && idleH >= Number(cfg.REMIND_AFTER_HOURS) && sinceRemH >= Number(cfg.REMIND_AFTER_HOURS)) {\n    saves.push({ session_id: s.session_id, reminder_count: sent + 1, last_reminder_at: now.toISOString() });\n    notifications.push({ audience: 'customer', chat_id: s.chat_id, kind: 'reminder', title: 'Продолжим сбор требований?',\n      text: 'Наша беседа по вашей задаче не завершена.' + (lastQ ? `\\n\\nПоследний вопрос был такой:\\n«${lastQ.slice(0, 600)}»` : '') +\n            '\\n\\nПросто ответьте на него. Если информации уже достаточно — /done, если задача неактуальна — /cancel.', source: 'reminders' });\n  }\n}\nreturn [{ json: { checked: sessions.length, work_time: workTime, saves, notifications, escalations } }];"
       },
-      "id": "0b0043d6-650c-4e4a-b93f-2ec753769766",
+      "id": "6d1a1d5d-d753-4bd3-aa4d-3bdc733b935c",
       "name": "Plan reminders",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -139,7 +139,7 @@
       "parameters": {
         "jsCode": "return $json.saves.map((s) => ({ json: s }));"
       },
-      "id": "353d2706-0ce2-4841-8277-a66b83ec3877",
+      "id": "26272bcb-e6e8-4f00-bcce-ef9e09c2512b",
       "name": "Session updates",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -177,7 +177,7 @@
         },
         "options": {}
       },
-      "id": "f536e5aa-ec15-445c-9b0c-14c5428fbd07",
+      "id": "ea3672c1-152d-4595-b358-cf4bee003f67",
       "name": "Update sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -190,7 +190,7 @@
       "parameters": {
         "jsCode": "return $('Plan reminders').first().json.notifications.map((n) => ({ json: n }));"
       },
-      "id": "89a65be8-9cc0-4ef7-9c22-9a55c3c63cff",
+      "id": "f7179c31-0d36-4086-9e7e-ea0fd4c6ed9c",
       "name": "Messages",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -219,7 +219,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "af054dc6-3144-4068-a466-bcd7bcfa0853",
+      "id": "0d7cf771-7c27-4a37-b8c2-bf9637fb1ebb",
       "name": "Notify via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -232,7 +232,7 @@
       "parameters": {
         "jsCode": "return $('Plan reminders').first().json.escalations.map((e) => ({ json: e }));"
       },
-      "id": "10f42fc1-9c06-4ca1-8856-40930024569c",
+      "id": "c57a84b5-0e5f-4131-9bd5-7ce87fa3524f",
       "name": "Escalations",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -261,7 +261,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "76b44adb-fecc-43b0-b479-dc287e909cc5",
+      "id": "563bb1a0-a9fb-49f6-82bf-6b9cb61c7388",
       "name": "Escalate via BRD-07",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -277,7 +277,7 @@
         "height": 270,
         "color": 2
       },
-      "id": "654a0308-c16f-4428-9238-f20f843ca97b",
+      "id": "a4d4e524-4bd9-4943-a838-16e861f7ddef",
       "name": "Note 11",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
