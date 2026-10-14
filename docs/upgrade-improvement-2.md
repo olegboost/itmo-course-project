@@ -1,14 +1,30 @@
 # Обновление до паттерна «sequential с валидатором» (improvement-2): ручной импорт
 
-Что и зачем меняется, описано в [pattern-and-economics.md](pattern-and-economics.md). Меняется только **BRD-04**, и добавляется новый **BRD-98** (тестовые входы). Остальные воркфлоу не трогаем.
+Что и зачем меняется, описано в [pattern-and-economics.md](pattern-and-economics.md). Меняются **BRD-01** (база знаний без файлов из корзины) и **BRD-04** (паттерн, две ветки сбоя, безопасная публикация), добавляется новый **BRD-98** (тестовые входы). Остальные воркфлоу не трогаем.
+
+## Шаг 0. BRD-01: убрать дубли из базы знаний
+
+Это замечание ревьювера №2: `.docx` из корзины Drive индексировались вторым экземпляром.
+
+Переимпортируйте BRD-01 из `build/BRD-01_kb-sync.json`, затем Save и Publish, затем **Manual run**. Ожидаемо: в отчёте «удалённых: 12» (`.docx` из корзины), в `kb_sync_log` строки `deleted`, в Pinecone 85 записей вместо 170. Корзину Drive после этого можно очистить.
+
+Делайте это **до** серии прогонов: писатель получает 6 фрагментов на запрос, и с дублями часть из них повторяет друг друга.
 
 ## Шаг 1. Лист `brd_runs`
 
 В таблице «BRD agent — logs» добавьте лист `brd_runs` с заголовками из `sheets-templates/logs__brd_runs.csv`:
 
 ```
-finished_at,session_id,chat_id,title,outcome,limit_type,validator_first,violations_first,repaired,validator_final,violations_final,kb_calls,kb_queries,writer_model,fixer_model,run_cost_usd,cost_estimate_usd,doc_url,error,execution_url
+finished_at,session_id,chat_id,title,outcome,limit_type,validator_first,violations_first,repaired,repair_rounds,repair_actions,validator_final,violations_final,from_draft,found_existing_doc,kb_calls,kb_queries,writer_model,fixer_model,run_cost_usd,cost_estimate_usd,doc_url,error,execution_url
 ```
+
+### Колонки в Data Table `brd_sessions`
+
+Добавьте две колонки, обе типа **String**:
+- `brd_draft` — готовый, но не опубликованный текст BRD (если упала загрузка в Drive);
+- `brd_draft_title` — его название.
+
+*Зачем:* при техническом сбое публикации повторный `/done` опубликует сохранённый текст, а не будет генерировать документ заново.
 
 *Зачем:* это журнал прогонов паттерна. Каждый прогон BRD-04 (успешный, остановленный или упавший) пишет сюда строку: вердикт валидатора, было ли исправление, какие запросы к базе знаний сделал агент и **фактическую цену** из OpenRouter. Из этого листа заполняется таблица пяти прогонов.
 
@@ -34,10 +50,14 @@ python3 scripts/deploy.py --dry-run
 Как и раньше: открыть BRD-04 → Cmd+A → Delete → **⋯ → Import from File** → `build/BRD-04_brd-generator.json`.
 
 Что проверить после импорта:
-- **LLM (writer)**: credential OpenRouter, модель `deepseek/deepseek-v4-pro-0813`. Это новое название узла, раньше он назывался *LLM (BRD)*.
+- **LLM (writer)** и **LLM (writer, regen)**: credential OpenRouter, модель `deepseek/deepseek-v4-pro-0813`. *LLM (writer)* — новое название узла, раньше он назывался *LLM (BRD)*.
 - **LLM (fixer)**: credential OpenRouter, модель `deepseek/deepseek-v4.1-flash`.
+- **KnowledgeBase (regen)** и **Embeddings (regen)**: те же credentials Pinecone и cloud.ru, что у основных.
+- **Upload to Drive as Google Doc**, **Find uploaded doc**, **Retry upload (once)**: credential Google Drive OAuth2 (ваш собственный OAuth-клиент). У *Upload…* в Settings узла должно быть **Retry On Fail выключено**: так задумано.
 - **Key usage (before)** и **Key usage (after)**: credential Header Auth «OpenRouter API key (header)».
-- **Append to brd_runs**: credential Google Sheets.
+- **Append to brd_runs**, **Register in BRD registry**: credential Google Sheets.
+
+На холсте должна быть видна петля: *Revalidate* → *Quality gate*. Это раунды исправления, не ошибка.
 - **Settings**: Timeout Workflow выключен, Error workflow = BRD-00. Импорт настройки не переносит, они должны остаться прежними.
 
 Затем **Save → Publish**.

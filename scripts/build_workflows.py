@@ -59,7 +59,9 @@ LIMITS = {
     "BRD_ATTEMPTS_PER_SESSION": 2,   # первая попытка + один повтор после сбоя; дальше — человек
     "BRD_PER_CHAT_PER_DAY": 2,       # BRD от одного заказчика за 24 ч
     "BRD_PER_DAY": 5,                # BRD за 24 ч всего = недельная норма (5 в неделю)
-    "BRD_REPAIR_ATTEMPTS": 1,        # исправлений после валидатора: одно; не прошло — человек (повтор кормит разгон)
+    # Раундов исправления после валидатора: 2 (перегенерация пропавшей части писателем + точечное исправление).
+    # Повтор генерации — класс 1 (наружу ничего не ушло), каждый раунд $0.02–0.1 и под бюджетом сессии; дальше — человек.
+    "BRD_REPAIR_ATTEMPTS": 2,
 }
 # Цена модели (USD за 1M токенов) — для оценки расхода; задаётся в .env вместе с моделью.
 CHARS_PER_TOKEN = 2  # русский текст; калибровка cost-attack 2026-10-11: на Claude факт ≈ 2.2 симв./токен, 3 занижало оценку на ~30%
@@ -256,6 +258,18 @@ def if_true(expr):
         "looseTypeValidation": True,
         "options": {},
     }
+
+
+def switch_on(field, keys):
+    """Switch по значению поля: по выходу на каждый ключ (маршрут виден в экспорте)."""
+    rule = lambda key: {
+        "conditions": {
+            "options": {"caseSensitive": True, "leftValue": "", "typeValidation": "strict", "version": 2},
+            "conditions": [{"id": uid(), "leftValue": f"={{{{ $json.{field} }}}}", "rightValue": key,
+                            "operator": {"type": "string", "operation": "equals"}}],
+            "combinator": "and"},
+        "renameOutput": True, "outputKey": key}
+    return {"rules": {"values": [rule(k) for k in keys]}, "options": {}}
 
 
 def dt_ref(table):
@@ -1125,6 +1139,10 @@ HELP = (
     "/new — начать новую беседу\\n/status — статус текущей беседы\\n/done — завершить интервью и сформировать BRD\\n"
     "/cancel — отменить беседу\\n/help — эта справка\\n\\nМожно писать текстом или отправлять голосовые сообщения."
 )
+QUALITY_REPLY = (
+    "Не удалось автоматически собрать документ по стандарту команды. Черновик и ваши ответы переданы команде "
+    "развития ИИ-среды — они доработают документ и пришлют ссылку. Повторять /done не нужно."
+)
 LIMIT_REPLY = (
     "Я остановил беседу: сработало ограничение агента. Ваши ответы сохранены, беседа передана команде развития "
     "ИИ-среды — с вами свяжутся и решат, как продолжить. Повторять сообщения не нужно."
@@ -1570,6 +1588,15 @@ return [{ json: { session_id: $json.session.session_id, brd_attempts: $json.atte
     w.add("Key usage (before)", "n8n-nodes-base.httpRequest", 4.2,
           http_json("GET", "https://openrouter.ai/api/v1/key"), (1980, -100), creds=["http_openrouter"],
           alwaysOutputData=True, executeOnce=True, onError="continueRegularOutput")
+    w.add("Saved draft?", "n8n-nodes-base.if", 2,
+          if_true("={{ !!$('Check limits').first().json.session.brd_draft }}"), (2200, -100))
+    w.add("Draft to publish", "n8n-nodes-base.code", 2, code("""
+// Прошлая попытка составила BRD, но не смогла его опубликовать — публикуем сохранённый текст без генерации.
+const s = $('Check limits').first().json.session;
+const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Moscow' });
+return [{ json: { md: s.brd_draft, title: s.brd_draft_title || 'Без названия', session: s, today,
+  turns: Number(s.turn_count) || 0, cost_usd: Number(s.cost_usd) || 0, from_draft: true, valid: true, violations: [] } }];
+"""), (2420, -300))
     tpl_js = json.dumps(BRD_TEMPLATE, ensure_ascii=False)
     w.dx = 1320  # основной конвейер — правее проверки потолков
     w.add("Build BRD request", "n8n-nodes-base.code", 2, code(f"""
@@ -1649,10 +1676,12 @@ let md = outs.map(clean).join('\\n\\n');
 // Какие запросы к базе знаний писатель решил сделать сам — по частям (доказательство «инструмент выбирает агент»).
 const q = (st) => {{ const t = st?.action?.toolInput; return typeof t === 'string' ? t : (t?.input ?? t?.query ?? JSON.stringify(t ?? '')); }};
 const kbSteps = items.flatMap((it, k) => (it.json.intermediateSteps || []).map((st) => `ч${{k + 1}}: ${{q(st)}}`));
-const violations = validateBrd(md, req.transcript);
 let title = (md.match(/^#\\s+BRD:\\s*(.+)$/m) || [])[1] || '';
 if (!title) title = ((md.match(/\\|\\s*Название задачи\\/проекта\\s*\\|\\s*([^|]+)\\|/) || [])[1] || '').trim();
 title = (title || 'Без названия').replace(/[\\\\/:*?"<>|]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 90);
+// Нет строки «# BRD: …» — это форматирование, а не содержание: дописываем кодом, модель не зовём.
+if (!/^#\\s+BRD:/m.test(splitBrd(md).preamble)) md = `# BRD: ${{title}}\\n\\n` + md;
+const violations = validateBrd(md, req.transcript);
 const valid = violations.length === 0;
 return [{{ json: {{ valid, md, title, violations, first_violations: violations, cost_usd, limit: null,
   kb_calls: kbSteps.length, kb_queries: kbSteps.join(' | ').slice(0, 1500), repaired: false,
@@ -1660,8 +1689,81 @@ return [{{ json: {{ valid, md, title, violations, first_violations: violations, 
   session: req.session, transcript: req.transcript, today: req.today, turns: req.turns }} }}];
 """.replace("const req = $('Build BRD request')", VALIDATOR_JS + "\nconst req = $('Build BRD request')", 1)), (1540, 0))
     w.add("Stopped by limit?", "n8n-nodes-base.if", 2, if_true("={{ !!$json.limit }}"), (1760, 100))
-    w.add("Valid?", "n8n-nodes-base.if", 2, if_true("={{ $json.valid }}"), (1760, 0))
-    # Шаг 3 паттерна: исправление по списку нарушений (лёгкая модель, без инструментов), затем повторная проверка кодом.
+
+    # ---- Ветка «плохой ответ модели» (качество): петля до MAX_REPAIRS раундов, повтор безопасен (класс 1).
+    w.add("Quality gate", "n8n-nodes-base.code", 2, code("""
+// Решение по документу после каждой проверки: публиковать / ещё раунд исправления / отдать человеку.
+const j = $json;
+const cfg = $('Config').first().json;
+const round = Number(j.round) || 0;
+const next = j.valid ? 'publish' : (round >= Number(cfg.MAX_REPAIRS) ? 'give_up' : 'repair');
+const out = { ...j, round, next };
+if (next === 'give_up') out.limit = { limit_type: 'validator', limit_value: `${cfg.MAX_REPAIRS} раунда исправления`,
+  observed: j.violations.map((x) => `р.${x.section} ${x.rule}`).join(', ').slice(0, 250) };
+return [{ json: out }];
+"""), (1980, 100))
+    w.add("Route by quality", "n8n-nodes-base.switch", 3.2, switch_on("next", ["publish", "repair", "give_up"]), (2200, 100))
+    w.add("Repair plan", "n8n-nodes-base.code", 2, code("""
+// Пропал целый раздел — перегенерируем всю его часть писателем (сильная модель + база знаний);
+// иначе — точечное исправление разделов с нарушениями (лёгкая модель).
+const j = $json;
+const PARTS = [{ part: 1, from: 0, to: 5 }, { part: 2, from: 6, to: 7 }, { part: 3, from: 8, to: 12 }];
+const missing = j.violations.filter((v) => v.rule === 'section_missing').map((v) => v.section);
+const regen_parts = PARTS.filter((p) => missing.some((n) => n >= p.from && n <= p.to)).map((p) => p.part);
+const round = (Number(j.round) || 0) + 1;
+const action = regen_parts.length ? 'regenerate' : 'fix';
+const note = action === 'regenerate' ? `р${round}: перегенерация части ${regen_parts.join(', ')}`
+  : `р${round}: исправление разделов ${[...new Set(j.violations.map((v) => v.section))].join(', ')}`;
+return [{ json: { ...j, round, action, regen_parts, actions: [...(j.actions || []), note] } }];
+"""), (2420, 200))
+    w.add("Regenerate parts?", "n8n-nodes-base.if", 2, if_true("={{ $json.action === 'regenerate' }}"), (2640, 200))
+    w.add("Regen requests", "n8n-nodes-base.code", 2, code("""
+// Писателю — исходный запрос части + текст ошибки проверки (как просил ревьювер: «не хватает разделов …»).
+const j = $json;
+const req = $('Build BRD request').all().map((i) => i.json);
+const errs = j.violations.map((v) => `- раздел ${v.section}: ${v.msg}`).join('\\n');
+return j.regen_parts.map((p) => ({ json: { part: p, prompt: req[p - 1].prompt +
+  '\\n\\nПРЕДЫДУЩИЙ ВАРИАНТ ДОКУМЕНТА НЕ ПРОШЁЛ АВТОМАТИЧЕСКУЮ ПРОВЕРКУ СТАНДАРТА:\\n' + errs +
+  '\\nНапиши эту часть заново целиком, со всеми её разделами.' } }));
+"""), (2860, 120))
+    w.add("BRD writer (regen)", "@n8n/n8n-nodes-langchain.agent", 2.2, {
+        "promptType": "define", "text": "={{ $json.prompt }}",
+        "options": {"systemMessage": BRD_WRITER_PROMPT, "maxIterations": LIMITS["BRD_MAX_ITERATIONS"],
+                    "returnIntermediateSteps": True},
+    }, (3080, 120), onError="continueErrorOutput", retryOnFail=True, maxTries=2, waitBetweenTries=5000)
+    openrouter_model(w, "LLM (writer, regen)", (2960, 340), temperature=0.2, max_tokens=8000, timeout=300000,
+                     model="__CFG_WRITER_MODEL__")
+    w.add("KnowledgeBase (regen)", "@n8n/n8n-nodes-langchain.vectorStorePinecone", 1.1, {
+        "mode": "retrieve-as-tool", "toolName": "KnowledgeBase",
+        "toolDescription": "Поиск во внутренней базе знаний: регламенты вывода ИИ-сервисов в ПЭ, runbook'и, стандарты, политика ИБ, чек-лист готовности, FAQ, реестр ИИ-сервисов, стандарт BRD. Используй, чтобы сослаться на применимые требования.",
+        "pineconeIndex": {"__rl": True, "value": "__CFG_PINECONE_INDEX_NAME__", "mode": "id"},
+        "topK": 6,
+        "options": {"pineconeNamespace": "__CFG_PINECONE_NAMESPACE__"},
+    }, (3140, 340), creds=["pinecone"])
+    w.add("Embeddings (regen)", "@n8n/n8n-nodes-langchain.embeddingsOpenAi", 1.2, {
+        "model": "__CFG_EMBEDDING_MODEL__", "options": {"dimensions": 1536},
+    }, (3220, 520), creds=["openai_cloudru"])
+    w.add("Merge regen", "n8n-nodes-base.code", 2, code(VALIDATOR_JS + "\n" + LIMIT_JS + f"""
+// Вклеиваем перегенерированные части (только разделы своей части) в документ.
+const j = $('Repair plan').first().json;
+const cfg = $('Config').first().json;
+const req = $('Build BRD request').all().map((i) => i.json);
+const RANGE = {{ 1: [0, 5], 2: [6, 7], 3: [8, 12] }};
+const doc = splitBrd(j.md);
+let usd = 0;
+$input.all().forEach((it, k) => {{
+  const part = j.regen_parts[k];
+  const t = String(it.json.output ?? it.json.text ?? '').replace(/^```(?:markdown|md)?\\s*\\n/i, '').replace(/\\n```\\s*$/, '').trim();
+  usd += estimateRun({len(BRD_WRITER_PROMPT)}, String(req[part - 1]?.prompt || '').length, t, it.json.intermediateSteps,
+    Number(cfg.WRITER_PRICE_IN) || 0, Number(cfg.WRITER_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 2).usd;
+  if (STOP_RE.test(t)) return;  // писатель упёрся в maxIterations — часть не заменяем, проверка это покажет
+  const got = splitBrd(t);
+  for (const [n, sec] of Object.entries(got.secs)) if (n >= RANGE[part][0] && n <= RANGE[part][1]) doc.secs[n] = sec;
+  if (part === 1 && /^#\\s+BRD:/m.test(got.preamble)) doc.preamble = got.preamble;
+}});
+return [{{ json: {{ ...j, md: joinBrd(doc.preamble, doc.secs), cost_usd: (Number(j.cost_usd) || 0) + usd }} }}];
+"""), (3300, 120))
+    # Точечное исправление (лёгкая модель, без инструментов).
     tpl_secs_js = json.dumps(BRD_TEMPLATE, ensure_ascii=False)
     w.add("Repair request", "n8n-nodes-base.code", 2, code(VALIDATOR_JS + f"""
 const j = $json;
@@ -1681,34 +1783,36 @@ const prompt = [
   'ТРАНСКРИПТ ИНТЕРВЬЮ:', j.transcript,
 ].join('\\n');
 return [{{ json: {{ ...j, fix_sections: nums, fix_prompt: safe(prompt) }} }}];
-"""), (1980, 160))
+"""), (2860, 420))
     w.add("BRD fixer", "@n8n/n8n-nodes-langchain.chainLlm", 1.7, {
         "promptType": "define", "text": "={{ $json.fix_prompt }}",
         "messages": {"messageValues": [{"type": "SystemMessagePromptTemplate",
                                         "message": BRD_FIXER_PROMPT.replace("{", "(").replace("}", ")")}]},
-    }, (2200, 160), onError="continueErrorOutput")
-    openrouter_model(w, "LLM (fixer)", (2200, 380), temperature=0.1, max_tokens=8000, timeout=180000)
+    }, (3080, 420), onError="continueErrorOutput")
+    openrouter_model(w, "LLM (fixer)", (3080, 640), temperature=0.1, max_tokens=8000, timeout=180000)
     w.add("Apply fixes", "n8n-nodes-base.code", 2, code(VALIDATOR_JS + "\n" + LIMIT_JS + f"""
-// Вклеиваем исправленные разделы по номерам и проверяем ВЕСЬ документ тем же валидатором ещё раз.
+// Вклеиваем исправленные разделы по номерам.
 const j = $('Repair request').first().json;
 const cfg = $('Config').first().json;
 const out = String($json.text ?? $json.output ?? '').replace(/^```(?:markdown|md)?\\s*\\n/i, '').replace(/\\n```\\s*$/, '').trim();
 const fixed = splitBrd(out).secs;
 const doc = splitBrd(j.md);
 for (const n of j.fix_sections) if (fixed[n]) doc.secs[n] = fixed[n];
-const md = joinBrd(doc.preamble, doc.secs);
-const violations = validateBrd(md, j.transcript);
 const run = estimateRun({len(BRD_FIXER_PROMPT)}, String(j.fix_prompt).length, out, [],
   Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 2);
-const cost_usd = (Number(j.cost_usd) || 0) + run.usd;
-const valid = violations.length === 0;
-// Потолок паттерна: исправление одно. Не прошло — не повторяем, а отдаём человеку.
-const limit = valid ? null : {{ limit_type: 'validator', limit_value: `${{cfg.MAX_REPAIRS}} исправление`,
-  observed: violations.map((x) => `р.${{x.section}} ${{x.rule}}`).join(', ').slice(0, 250) }};
-return [{{ json: {{ ...j, md, violations, valid, repaired: true, cost_usd, limit,
-  fixed_sections: Object.keys(fixed).join(','), fix_prompt: undefined }} }}];
-"""), (2420, 160))
-    w.add("Valid after fix?", "n8n-nodes-base.if", 2, if_true("={{ $json.valid }}"), (2640, 160))
+const {{ fix_prompt, ...rest }} = j;
+return [{{ json: {{ ...rest, md: joinBrd(doc.preamble, doc.secs), cost_usd: (Number(j.cost_usd) || 0) + run.usd }} }}];
+"""), (3300, 420))
+    w.add("Revalidate", "n8n-nodes-base.code", 2, code(VALIDATOR_JS + """
+// Проверяем ВЕСЬ документ тем же валидатором после каждого раунда и возвращаемся в Quality gate.
+const j = $json;
+let md = j.md;
+if (!/^#\\s+BRD:/m.test(splitBrd(md).preamble)) md = `# BRD: ${j.title}\\n\\n` + md;  // заголовок — форматирование, правим кодом
+const violations = validateBrd(md, j.transcript);
+return [{ json: { ...j, md, violations, valid: violations.length === 0 } }];
+"""), (3520, 260))
+
+    # ---- Публикация (класс 3: создаёт документ). Без слепого повтора: перед повтором ищем документ по appProperties.
     w.add("Render Google Doc request", "n8n-nodes-base.code", 2, code(f"""
 {MD2HTML_JS}
 
@@ -1717,14 +1821,17 @@ const cfg = $('Config').first().json;
 const who = String(j.session.username || j.session.chat_id).replace(/^@/, '');
 const name = `BRD ${{j.today}} — ${{j.title}} (${{who}})`;
 const html = md2html(j.md);
+// Ключ документа: сессия + номер попытки генерации. По нему перед повтором ищем, не создан ли документ уже.
+const brd_key = `${{j.session.session_id}}#${{$('Check limits').first().json.attempt}}`;
 const boundary = 'brd_' + Date.now().toString(36);
 const meta = {{ name, mimeType: 'application/vnd.google-apps.document', parents: [cfg.BRD_FOLDER_ID],
+               appProperties: {{ brd_key }},
                description: `BRD по интервью в Telegram. Session ID: ${{j.session.session_id}}` }};
 const body = `--${{boundary}}\\r\\nContent-Type: application/json; charset=UTF-8\\r\\n\\r\\n${{JSON.stringify(meta)}}\\r\\n` +
              `--${{boundary}}\\r\\nContent-Type: text/html; charset=UTF-8\\r\\n\\r\\n${{html}}\\r\\n--${{boundary}}--`;
-return [{{ json: {{ ...j, doc_name: name, body, content_type: `multipart/related; boundary=${{boundary}}` }} }}];
-"""), (1980, -100))
-    w.add("Upload to Drive as Google Doc", "n8n-nodes-base.httpRequest", 4.2, {
+return [{{ json: {{ ...j, brd_key, doc_name: name, body, content_type: `multipart/related; boundary=${{boundary}}` }} }}];
+"""), (2420, -160))
+    upload = lambda: {
         "method": "POST",
         "url": "https://www.googleapis.com/upload/drive/v3/files",
         "authentication": "predefinedCredentialType",
@@ -1737,24 +1844,50 @@ return [{{ json: {{ ...j, doc_name: name, body, content_type: `multipart/related
         ]},
         "sendBody": True,
         "contentType": "raw",
-        "rawContentType": "={{ $json.content_type }}",
-        "body": "={{ $json.body }}",
+        "rawContentType": "={{ $('Render Google Doc request').first().json.content_type }}",
+        "body": "={{ $('Render Google Doc request').first().json.body }}",
         "options": {"timeout": 120000},
-    }, (2200, -100), creds=["gdrive"], onError="continueErrorOutput", retryOnFail=True, maxTries=3,
-        waitBetweenTries=5000)
+    }
+    w.add("Upload to Drive as Google Doc", "n8n-nodes-base.httpRequest", 4.2, upload(),
+          (2640, -160), creds=["gdrive"], onError="continueErrorOutput")  # без retryOnFail: создание документа — класс 3
+    w.add("Find uploaded doc", "n8n-nodes-base.httpRequest", 4.2, {
+        "method": "GET",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": True,
+        "queryParameters": {"parameters": [
+            {"name": "q", "value": "={{ \"appProperties has { key='brd_key' and value='\" + $('Render Google Doc request').first().json.brd_key + \"' } and trashed = false\" }}"},
+            {"name": "fields", "value": "files(id,name,webViewLink)"},
+            {"name": "supportsAllDrives", "value": "true"},
+            {"name": "includeItemsFromAllDrives", "value": "true"},
+        ]},
+        "options": {"timeout": 30000},
+    }, (2860, -40), creds=["gdrive"], onError="continueErrorOutput")
+    w.add("Doc already created?", "n8n-nodes-base.if", 2, if_true("={{ ($json.files || []).length > 0 }}"), (3080, -40))
+    w.add("Use found doc", "n8n-nodes-base.code", 2, code("""
+// Загрузка вернула ошибку, но документ создан (например, ответ потерян по таймауту) — публикуем найденный, дубль не создаём.
+const f = $json.files[0];
+return [{ json: { id: f.id, webViewLink: f.webViewLink, found_existing: true } }];
+"""), (3300, -120))
+    w.add("Wait before retry (10 s)", "n8n-nodes-base.wait", 1.1, {"resume": "timeInterval", "amount": 10, "unit": "seconds"},
+          (3300, 40))
+    w.add("Retry upload (once)", "n8n-nodes-base.httpRequest", 4.2, upload(), (3520, 40), creds=["gdrive"],
+          onError="continueErrorOutput")
     w.add("Published", "n8n-nodes-base.code", 2, code("""
 const j = $('Render Google Doc request').first().json;
 const url = $json.webViewLink || `https://docs.google.com/document/d/${$json.id}/edit`;
 const now = new Date().toISOString();
 return [{ json: {
   doc_id: $json.id, doc_url: url, doc_name: j.doc_name, title: j.title, session: j.session, turns: j.turns,
+  from_draft: !!j.from_draft, found_existing: !!$json.found_existing,
   registry: { created_at: now, title: j.title, customer: j.session.username || '', chat_id: j.session.chat_id,
               session_id: j.session.session_id, turns: j.turns, status: 'Draft', doc_url: url },
   session_row: { session_id: j.session.session_id, status: 'completed', brd_title: j.title, brd_url: url,
-                 last_activity_at: now, error: '', brd_created_at: now,
+                 last_activity_at: now, error: '', brd_created_at: now, brd_draft: '', brd_draft_title: '',
                  cost_usd: Math.round((Number(j.cost_usd) || 0) * 1e6) / 1e6 },
 } }];
-"""), (2420, -100))
+"""), (3740, -160))
     w.add("Registry row", "n8n-nodes-base.code", 2, code("return [{ json: $json.registry }];"), (2640, -200))
     w.add("Register in BRD registry", "n8n-nodes-base.googleSheets", 4.5, sheets_append(
         "={{ $('Config').first().json.LOGS_SHEET_ID }}", "={{ $('Config').first().json.BRD_REGISTRY_TAB }}"),
@@ -1780,8 +1913,12 @@ return [
     w.add("Generation failed", "n8n-nodes-base.code", 2, code(LIMIT_JS + """
 // Неудача: возвращаем сессию в active (заказчик может повторить /done — это вторая попытка), сообщаем саппорту и заказчику.
 // Лимит ключа (402/403) или падение агента v3 по maxIterations — это предел, а не сбой: уходит в ветку Limit stop.
+// Технический сбой (LLM/инфраструктура/запись). Готовый, но не опубликованный текст BRD сохраняем в сессии:
+// повторный /done только опубликует его — без новой генерации и новых денег.
 let s = {};
 try { s = $('Load session').all().map((i) => i.json).find((r) => r && r.session_id) || {}; } catch (e) {}
+let draft = null;
+try { if ($('Render Google Doc request').isExecuted) { const r = $('Render Google Doc request').first().json; draft = { md: r.md, title: r.title }; } } catch (e) {}
 const j = $input.first().json || {};
 const e = j.error;
 const msg = (typeof e === 'string' ? e : (e && (e.message || e.description)) || JSON.stringify(e || 'Unknown error')).slice(0, 800);
@@ -1790,24 +1927,29 @@ let limit = null;
 if (MONEY_RE.test(msg)) limit = { limit_type: 'cost_key', limit_value: 'лимит ключа OpenRouter', observed: msg.slice(0, 200) };
 else if (STOP_RE.test(msg)) limit = { limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: msg.slice(0, 200) };
 return [{ json: { session_id: s.session_id || '', chat_id: s.chat_id || '', username: s.username || '', error: msg,
-  limit, session: s } }];
+  limit, session: s, draft, stage: draft ? 'publish' : 'generate' } }];
 """), (2200, 260))
     w.add("Provider limit?", "n8n-nodes-base.if", 2, if_true("={{ !!$json.limit }}"), (2200, 460))
     w.add("Session row (back to active)", "n8n-nodes-base.code", 2, code("""
 if (!$json.session_id) return [];
-return [{ json: { session_id: $json.session_id, status: 'active', error: $json.error, last_activity_at: new Date().toISOString() } }];
+const row = { session_id: $json.session_id, status: 'active', error: $json.error, last_activity_at: new Date().toISOString() };
+if ($json.draft) Object.assign(row, { brd_draft: $json.draft.md, brd_draft_title: $json.draft.title });
+return [{ json: row }];
 """), (2420, 160))
     w.add("Return session to active", "n8n-nodes-base.dataTable", 1,
           dt_upsert(SESSIONS_TABLE, "session_id", "={{ $json.session_id }}"), (2640, 160), onError="continueRegularOutput")
     w.add("Failure error payload", "n8n-nodes-base.code", 2, code(error_payload_js(
         "brd_generator", "BRD-04", alert=True, chat_expr="j.chat_id",
-        msg_expr="'Не удалось сформировать или опубликовать BRD: ' + j.error", details_expr="'session_id=' + j.session_id")),
+        msg_expr="(j.stage === 'publish' ? 'Не удалось опубликовать готовый BRD в Drive (текст сохранён в сессии): ' : 'Технический сбой при формировании BRD: ') + j.error",
+        details_expr="'session_id=' + j.session_id")),
         (2420, 360))
     w.add("Log via BRD-00", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_ERRORS, wait=False), (2640, 360))
     w.add("Apology to customer", "n8n-nodes-base.code", 2, code("""
 if (!$json.chat_id || String($json.chat_id).startsWith('eval-')) return [];
 return [{ json: { audience: 'customer', chat_id: $json.chat_id, kind: 'warning', title: 'Не удалось сформировать BRD',
-  text: 'Произошла техническая ошибка при формировании документа. Ваша беседа сохранена, команда поддержки уже уведомлена. Попробуйте отправить /done ещё раз через несколько минут.',
+  text: $json.draft
+    ? 'Документ уже составлен, но из-за технической ошибки не удалось опубликовать его в wiki. Текст сохранён, команда поддержки уведомлена. Отправьте /done через несколько минут — документ будет опубликован без повторного составления.'
+    : 'Произошла техническая ошибка при формировании документа. Ваша беседа сохранена, команда поддержки уже уведомлена. Попробуйте отправить /done ещё раз через несколько минут.',
   source: 'brd_generator' } }];
 """), (2420, 540))
     w.add("Notify customer via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (2640, 540))
@@ -1823,7 +1965,7 @@ const row = {{ session_id: s.session_id, status: 'needs_review', last_activity_a
 if (j.cost_usd !== undefined) row.cost_usd = Math.round(Number(j.cost_usd) * 1e6) / 1e6;
 return [{{ json: {{ session_row: row, limit: l, session: s,
   customer: {{ audience: 'customer', chat_id: s.chat_id, kind: 'warning', title: 'BRD не сформирован автоматически',
-              text: '{LIMIT_REPLY}', source: 'brd_generator' }},
+              text: l.limit_type === 'validator' ? '{QUALITY_REPLY}' : '{LIMIT_REPLY}', source: 'brd_generator' }},
   queue: {{ ...l, workflow: $workflow.name, workflow_id: $workflow.id, execution_id: $execution.id,
            session_id: s.session_id || '', chat_id: s.chat_id || '', username: s.username || '',
            details: `Генерация BRD остановлена, сессия needs_review. Ответов в интервью: ${{s.turn_count ?? '—'}}, попыток генерации: ${{s.brd_attempts ?? 0}}.` }},
@@ -1839,12 +1981,20 @@ return [{{ json: {{ session_row: row, limit: l, session: s,
         "const j = $('Limit stop').first().json;\nconst c = String(j.customer.chat_id || '');\n"
         "return c && !c.startsWith('eval-') ? [{ json: j.customer }] : [];"), (3520, 540))
     w.add("Notify customer (limit) via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (3740, 540))
+    w.add("Quality log payload", "n8n-nodes-base.code", 2, code(error_payload_js(
+        "brd_quality", "Quality gate", severity="warning", alert=False, chat_expr="j.session?.chat_id",
+        msg_expr="'BRD не прошёл проверку стандарта после исправлений (плохой ответ модели, не сбой): ' + j.limit.observed",
+        details_expr="'session_id=' + (j.session?.session_id || '')").replace(
+        "const items = $input.all();", "const items = $input.all().filter((i) => i.json.limit?.limit_type === 'validator');")),
+        (3520, 860))
+    w.add("Log quality via BRD-00", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_ERRORS, wait=False), (3740, 860))
     w.add("Queue payload", "n8n-nodes-base.code", 2, code("return [{ json: $('Limit stop').first().json.queue }];"),
           (3520, 700))
     w.add("Escalate via BRD-07", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_QUEUE, wait=False), (3740, 700))
     # Журнал прогонов паттерна (лист brd_runs): исход, вердикт валидатора, запросы к KB, фактическая цена.
     w.add("Run: published", "n8n-nodes-base.code", 2, code(
-        "const p = $('Published').first().json;\nreturn [{ json: { outcome: 'published', session: p.session, title: p.title, doc_url: p.doc_url } }];"),
+        "const p = $('Published').first().json;\nreturn [{ json: { outcome: 'published', session: p.session, title: p.title, doc_url: p.doc_url,\n"
+        "  from_draft: !!p.from_draft, found_existing: !!p.found_existing } }];"),
         (2640, -480))
     w.add("Run: stopped", "n8n-nodes-base.code", 2, code(
         "const j = $('Limit stop').first().json;\nreturn [{ json: { outcome: 'limit_stopped', limit_type: j.limit.limit_type, session: j.session } }];"),
@@ -1864,7 +2014,7 @@ const before = node('Key usage (before)')?.data?.usage;
 const after = $json.data?.usage;
 const cost = before != null && after != null ? Math.round((after - before) * 1e6) / 1e6 : '';
 const val = node('Validate BRD');
-const fix = node('Apply fixes');
+const fix = node('Revalidate');  // последний раунд исправления (петля: $() берёт последнее выполнение)
 const verdict = (x) => (!x || !Array.isArray(x.violations) ? '' : x.violations.length ? 'fail' : 'pass');
 const rules = (x) => (x && Array.isArray(x.violations) ? x.violations.map((v) => `р.${v.section} ${v.rule}`).join(', ') : '');
 const fin = fix || val;
@@ -1874,9 +2024,11 @@ return [{ json: {
   finished_at: new Date().toISOString(), session_id: s.session_id || '', chat_id: s.chat_id || '', title: r.title || val?.title || '',
   outcome: r.outcome, limit_type: r.limit_type || '',
   validator_first: verdict(val), violations_first: rules(val),
-  repaired: fix ? 'yes' : 'no', validator_final: verdict(fin), violations_final: rules(fin),
+  repaired: fix ? 'yes' : 'no', repair_rounds: fix ? fix.round : 0, repair_actions: (fix?.actions || []).join('; '),
+  validator_final: verdict(fin), violations_final: rules(fin),
+  from_draft: r.from_draft ? 'yes' : '', found_existing_doc: r.found_existing ? 'yes' : '',
   kb_calls: val?.kb_calls ?? '', kb_queries: val?.kb_queries ?? '',
-  writer_model: cfg.WRITER_MODEL, fixer_model: fix ? cfg.LLM_MODEL : '',
+  writer_model: cfg.WRITER_MODEL, fixer_model: (fix?.actions || []).some((a) => a.includes('исправление')) ? cfg.LLM_MODEL : '',
   run_cost_usd: cost, cost_estimate_usd: fin ? Math.round((Number(fin.cost_usd) - (Number(s.cost_usd) || 0)) * 1e6) / 1e6 : '',
   doc_url: r.doc_url || '', error: String(r.error ? (r.error.message || r.error) : '').slice(0, 300),
   execution_url: base && !base.startsWith('__') ? `${base}/workflow/${$workflow.id}/executions/${$execution.id}` : String($execution.id),
@@ -1893,7 +2045,9 @@ return [{ json: {
     w.connect("Test input", "Config")
     w.chain("Config", "Load session", "Load all sessions", "Check limits", "Within limits?")
     w.connect("Check limits", "Generation failed", out=1)
-    w.chain("Within limits?", "Attempt row", "Record attempt", "Key usage (before)", "Build BRD request")
+    w.chain("Within limits?", "Attempt row", "Record attempt", "Key usage (before)", "Saved draft?")
+    w.connect("Saved draft?", "Draft to publish", out=0)
+    w.connect("Saved draft?", "Build BRD request", out=1)
     w.connect("Within limits?", "Limit stop", out=1)
     w.connect("Build BRD request", "BRD writer", out=0)
     w.connect("Build BRD request", "Generation failed", out=1)
@@ -1904,17 +2058,35 @@ return [{ json: {
     w.connect("BRD writer", "Generation failed", out=1)
     w.connect("Validate BRD", "Stopped by limit?")
     w.connect("Stopped by limit?", "Limit stop", out=0)
-    w.connect("Stopped by limit?", "Valid?", out=1)
-    w.connect("Valid?", "Render Google Doc request", out=0)
-    w.connect("Valid?", "Repair request", out=1)
-    w.chain("Repair request", "BRD fixer", "Apply fixes", "Valid after fix?")
+    w.connect("Stopped by limit?", "Quality gate", out=1)
+    w.chain("Quality gate", "Route by quality")
+    w.connect("Route by quality", "Render Google Doc request", out=0)
+    w.connect("Route by quality", "Repair plan", out=1)
+    w.connect("Route by quality", "Limit stop", out=2)
+    w.chain("Repair plan", "Regenerate parts?")
+    w.connect("Regenerate parts?", "Regen requests", out=0)
+    w.connect("Regenerate parts?", "Repair request", out=1)
+    w.chain("Regen requests", "BRD writer (regen)", "Merge regen", "Revalidate")
+    w.connect("BRD writer (regen)", "Generation failed", out=1)
+    w.connect("LLM (writer, regen)", "BRD writer (regen)", kind="ai_languageModel")
+    w.connect("KnowledgeBase (regen)", "BRD writer (regen)", kind="ai_tool")
+    w.connect("Embeddings (regen)", "KnowledgeBase (regen)", kind="ai_embedding")
+    w.chain("Repair request", "BRD fixer", "Apply fixes", "Revalidate")
     w.connect("LLM (fixer)", "BRD fixer", kind="ai_languageModel")
     w.connect("BRD fixer", "Generation failed", out=1)
-    w.connect("Valid after fix?", "Render Google Doc request", out=0)
-    w.connect("Valid after fix?", "Limit stop", out=1)
+    w.connect("Revalidate", "Quality gate")  # петля: следующий раунд или публикация
+    w.connect("Draft to publish", "Render Google Doc request")
     w.connect("Render Google Doc request", "Upload to Drive as Google Doc")
     w.connect("Upload to Drive as Google Doc", "Published", out=0)
-    w.connect("Upload to Drive as Google Doc", "Generation failed", out=1)
+    w.connect("Upload to Drive as Google Doc", "Find uploaded doc", out=1)
+    w.connect("Find uploaded doc", "Doc already created?", out=0)
+    w.connect("Find uploaded doc", "Generation failed", out=1)
+    w.connect("Doc already created?", "Use found doc", out=0)
+    w.connect("Doc already created?", "Wait before retry (10 s)", out=1)
+    w.connect("Use found doc", "Published")
+    w.chain("Wait before retry (10 s)", "Retry upload (once)")
+    w.connect("Retry upload (once)", "Published", out=0)
+    w.connect("Retry upload (once)", "Generation failed", out=1)
     w.chain("Published", "Registry row", "Register in BRD registry", "Session row (completed)",
             "Mark session completed", "Success notifications", "Notify via BRD-02")
     w.connect("Published", "Outcome: done")
@@ -1931,6 +2103,8 @@ return [{ json: {
     w.connect("Outcome: limit_stopped", "Session row (needs_review)")
     w.connect("Outcome: limit_stopped", "Customer limit message")
     w.connect("Outcome: limit_stopped", "Queue payload")
+    w.connect("Outcome: limit_stopped", "Quality log payload")
+    w.connect("Quality log payload", "Log quality via BRD-00")
     w.connect("Session row (needs_review)", "Freeze session")
     w.connect("Customer limit message", "Notify customer (limit) via BRD-02")
     w.connect("Queue payload", "Escalate via BRD-07")
@@ -2142,7 +2316,7 @@ return T.map((t) => ({{ json: {{
   status: 'eval_ready', history: JSON.stringify(t.history.map((m) => ({{ ...m, ts: now }}))),
   turn_count: t.history.filter((m) => m.role === 'user').length, started_at: now, last_activity_at: now,
   reminder_count: 0, last_reminder_at: '', brd_title: '', brd_url: '', error: '',
-  cost_usd: 0, limit_hit: '', brd_attempts: 0, brd_created_at: '',
+  cost_usd: 0, limit_hit: '', brd_attempts: 0, brd_created_at: '', brd_draft: '', brd_draft_title: '',
 }} }}));
 """), (220, 0))
     w.add("Save test sessions", "n8n-nodes-base.dataTable", 1,
@@ -2180,6 +2354,8 @@ def build_setup():
         ("brd_title", "string"), ("brd_url", "string"), ("error", "string"),
         # control layer
         ("cost_usd", "number"), ("limit_hit", "string"), ("brd_attempts", "number"), ("brd_created_at", "string"),
+        # готовый, но не опубликованный BRD (технический сбой записи) — повторный /done только публикует
+        ("brd_draft", "string"), ("brd_draft_title", "string"),
     ], (220, 0))
     table(KB_TABLE, [
         ("file_id", "string"), ("name", "string"), ("mime_type", "string"), ("doc_code", "string"),

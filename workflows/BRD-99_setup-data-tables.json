@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "b71fe038-ef68-46fc-8f48-33859f308f8c",
+      "id": "af346609-5cdf-4100-a0ef-31bc5ac70143",
       "name": "Run once",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -90,6 +90,14 @@
             {
               "name": "brd_created_at",
               "type": "string"
+            },
+            {
+              "name": "brd_draft",
+              "type": "string"
+            },
+            {
+              "name": "brd_draft_title",
+              "type": "string"
             }
           ]
         },
@@ -97,7 +105,7 @@
           "createIfNotExists": true
         }
       },
-      "id": "ede164f6-9435-45ef-b2ab-ad1d88ab0b44",
+      "id": "94aab30c-17ed-4217-8ab5-6a773b3a92f8",
       "name": "Create brd_sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -160,7 +168,7 @@
           "createIfNotExists": true
         }
       },
-      "id": "4412e886-afde-49bd-acbd-6f0fb53a8601",
+      "id": "a5e3f3e1-0343-49a3-b9d6-bf0e1ff4ddd2",
       "name": "Create kb_files",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -177,7 +185,7 @@
         "height": 170,
         "color": 7
       },
-      "id": "7fee8f6c-0524-4df6-8f1e-60f0eac523e4",
+      "id": "7656daef-7046-4167-a063-f8114a1d49b0",
       "name": "Note 3",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
