@@ -107,6 +107,8 @@ course-project/
 │   ├── to-be.md                # раздел 5: To-Be, KPI, оставленное человеку
 │   ├── improvement-log.md      # расхождения с частью 1
 │   ├── Раздел 5 паспорта.xlsx  # то же для сдачи (as-is/to-be/log собирает scripts/build_section5.py)
+│   ├── Раздел 2 паспорта.xlsx  # часть 1 паспорта: шаги процесса и вердикты
+│   ├── evidence/               # доказательства: экспорт brd_runs и 5 BRD серии пяти прогонов
 │   ├── upgrade-improvement-2.md # обновление установки до паттерна
 │   └── upgrade-improvement-1.md # обновление установки до control layer
 └── .env.example

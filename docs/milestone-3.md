@@ -12,11 +12,11 @@
 | **2.2** Bottleneck | 1–2 bottleneck по Парето, окупаемость на числах листа | [as-is.md](as-is.md) → «Парето», «Bottleneck и окупаемость» | шаг «встреча с заказчиком»: 720 чел.-мин/нед против $0.026–0.038 за успешный BRD |
 | **2.3** To-Be, KPI, оставленное человеку | перепроектирование (а не замена исполнителя), 2–3 KPI с «до», что оставлено человеку и почему | [to-be.md](to-be.md), листы «To-Be», «KPI и человеку» | встреча и уточнения схлопнуты в интервью, оформление заменено генерацией с валидатором; 3 KPI с «до» из As-Is |
 | **4.2** Паттерн и выбор инструмента агентом | один паттерн под кейс; в экспорте инструмент выбирает агент | [pattern-and-economics.md](pattern-and-economics.md) §1–2 | экспорт `workflows/BRD-04_brd-generator.json` (sequential с валидатором; KnowledgeBase подключён к агенту без веток); колонка `kb_queries` в `brd_runs` |
-| **4.3** Модель на шаг и стоимость | модель у каждого шага с причиной; стоимость успешного результата с долей неудачных | [pattern-and-economics.md](pattern-and-economics.md) §3–4 | таблица пяти прогонов: 5/5, ≈ $0.026 за успешный результат, доля неудачных 0 %; экспорт `brd_runs` и 5 BRD в `docs-for-improvement/improvement-2/` |
+| **4.3** Модель на шаг и стоимость | модель у каждого шага с причиной; стоимость успешного результата с долей неудачных | [pattern-and-economics.md](pattern-and-economics.md) §3–4 | таблица пяти прогонов: 5/5, ≈ $0.026 за успешный результат, доля неудачных 0 %; экспорт `brd_runs` и 5 BRD в [`evidence/runs-2026-10-14/`](evidence/runs-2026-10-14/) |
 | **5.3** Control layer и cost-attack | max steps, max cost, fallback в самом сценарии; cost-attack с фиксацией | [control-layer.md](control-layer.md), [cost-attack.md](cost-attack.md) | `maxIterations` в экспортах BRD-03/04; лимит ключа OpenRouter $5/нед; BRD-07 → `manual_queue`; протокол: стоп по бюджету сессии на 3-й реплике, `outcome = limit_stopped` |
 | improvement-log | расхождения с частью 1 | [improvement-log.md](improvement-log.md), лист «Improvement-log» | 12 записей: As-Is (6) и To-Be (6) + ранние исправления паспорта |
 
-Остальные разделы паспорта (2 и 3) — у вас; правки раздела 3 по замечанию ревьювера — [passport-section-3-fixes.md](passport-section-3-fixes.md).
+Раздел 2 паспорта (часть 1, с которой сверяются As-Is и improvement-log) — [Раздел 2 паспорта.xlsx](Раздел%202%20паспорта.xlsx); правки раздела 3 по замечанию ревьювера — [passport-section-3-fixes.md](passport-section-3-fixes.md).
 
 ## Что нужно приложить к сдаче (делаете вы)
 
