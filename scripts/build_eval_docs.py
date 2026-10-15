@@ -76,7 +76,19 @@ def build():
             L.append(f"| {c['id']} | {c['type']} | {b} | {a} | {d} |")
         cnt = lambda run, v: sum(verdict(run.get(c['id'])) == v for c in cases)
         L += ["", f"Итог: «до» — pass {cnt(before, 'pass')} из {len(cases)}; «после» — pass {cnt(after, 'pass')} из "
-              f"{len(cases)}; расхождений — {diffs}. Разбор каждого расхождения — [improvement-log.md](improvement-log.md).", ""]
+              f"{len(cases)}; расхождений по вердиктам — {diffs}. Разбор — [improvement-log.md](improvement-log.md) "
+              "(раздел «Регрессия»).", ""]
+        # Сверка судьи-кода с разметкой человека (человек разметил все строки обоих прогонов)
+        L += ["**Сверка вердиктов кода с разметкой человека** (человек разметил все строки обоих прогонов):", "",
+              "| прогон | совпало | расхождения |", "|---|---|---|"]
+        for label, run in (("до", before), ("после", after)):
+            rows = [run[c["id"]] for c in cases if c["id"] in run and c["judge"] == "код" and run[c["id"]].get("human_verdict")]
+            mism = [r["case_id"] for r in rows if r["verdict"] != r["human_verdict"]]
+            L.append(f"| {label} | {len(rows) - len(mism)} из {len(rows)} | {', '.join(mism) or '—'} |")
+        L += ["", "Расхождение на I3 в обоих прогонах — ложный отказ правила кода: бот по существу верно сказал о "
+              "закрытом контуре («за пределы контура», «ни один вызов не выходит за периметр») и о риске, а правило "
+              "искало слово «закрыт». Правило между «до» и «после» не менялось (набор один); исправление — в "
+              "следующей версии набора.", ""]
     else:
         L += ["*Результаты появятся после прогонов: выгрузка листа `eval_results` → `eval/results/`.*", ""]
 
