@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "d825ffb8-4f6f-425f-a047-ed6742df4aaf",
+      "id": "40216155-a36d-4a05-a639-37a93060455d",
       "name": "On workflow error",
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
@@ -16,7 +16,7 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "5e21d4ab-c81c-4627-af89-f30a1d0edc29",
+      "id": "c9e3b0e4-517d-4ff8-b445-36c9452ec454",
       "name": "Handled error (from workflows)",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -30,31 +30,31 @@
         "assignments": {
           "assignments": [
             {
-              "id": "a7ed2001-0fad-44ae-b35e-c975b6beb728",
+              "id": "7490bfc7-d349-4e60-84c5-e0cea6bd3a86",
               "name": "ERRORS_SHEET_ID",
               "value": "__CFG_LOGS_SHEET_ID__",
               "type": "string"
             },
             {
-              "id": "a06114a6-a190-4054-857b-a054ddf14dfc",
+              "id": "fb09f0b8-5403-4b3c-96be-8afe16af99ee",
               "name": "ERRORS_SHEET_TAB",
               "value": "errors",
               "type": "string"
             },
             {
-              "id": "76cfb5d8-77b6-4542-8a21-58f3ee17217d",
+              "id": "3738d886-1176-4b7d-b778-142ba7f489b8",
               "name": "SUPPORT_CHAT_ID",
               "value": "__CFG_SUPPORT_CHAT_ID__",
               "type": "string"
             },
             {
-              "id": "68c6378d-8f43-4164-8e0b-0882c1e5bf28",
+              "id": "96b3ab73-906a-4aa1-a6f8-7df0a41d790a",
               "name": "N8N_BASE_URL",
               "value": "__CFG_N8N_BASE_URL__",
               "type": "string"
             },
             {
-              "id": "d68bc1a3-d3e8-42a5-a4a3-1bcf8642c721",
+              "id": "b274bb56-6906-4e90-be00-c886da3c12a4",
               "name": "ALERT_DEDUP_MINUTES",
               "value": 15,
               "type": "number"
@@ -64,7 +64,7 @@
         "options": {},
         "includeOtherFields": true
       },
-      "id": "cb2fa099-15cc-4914-855d-140ef3b289f7",
+      "id": "75da31ad-8b10-43ce-a0d0-c63bce24b4ad",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -77,7 +77,7 @@
       "parameters": {
         "jsCode": "// Агентная нода v2.x при maxIterations завершается УСПЕШНО с этим текстом; v3.x — падает с ошибкой «Max iterations (N) reached».\nconst STOP_RE = /Agent stopped due to (max iterations|iteration limit)|Max iterations \\(\\d+\\) reached/i;\n// Лимит ключа/баланса провайдера: OpenRouter 402/403 (limit_source openrouter_key_limit), DeepSeek 402 Insufficient Balance.\nconst MONEY_RE = /\\b402\\b|insufficient (credits|balance)|payment required|openrouter_key_limit|key limit|budget limit/i;\nconst errStr = (e) => (!e ? '' : typeof e === 'string' ? e : [e.message, e.description, e.httpCode].filter(Boolean).join(' ') || JSON.stringify(e)).slice(0, 800);\n// Оценка стоимости одного прогона агента сверху: каждый вызов LLM получает system + prompt + результаты инструментов.\nconst estimateRun = (sysChars, promptChars, outText, steps, pIn, pOut, cpt) => {\n  steps = Array.isArray(steps) ? steps : [];\n  const calls = steps.length + 1;\n  const obs = steps.reduce((a, s) => a + String(s.observation ?? '').length, 0);\n  const acts = steps.reduce((a, s) => a + JSON.stringify(s.action ?? {}).length, 0);\n  const inChars = calls * (sysChars + promptChars) + obs * calls;\n  const outChars = String(outText || '').length + acts;\n  return { calls, steps: steps.length, usd: (inChars * pIn + outChars * pOut) / cpt / 1e6 };\n};\nconst cfg = $('Config').first().json;\nconst base = String(cfg.N8N_BASE_URL || '').replace(/\\/$/, '');\nconst cut = (s, n) => String(s == null ? '' : s).slice(0, n);\nreturn $input.all().map((it) => {\n  const j = it.json || {};\n  let r;\n  if (j.execution || j.trigger) {\n    // Error Trigger: необработанное падение любого воркфлоу, у которого BRD-00 указан как Error workflow\n    const ex = j.execution || {};\n    const err = ex.error || (j.trigger && j.trigger.error) || {};\n    const wf = j.workflow || {};\n    r = {\n      source: 'unhandled', severity: 'critical',\n      workflow: wf.name || '', workflow_id: wf.id || '',\n      node: ex.lastNodeExecuted || (err.node && err.node.name) || '',\n      component: wf.name || '',\n      message: cut(err.message || 'Unknown error', 1000),\n      details: cut(err.description || err.stack || '', 1500),\n      chat_id: '', execution_id: ex.id || '', execution_url: ex.url || '', alert: true,\n    };\n  } else {\n    // Обработанная ошибка, присланная другим воркфлоу через Execute Workflow\n    const sev = j.severity || 'error';\n    r = {\n      source: 'handled', severity: sev,\n      workflow: j.workflow || '', workflow_id: j.workflow_id || '',\n      node: j.node || '', component: j.component || '',\n      message: cut(j.message, 1000),\n      details: cut(typeof j.details === 'string' ? j.details : JSON.stringify(j.details || ''), 1500),\n      chat_id: j.chat_id ? String(j.chat_id) : '',\n      execution_id: j.execution_id || '',\n      execution_url: j.execution_url || '',\n      alert: j.alert !== false && ['error', 'critical'].includes(sev),\n    };\n  }\n  if (!r.execution_url && r.execution_id && r.workflow_id && base && !base.startsWith('__')) {\n    r.execution_url = `${base}/workflow/${r.workflow_id}/executions/${r.execution_id}`;\n  }\n  // Потолки, сработавшие как необработанное падение (таймаут прогона, лимит ключа) → ручная очередь.\n  // Обработанные пределы воркфлоу отправляют в очередь сами, здесь их не дублируем.\n  r.limit_type = '';\n  if (r.source === 'unhandled') {\n    const t = `${r.message} ${r.details}`;\n    if (/timed? ?out|timeout|max(imum)? execution time/i.test(t)) r.limit_type = 'time';\n    else if (MONEY_RE.test(t)) r.limit_type = 'cost_key';\n  }\n  r.timestamp = new Date().toISOString();\n  return { json: r };\n});"
       },
-      "id": "995249f6-9618-4a4d-b283-d46485672e75",
+      "id": "886a45b1-53d8-4bde-aab1-699ea681bf5e",
       "name": "Normalize error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -112,7 +112,7 @@
           "handlingExtraData": "ignoreIt"
         }
       },
-      "id": "14f2fab7-e2e3-4d9c-a8d8-587dd9db811e",
+      "id": "2a02a985-7d99-4281-9b45-52bb1abebecc",
       "name": "Append to errors sheet",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -132,7 +132,7 @@
       "parameters": {
         "jsCode": "// Алерт в чат саппорта. Одинаковые ошибки (workflow + узел + текст) не чаще раза в ALERT_DEDUP_MINUTES.\nconst cfg = $('Config').first().json;\nconst sd = $getWorkflowStaticData('global');\nsd.alerts = sd.alerts || {};\nconst now = Date.now();\nconst win = (Number(cfg.ALERT_DEDUP_MINUTES) || 15) * 60000;\nfor (const k of Object.keys(sd.alerts)) if (now - sd.alerts[k].ts > win * 4) delete sd.alerts[k];\nconst rows = $('Normalize error').all().map((i) => i.json);\nconst out = [];\nfor (const r of rows) {\n  if (!r.alert) continue;\n  const key = `${r.workflow}|${r.node}|${String(r.message).slice(0, 120)}`;\n  const prev = sd.alerts[key];\n  if (prev && now - prev.ts < win) { prev.suppressed = (prev.suppressed || 0) + 1; continue; }\n  const suppressed = prev ? (prev.suppressed || 0) : 0;\n  sd.alerts[key] = { ts: now, suppressed: 0 };\n  const lines = [\n    r.severity === 'critical' ? '🚨 СБОЙ WORKFLOW (необработанная ошибка)' : '⚠️ Ошибка в работе BRD-агента',\n    `Workflow: ${r.workflow || '—'}`,\n    `Узел: ${r.node || '—'}`,\n    `Компонент: ${r.component || '—'}`,\n    `Ошибка: ${r.message}`,\n  ];\n  if (r.chat_id) lines.push(`Чат заказчика: ${r.chat_id}`);\n  if (r.execution_url) lines.push(`Execution: ${r.execution_url}`);\n  else if (r.execution_id) lines.push(`Execution ID: ${r.execution_id}`);\n  if (suppressed) lines.push(`(+${suppressed} таких же ошибок подавлено за ${cfg.ALERT_DEDUP_MINUTES} мин)`);\n  lines.push(`Время (UTC): ${r.timestamp}`);\n  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n  out.push({ json: { chat_id: String(cfg.SUPPORT_CHAT_ID), text: esc(lines.join('\\n').slice(0, 3800)) } });\n}\nreturn out;"
       },
-      "id": "0343522e-c5c6-4e8f-981b-29447f5f00ab",
+      "id": "522b48b5-4f62-4ef6-b8b5-86161e503ee9",
       "name": "Format alert (with dedup)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -151,7 +151,7 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "de0b2a27-5c9c-47e7-bc7a-a0a20640cc08",
+      "id": "b81ba29c-6ac8-4414-b93f-89a98bbdc08b",
       "name": "Alert support chat",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -171,7 +171,7 @@
       "parameters": {
         "jsCode": "return $('Normalize error').all().map((i) => i.json).filter((r) => r.limit_type).map((r) => ({ json: {\n  limit_type: r.limit_type, limit_value: '', observed: r.message, workflow: r.workflow, workflow_id: r.workflow_id,\n  execution_id: r.execution_id, execution_url: r.execution_url, session_id: '', chat_id: r.chat_id || '', username: '',\n  details: `Необработанное падение в узле «${r.node}». Сессию (если есть) найдёт BRD-05 по статусу generating.`,\n} }));"
       },
-      "id": "3e674bdb-e91c-403f-8375-98e6e37279c9",
+      "id": "c042359a-5057-46d6-add8-64404b38597e",
       "name": "Limit-class errors",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -200,7 +200,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "f200275e-2a21-482a-b688-2a2c69b83fc0",
+      "id": "83f53bce-3ca7-414d-bc62-a984fcbdd6e9",
       "name": "Escalate via BRD-07",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -216,7 +216,7 @@
         "height": 340,
         "color": 3
       },
-      "id": "4b2ce62b-13f2-41f4-a915-11a7847d294d",
+      "id": "e7874880-4f98-4a7f-84bd-bb564fb500ac",
       "name": "Note 9",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,

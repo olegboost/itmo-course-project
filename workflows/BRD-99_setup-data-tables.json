@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "af346609-5cdf-4100-a0ef-31bc5ac70143",
+      "id": "09461f39-730a-432f-a521-3c4f9841fab2",
       "name": "Run once",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -105,7 +105,7 @@
           "createIfNotExists": true
         }
       },
-      "id": "94aab30c-17ed-4217-8ab5-6a773b3a92f8",
+      "id": "3e98b6f3-a35d-43e0-8443-24fceaa20e15",
       "name": "Create brd_sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -168,7 +168,7 @@
           "createIfNotExists": true
         }
       },
-      "id": "a5e3f3e1-0343-49a3-b9d6-bf0e1ff4ddd2",
+      "id": "63972373-73b0-4c36-8239-1f7978e5a330",
       "name": "Create kb_files",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -185,7 +185,7 @@
         "height": 170,
         "color": 7
       },
-      "id": "7656daef-7046-4167-a063-f8114a1d49b0",
+      "id": "c2f78255-ccb9-4b01-a909-4fff79d083bc",
       "name": "Note 3",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,

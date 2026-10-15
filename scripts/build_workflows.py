@@ -58,7 +58,8 @@ LIMITS = {
     "GENERATION_STUCK_MIN": 20,      # норма 3–5 мин × 4; дольше в generating — прогон потерян
     "BRD_ATTEMPTS_PER_SESSION": 2,   # первая попытка + один повтор после сбоя; дальше — человек
     "BRD_PER_CHAT_PER_DAY": 2,       # BRD от одного заказчика за 24 ч
-    "BRD_PER_DAY": 5,                # BRD за 24 ч всего = недельная норма (5 в неделю)
+    "BRD_PER_DAY": 5,                # боевых BRD за 24 ч всего = недельная норма (5 в неделю)
+    "BRD_EVAL_PER_DAY": 5,           # тестовых BRD (сессии eval-*) за 24 ч = одна серия из пяти прогонов
     # Раундов исправления после валидатора: 2 (перегенерация пропавшей части писателем + точечное исправление).
     # Повтор генерации — класс 1 (наружу ничего не ушло), каждый раунд $0.02–0.1 и под бюджетом сессии; дальше — человек.
     "BRD_REPAIR_ATTEMPTS": 2,
@@ -590,7 +591,7 @@ LIMIT_NAMES = {
     "time": "Время прогона (таймаут)",
     "brd_attempts": "Попытки генерации BRD на сессию",
     "artifacts_chat": "BRD от одного заказчика за 24 ч",
-    "artifacts_day": "BRD всего за 24 ч",
+    "artifacts_day": "BRD всего за 24 ч (боевые и тестовые считаются раздельно)",
     "validator": "Проверка BRD по стандарту после исправления",
 }
 
@@ -1552,6 +1553,7 @@ def build_brd_generator():
         "BRD_ATTEMPTS_PER_SESSION": LIMITS["BRD_ATTEMPTS_PER_SESSION"],
         "BRD_PER_CHAT_PER_DAY": LIMITS["BRD_PER_CHAT_PER_DAY"],
         "BRD_PER_DAY": LIMITS["BRD_PER_DAY"],
+        "BRD_EVAL_PER_DAY": LIMITS["BRD_EVAL_PER_DAY"],
         **llm_config(),
     }, include_other=True), (440, 0))
     w.add("Load session", "n8n-nodes-base.dataTable", 1,
@@ -1566,14 +1568,18 @@ const s = $('Load session').all().map((i) => i.json).find((r) => r && r.session_
 if (!s) throw new Error('Сессия не найдена: ' + cfg.session_id);
 const all = $input.all().map((i) => i.json).filter((r) => r && r.session_id);
 const since = Date.now() - 24 * 3600 * 1000;
-const recent = all.filter((r) => r.brd_created_at && new Date(r.brd_created_at).getTime() >= since);
+// Тестовые (eval-*) и боевые BRD — раздельные потолки: тестовая серия не съедает лимит настоящих заказчиков.
+const isEval = (r) => String(r.chat_id || '').startsWith('eval-');
+const evalRun = isEval(s);
+const dayCap = Number(evalRun ? cfg.BRD_EVAL_PER_DAY : cfg.BRD_PER_DAY);
+const recent = all.filter((r) => r.brd_created_at && new Date(r.brd_created_at).getTime() >= since && isEval(r) === evalRun);
 const byChat = recent.filter((r) => String(r.chat_id) === String(s.chat_id)).length;
 const attempt = (Number(s.brd_attempts) || 0) + 1;
 const spent = Number(s.cost_usd) || 0;
 let limit = null;
 if (attempt > Number(cfg.BRD_ATTEMPTS_PER_SESSION)) limit = { limit_type: 'brd_attempts', limit_value: cfg.BRD_ATTEMPTS_PER_SESSION, observed: attempt };
 else if (byChat >= Number(cfg.BRD_PER_CHAT_PER_DAY)) limit = { limit_type: 'artifacts_chat', limit_value: cfg.BRD_PER_CHAT_PER_DAY, observed: byChat + 1 };
-else if (recent.length >= Number(cfg.BRD_PER_DAY)) limit = { limit_type: 'artifacts_day', limit_value: cfg.BRD_PER_DAY, observed: recent.length + 1 };
+else if (recent.length >= dayCap) limit = { limit_type: 'artifacts_day', limit_value: `${dayCap} (${evalRun ? 'тестовые' : 'боевые'})`, observed: recent.length + 1 };
 else if (spent >= Number(cfg.SESSION_BUDGET_USD)) limit = { limit_type: 'cost_session', limit_value: cfg.SESSION_BUDGET_USD, observed: '$' + spent.toFixed(3) };
 return [{ json: { ok: !limit, limit, session: s, attempt } }];
 """), (1100, 0), onError="continueErrorOutput")
@@ -2117,7 +2123,7 @@ return [{ json: {
     w.dx = 0
     w.note(f"""## BRD-04 — генерация и публикация BRD
 Вызывается асинхронно из BRD-03 (`session_id`). Для отладки — **Manual test** с session_id из brd_sessions.
-0. **Check limits** — потолки до генерации: попыток на сессию ≤ {LIMITS["BRD_ATTEMPTS_PER_SESSION"]}, BRD от заказчика за 24 ч < {LIMITS["BRD_PER_CHAT_PER_DAY"]}, всего за 24 ч < {LIMITS["BRD_PER_DAY"]}, расход сессии < ${LIMITS["SESSION_BUDGET_USD"]}.
+0. **Check limits** — потолки до генерации: попыток на сессию ≤ {LIMITS["BRD_ATTEMPTS_PER_SESSION"]}, BRD от заказчика за 24 ч < {LIMITS["BRD_PER_CHAT_PER_DAY"]}, всего за 24 ч < {LIMITS["BRD_PER_DAY"]} боевых и < {LIMITS["BRD_EVAL_PER_DAY"]} тестовых (eval-*) — раздельно, расход сессии < ${LIMITS["SESSION_BUDGET_USD"]}.
 1. Транскрипт интервью + шаблон BRD (mlops-deployment-intake-v2) → **BRD writer** (OpenRouter + KnowledgeBase, `maxIterations = {LIMITS["BRD_MAX_ITERATIONS"]}`) пишет BRD в три приёма: разделы 0–5, 6–7, 8–12 (лимит 8000 токенов на ответ).
 2. Проверка: ни одна часть не остановлена по пределу шагов; есть ≥ 11 из 13 разделов.
 3. Markdown → HTML → загрузка в Drive с конвертацией в **Google Doc** (таблицы и заголовки сохраняются) в папку `BRD_FOLDER_ID`.

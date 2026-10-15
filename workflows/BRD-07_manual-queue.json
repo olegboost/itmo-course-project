@@ -5,7 +5,7 @@
       "parameters": {
         "inputSource": "passthrough"
       },
-      "id": "fd488b4d-12df-4758-9d1d-f43cebbf1752",
+      "id": "0d4732c4-435c-4362-ac84-8788c936794f",
       "name": "When a limit is hit",
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
@@ -16,7 +16,7 @@
     },
     {
       "parameters": {},
-      "id": "decb896f-5916-4b9a-9316-8e2993ea2460",
+      "id": "6c6177be-87b4-4fc2-a2d8-9894db98a49b",
       "name": "Manual test",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -30,49 +30,49 @@
         "assignments": {
           "assignments": [
             {
-              "id": "d1217729-7f2f-4c3d-a2a7-0bdcba51b12a",
+              "id": "4a2d22f7-a9fb-4965-b2a4-80d98b852653",
               "name": "limit_type",
               "value": "steps",
               "type": "string"
             },
             {
-              "id": "ae94e2d0-aba4-4cac-8676-276f3194f7e5",
+              "id": "737c0286-c55a-4887-90dd-8e8488a9f288",
               "name": "limit_value",
               "value": 4,
               "type": "number"
             },
             {
-              "id": "a2813dcc-440e-4394-bf8f-34736ec2dc7f",
+              "id": "cba44574-c903-48c9-a6a9-f741f182367a",
               "name": "observed",
               "value": "тест",
               "type": "string"
             },
             {
-              "id": "b92388fa-b17d-4ad7-afed-f18c8d69c5f3",
+              "id": "8872a008-ccd3-4d5c-87eb-df6025eecfed",
               "name": "workflow",
               "value": "BRD-07 Manual test",
               "type": "string"
             },
             {
-              "id": "4f60c6ec-332d-49bc-87b9-32e219e23103",
+              "id": "7376f34d-d975-4bbe-a0b7-d0776fb32839",
               "name": "session_id",
               "value": "",
               "type": "string"
             },
             {
-              "id": "1b2e7ced-dd9b-47d1-a1dd-1e32d8974527",
+              "id": "4fa3a239-e06f-4d99-9b9e-189cca6fa176",
               "name": "chat_id",
               "value": "",
               "type": "string"
             },
             {
-              "id": "92d51436-eda5-4bf5-98e7-5981a9bfc776",
+              "id": "f8850765-61a6-4f99-8636-03e7c4bf6b42",
               "name": "username",
               "value": "",
               "type": "string"
             },
             {
-              "id": "08549b5a-6b95-46f3-bff4-d02ebe75d496",
+              "id": "c731729f-f19e-4c85-9b2a-b4a53d76e785",
               "name": "details",
               "value": "Проверка ручной очереди: строка в manual_queue и сообщение в чат команды.",
               "type": "string"
@@ -81,7 +81,7 @@
         },
         "options": {}
       },
-      "id": "aba1e5d0-a522-4a02-996b-b2800728ea53",
+      "id": "784f2bcc-53d7-4f91-aff8-dccc60fe6e7d",
       "name": "Test limit",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -95,25 +95,25 @@
         "assignments": {
           "assignments": [
             {
-              "id": "0f8d02b1-20f9-4abd-b061-2a7bdd810637",
+              "id": "06e246ee-9ca7-4d61-ae96-743b6d7ed777",
               "name": "LOGS_SHEET_ID",
               "value": "__CFG_LOGS_SHEET_ID__",
               "type": "string"
             },
             {
-              "id": "e2f6318e-737b-4ee6-be2e-7f3e224ba112",
+              "id": "b9f395ee-2975-4c7b-90c9-b0f1c289fede",
               "name": "QUEUE_TAB",
               "value": "manual_queue",
               "type": "string"
             },
             {
-              "id": "717ac0d7-2119-47b7-ba3e-03ebfb4a9686",
+              "id": "c0c1139a-02e1-4de6-a586-e56618cbf76a",
               "name": "ASSIGNEE",
               "value": "Команда ИИ-среды",
               "type": "string"
             },
             {
-              "id": "799bbe7b-641d-4961-8d4c-c8f56f08d04e",
+              "id": "e587d5d9-adc8-4219-ab78-6492f4b9ee6e",
               "name": "N8N_BASE_URL",
               "value": "__CFG_N8N_BASE_URL__",
               "type": "string"
@@ -123,7 +123,7 @@
         "options": {},
         "includeOtherFields": true
       },
-      "id": "034b5884-5433-4519-8f0c-fef9e753a7fb",
+      "id": "903b29dd-c1ab-422a-9933-6ca98df3a801",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -134,9 +134,9 @@
     },
     {
       "parameters": {
-        "jsCode": "// Вход: limit_type, limit_value, observed, workflow, workflow_id, execution_id, session_id, chat_id, username, details.\n// Исход у всех потолков один: строка в очереди к роли с правом решить. Перезапуска нет.\nconst cfg = $('Config').first().json;\nconst NAMES = {\"steps\": \"Шаги агента за прогон (maxIterations)\", \"turns\": \"Длина интервью (ответов заказчика)\", \"cost_session\": \"Бюджет сессии, USD (оценка)\", \"cost_key\": \"Лимит ключа OpenRouter, USD в неделю\", \"time\": \"Время прогона (таймаут)\", \"brd_attempts\": \"Попытки генерации BRD на сессию\", \"artifacts_chat\": \"BRD от одного заказчика за 24 ч\", \"artifacts_day\": \"BRD всего за 24 ч\", \"validator\": \"Проверка BRD по стандарту после исправления\"};\nconst base = String(cfg.N8N_BASE_URL || '').replace(/\\/$/, '');\nconst now = new Date().toISOString();\nreturn $input.all().map((it, k) => {\n  const j = it.json || {};\n  let url = j.execution_url || '';\n  if (!url && j.execution_id && j.workflow_id && base && !base.startsWith('__')) url = `${base}/workflow/${j.workflow_id}/executions/${j.execution_id}`;\n  return { json: {\n    queued_at: now,\n    queue_id: `Q-${Date.now().toString(36)}-${k}`,\n    limit_type: j.limit_type || 'unknown',\n    limit_name: NAMES[j.limit_type] || String(j.limit_type || 'неизвестный потолок'),\n    limit_value: String(j.limit_value ?? ''),\n    observed: String(j.observed ?? '').slice(0, 300),\n    workflow: j.workflow || '',\n    session_id: j.session_id || '',\n    chat_id: String(j.chat_id || ''),\n    customer: j.username || '',\n    details: String(j.details || '').slice(0, 1000),\n    execution_url: url,\n    outcome: 'остановлено по пределу → ручная очередь (без перезапуска)',\n    assignee: cfg.ASSIGNEE,\n    status: 'new',\n    resolution: '',\n    resolved_at: '',\n  } };\n});"
+        "jsCode": "// Вход: limit_type, limit_value, observed, workflow, workflow_id, execution_id, session_id, chat_id, username, details.\n// Исход у всех потолков один: строка в очереди к роли с правом решить. Перезапуска нет.\nconst cfg = $('Config').first().json;\nconst NAMES = {\"steps\": \"Шаги агента за прогон (maxIterations)\", \"turns\": \"Длина интервью (ответов заказчика)\", \"cost_session\": \"Бюджет сессии, USD (оценка)\", \"cost_key\": \"Лимит ключа OpenRouter, USD в неделю\", \"time\": \"Время прогона (таймаут)\", \"brd_attempts\": \"Попытки генерации BRD на сессию\", \"artifacts_chat\": \"BRD от одного заказчика за 24 ч\", \"artifacts_day\": \"BRD всего за 24 ч (боевые и тестовые считаются раздельно)\", \"validator\": \"Проверка BRD по стандарту после исправления\"};\nconst base = String(cfg.N8N_BASE_URL || '').replace(/\\/$/, '');\nconst now = new Date().toISOString();\nreturn $input.all().map((it, k) => {\n  const j = it.json || {};\n  let url = j.execution_url || '';\n  if (!url && j.execution_id && j.workflow_id && base && !base.startsWith('__')) url = `${base}/workflow/${j.workflow_id}/executions/${j.execution_id}`;\n  return { json: {\n    queued_at: now,\n    queue_id: `Q-${Date.now().toString(36)}-${k}`,\n    limit_type: j.limit_type || 'unknown',\n    limit_name: NAMES[j.limit_type] || String(j.limit_type || 'неизвестный потолок'),\n    limit_value: String(j.limit_value ?? ''),\n    observed: String(j.observed ?? '').slice(0, 300),\n    workflow: j.workflow || '',\n    session_id: j.session_id || '',\n    chat_id: String(j.chat_id || ''),\n    customer: j.username || '',\n    details: String(j.details || '').slice(0, 1000),\n    execution_url: url,\n    outcome: 'остановлено по пределу → ручная очередь (без перезапуска)',\n    assignee: cfg.ASSIGNEE,\n    status: 'new',\n    resolution: '',\n    resolved_at: '',\n  } };\n});"
       },
-      "id": "bae2ccf7-1b1c-4843-8f35-ef32e4c8af81",
+      "id": "8fde7cb8-b311-4489-91eb-1d0e694d63f6",
       "name": "Queue rows",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -171,7 +171,7 @@
           "handlingExtraData": "ignoreIt"
         }
       },
-      "id": "7ce8b9c2-92b5-446b-9769-6abc996ab81b",
+      "id": "345efd8d-0d34-4f69-a769-9c7c4200c0c7",
       "name": "Append to manual_queue",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -191,7 +191,7 @@
       "parameters": {
         "jsCode": "// Сообщение в чат команды отправляется, даже если запись в Sheets не удалась: прогон не должен потеряться.\nreturn $('Queue rows').all().map((i) => i.json).map((q) => ({ json: {\n  audience: 'team', kind: 'warning', title: 'Остановлено по пределу → ручная очередь',\n  text: [\n    `Потолок: ${q.limit_name} = ${q.limit_value || '—'} (факт: ${q.observed || '—'})`,\n    `Workflow: ${q.workflow || '—'}`,\n    q.customer || q.chat_id ? `Заказчик: ${q.customer || q.chat_id}` : '',\n    q.session_id ? `Session ID: ${q.session_id}` : '',\n    q.details ? `Детали: ${q.details}` : '',\n    q.execution_url ? `Execution: ${q.execution_url}` : '',\n    `Очередь: лист manual_queue, ${q.queue_id}. Разбирает: ${q.assignee}. Перезапуск не выполнялся.`,\n  ].filter(Boolean).join('\\n'),\n  source: 'manual_queue' } }));"
       },
-      "id": "506f1ce1-ee39-499d-b016-3545f7939265",
+      "id": "5f2da5f0-60aa-401b-a12b-8914b2f65d0e",
       "name": "Team message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -220,7 +220,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "7884375a-704e-4a54-83ec-3438b2524f6a",
+      "id": "df9f0e09-01a0-4156-8ea7-b8bc471faf98",
       "name": "Notify team via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -233,7 +233,7 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'manual_queue',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'Append to manual_queue',\n    severity: 'error',\n    alert: true,\n    chat_id: String('' || ''),\n    message: String('Не удалось записать прогон в ручную очередь (manual_queue): ' + errText(j) || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String('' || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
       },
-      "id": "5b439b07-056b-4f26-8d4b-0f449690a8e8",
+      "id": "5d29904f-1b3e-4450-a670-2b4fd09337d5",
       "name": "Sheet error payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -262,7 +262,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "2d2e343c-cabd-48e5-8af3-b771c8816b89",
+      "id": "76757a6d-dcdf-4f01-8ad3-ca80fcf13367",
       "name": "Log via BRD-00",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -278,7 +278,7 @@
         "height": 350,
         "color": 5
       },
-      "id": "a6336c1a-0501-47b6-a92d-a8c97164c57a",
+      "id": "1164111a-a2ba-40f4-93a7-8f619559e8e9",
       "name": "Note 10",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
