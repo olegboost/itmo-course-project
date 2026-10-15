@@ -1159,6 +1159,8 @@ def build_interview():
         "SOFT_MAX_TURNS": 30,
         "MAX_TURNS": LIMITS["MAX_TURNS"],
         "MAX_ITERATIONS": LIMITS["INTERVIEW_MAX_ITERATIONS"],  # справочно; сам потолок — в узле Interview agent
+        # Scope пилота кодом: через запятую chat_id разрешённых пользователей; пусто — без ограничения (демо)
+        "ALLOWED_CHAT_IDS": "__CFG_ALLOWED_CHAT_IDS__",
         "HISTORY_LIMIT": 60,
         "STT_URL": "__CFG_STT_URL__",
         "STT_MODEL": "__CFG_STT_MODEL__",
@@ -1172,6 +1174,10 @@ const text = String(m.text || m.caption || '').trim();
 const cm = text.match(/^\\/(\\w+)/);
 let kind = (m.voice || m.audio) ? 'voice' : (text ? 'text' : 'other');
 if (chat.type && chat.type !== 'private') kind = 'ignore';   // бот состоит и в чатах команды — там не отвечаем
+// Scope пилота ограничен кодом, а не обещанием: вне списка — отказ без распознавания голоса и без вызова LLM.
+const allowRaw = String($('Config').first().json.ALLOWED_CHAT_IDS || '');
+const allow = allowRaw.startsWith('__') ? [] : allowRaw.split(',').map((x) => x.trim()).filter(Boolean);
+if (kind !== 'ignore' && allow.length && !allow.includes(String(chat.id ?? ''))) kind = 'forbidden';
 return [{ json: {
   chat_id: String(chat.id ?? ''),
   user_id: String(from.id ?? ''),
@@ -1190,7 +1196,7 @@ return [{ json: {
             "combinator": "and"},
         "renameOutput": True, "outputKey": key}
     w.add("Message type", "n8n-nodes-base.switch", 3.2,
-          {"rules": {"values": [rule("voice"), rule("text"), rule("other")]}, "options": {}}, (660, 200))
+          {"rules": {"values": [rule("voice"), rule("text"), rule("other"), rule("forbidden")]}, "options": {}}, (660, 200))
     w.add("Get voice file", "n8n-nodes-base.telegram", 1.2, {
         "resource": "file", "fileId": "={{ $json.voice_file_id }}", "additionalFields": {},
     }, (880, 0), creds=["telegram"], onError="continueErrorOutput")
@@ -1224,6 +1230,10 @@ return [{ json: { chat_id: msg.chat_id, reply: 'Не получилось рас
 const msg = $json;
 return [{{ json: {{ chat_id: msg.chat_id, reply: 'Я понимаю текстовые и голосовые сообщения. Напишите, пожалуйста, текстом.\\n\\n{HELP}', saves: [], start_brd: false }} }}];
 """), (880, 420))
+    w.add("Not in pilot", "n8n-nodes-base.code", 2, code("""
+return [{ json: { chat_id: $json.chat_id, saves: [], start_brd: false,
+  reply: 'Бот работает в пилоте для ограниченного круга заказчиков. Чтобы подключиться, напишите команде AIOps.' } }];
+"""), (880, 600))
     w.add("Load chat sessions", "n8n-nodes-base.dataTable", 1,
           dt_get(SESSIONS_TABLE, [("chat_id", "={{ $json.chat_id }}")]), (1540, 120),
           alwaysOutputData=True, executeOnce=True)
@@ -1470,6 +1480,8 @@ return [{ json: { ...t.limit, workflow: $workflow.name, workflow_id: $workflow.i
     w.connect("Message type", "Get voice file", out=0)
     w.connect("Message type", "Load chat sessions", out=1)
     w.connect("Message type", "Unsupported message", out=2)
+    w.connect("Message type", "Not in pilot", out=3)
+    w.connect("Not in pilot", "Turn result")
     w.connect("Get voice file", "Transcribe (cloud.ru Whisper)", out=0)
     w.connect("Get voice file", "Voice failed", out=1)
     w.connect("Transcribe (cloud.ru Whisper)", "Use transcript", out=0)

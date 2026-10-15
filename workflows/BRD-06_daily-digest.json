@@ -12,7 +12,7 @@
           ]
         }
       },
-      "id": "7427292b-273b-4d9c-bd42-73502f9ae162",
+      "id": "686637d5-38c5-4089-93a8-0d345663457b",
       "name": "Daily 09:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -23,7 +23,7 @@
     },
     {
       "parameters": {},
-      "id": "05254fec-7e37-45dc-93c0-058914e48334",
+      "id": "ae7e08e5-2809-4dfe-93bb-7ddd4786bf30",
       "name": "Manual run",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -37,19 +37,19 @@
         "assignments": {
           "assignments": [
             {
-              "id": "fdafeeaf-e82f-415e-879b-e8b593a77a77",
+              "id": "f3b92d39-281a-44e6-ab1f-46b2fae88856",
               "name": "LOGS_SHEET_ID",
               "value": "__CFG_LOGS_SHEET_ID__",
               "type": "string"
             },
             {
-              "id": "4b3f68c8-d3c2-4bdc-b42c-9b00f44b9ee0",
+              "id": "d1a7d1f1-a994-4ecd-8c86-85095232be05",
               "name": "ERRORS_SHEET_TAB",
               "value": "errors",
               "type": "string"
             },
             {
-              "id": "07214f5b-2b06-4383-ac76-e84842c37fa9",
+              "id": "3037d88c-d7ed-4094-97bb-b14e26f8e812",
               "name": "PERIOD_HOURS",
               "value": 24,
               "type": "number"
@@ -58,7 +58,7 @@
         },
         "options": {}
       },
-      "id": "30e13a01-c676-4c4e-9afb-739bb407e0c6",
+      "id": "f8ed2c14-b57a-49d3-a7b6-f26f8e820260",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -78,7 +78,7 @@
         },
         "returnAll": true
       },
-      "id": "b32dc24a-13e4-4363-b1bc-08cf64f40eb9",
+      "id": "1d2eca65-f77c-4abc-a78d-65d83c20662b",
       "name": "Load sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -100,7 +100,7 @@
         },
         "returnAll": true
       },
-      "id": "85540707-f415-4672-8b5b-ec33265a4d50",
+      "id": "361dc6b8-2bc3-441d-8c49-3278cff7c4bf",
       "name": "Load KB state",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -127,7 +127,7 @@
         },
         "options": {}
       },
-      "id": "be377c7c-4dec-45d1-8e47-82009d62def0",
+      "id": "8f69a24d-5d82-4aff-9712-cf96b7fab58f",
       "name": "Load errors",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -153,7 +153,7 @@
         "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
-      "id": "87a772fb-7d2f-494a-b7e3-e32add3cbe5f",
+      "id": "8c18cc0d-f1d8-483c-87d9-9405c4b5ad9a",
       "name": "OpenRouter key usage",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -175,7 +175,7 @@
       "parameters": {
         "jsCode": "const cfg = $('Config').first().json;\nconst since = Date.now() - (Number(cfg.PERIOD_HOURS) || 24) * 3600 * 1000;\nconst inPeriod = (t) => t && new Date(t).getTime() >= since;\nconst sessions = $('Load sessions').all().map((i) => i.json).filter((r) => r && r.session_id);\nconst kb = $('Load KB state').all().map((i) => i.json).filter((r) => r && r.file_id);\nconst errors = $('Load errors').all().map((i) => i.json).filter((r) => r && r.timestamp && inPeriod(r.timestamp));\n\nconst started = sessions.filter((s) => inPeriod(s.started_at));\nconst completed = sessions.filter((s) => s.status === 'completed' && inPeriod(s.last_activity_at));\nconst abandoned = sessions.filter((s) => s.status === 'abandoned' && inPeriod(s.last_activity_at));\nconst active = sessions.filter((s) => s.status === 'active');\nconst generating = sessions.filter((s) => s.status === 'generating');\nconst review = sessions.filter((s) => s.status === 'needs_review');\nlet key = null;\ntry { key = $('OpenRouter key usage').first().json.data || null; } catch (e) {}\n\nconst byWf = {};\nfor (const e of errors) { const k = e.workflow || e.component || '—'; byWf[k] = (byWf[k] || 0) + 1; }\nconst kbOk = kb.filter((r) => r.status === 'ok');\nconst kbErr = kb.filter((r) => r.status === 'error');\n\nconst lines = [];\nlines.push(`Интервью: начато ${started.length}, завершено BRD ${completed.length}, брошено ${abandoned.length}; сейчас активно ${active.length}` + (generating.length ? `, формируется ${generating.length}` : ''));\nif (completed.length) {\n  lines.push('', 'Новые BRD:');\n  for (const s of completed) lines.push(`• ${s.brd_title || 'Без названия'} — ${s.username || s.chat_id}\\n  ${s.brd_url}`);\n}\nif (review.length) {\n  lines.push('', `Остановлено по пределу, ждут решения команды (needs_review, лист manual_queue): ${review.length}`);\n  for (const s of review.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ${s.limit_hit || 'предел'}`);\n}\nif (active.length) {\n  lines.push('', 'Активные беседы:');\n  for (const s of active.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ответов ${s.turn_count}, последняя активность ${String(s.last_activity_at).slice(0, 16).replace('T', ' ')} UTC`);\n}\nlines.push('', `База знаний: документов в индексе ${kbOk.length}, фрагментов ${kbOk.reduce((x, r) => x + (Number(r.chunk_count) || 0), 0)}` + (kbErr.length ? `, с ошибкой ${kbErr.length} (${kbErr.map((r) => r.name).join(', ')})` : ''));\nif (key) {\n  const usd = (v) => (v == null ? '—' : '$' + Number(v).toFixed(2));\n  lines.push('', `OpenRouter: расход за сутки ${usd(key.usage_daily)}, за неделю ${usd(key.usage_weekly)}; лимит ключа ${usd(key.limit)}` +\n    (key.limit_reset ? ` (${key.limit_reset})` : '') + (key.limit_remaining != null ? `, осталось ${usd(key.limit_remaining)}` : ''));\n}\nlines.push('', errors.length ? `Ошибки за сутки: ${errors.length} — ` + Object.entries(byWf).map(([k, v]) => `${k}: ${v}`).join('; ') : 'Ошибок за сутки нет.');\nreturn [{ json: { audience: 'team', kind: 'report', title: 'Дайджест BRD-агента за сутки', text: lines.join('\\n'), source: 'digest' } }];"
       },
-      "id": "d57ad53c-133a-4cc0-8390-9fb26586816c",
+      "id": "b062377a-fc23-4142-9fa0-a78658db4313",
       "name": "Build digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -204,7 +204,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "8a3ebeef-292c-4d21-b8a5-6ca99d858458",
+      "id": "3a9a68df-faed-4d73-aebd-e23d70c4ebb9",
       "name": "Notify via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -220,7 +220,7 @@
         "height": 180,
         "color": 2
       },
-      "id": "877e32da-c8e1-43be-a6f7-77739770c032",
+      "id": "e3547f07-8409-4d5d-8b42-365fdaa02789",
       "name": "Note 9",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
