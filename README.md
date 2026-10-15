@@ -102,6 +102,7 @@ course-project/
 │   ├── control-layer.md        # потолки агента, обоснование, раздел 4 паспорта
 │   ├── cost-attack.md          # тест разгона и протокол фиксации
 │   ├── pattern-and-economics.md # паттерн, модель на шаг, таблица пяти прогонов
+│   ├── as-is.md                # раздел 5 паспорта: As-Is, Парето, bottleneck (scripts/build_as_is.py)
 │   ├── upgrade-improvement-2.md # обновление установки до паттерна
 │   └── upgrade-improvement-1.md # обновление установки до control layer
 └── .env.example

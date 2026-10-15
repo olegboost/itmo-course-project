@@ -2,3 +2,6 @@
 build/
 .DS_Store
 __pycache__/
+
+# Раздел 3 паспорта: ссылка на бота — не публикуем
+docs-for-improvement/improvement-3/Раздел 3 паспорта.xlsx
