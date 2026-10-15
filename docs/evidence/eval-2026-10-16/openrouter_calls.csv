@@ -1,0 +1,40 @@
+run_label,case,step,created_at_utc,model,provider,tokens_prompt,tokens_cached,tokens_completion,cost_usd
+до,I*,интервьюер,2026-10-15 21:12:05,deepseek/deepseek-v4.1-flash-20260910,CoreWeave,2614,0,124,0.000472
+до,I*,интервьюер,2026-10-15 21:12:10,deepseek/deepseek-v4.1-flash-20260910,CoreWeave,6548,2432,522,0.000961
+до,I*,интервьюер,2026-10-15 21:12:13,deepseek/deepseek-v4.1-flash-20260910,Ionstream,2898,0,346,0.001163
+до,I*,интервьюер,2026-10-15 21:12:18,deepseek/deepseek-v4.1-flash-20260910,Together,2586,0,216,0.001035
+до,I*,интервьюер,2026-10-15 21:12:22,deepseek/deepseek-v4.1-flash-20260910,Together,11154,2560,283,0.002933
+до,I*,интервьюер,2026-10-15 21:12:25,deepseek/deepseek-v4.1-flash-20260910,Relace,3093,0,230,0.000222
+до,I*,интервьюер,2026-10-15 21:12:29,deepseek/deepseek-v4.1-flash-20260910,PrimeIntellect,2598,2304,187,0.000381
+до,I*,интервьюер,2026-10-15 21:12:31,deepseek/deepseek-v4.1-flash-20260910,DigitalOcean,2601,2432,482,0.000486
+до,I*,интервьюер,2026-10-15 21:12:35,deepseek/deepseek-v4.1-flash-20260910,DigitalOcean,11023,0,576,0.002998
+до,B1,писатель,2026-10-15 21:12:40,deepseek/deepseek-v4-pro-20260813,Wafer,5186,0,1340,0.007996
+до,B1,писатель,2026-10-15 21:12:45,deepseek/deepseek-v4-pro-20260813,Wafer,5181,5120,1955,0.011065
+до,B1,писатель,2026-10-15 21:12:54,deepseek/deepseek-v4-pro-20260813,Wafer,5180,5120,1283,0.007704
+до,B1,исправление (fixer),2026-10-15 21:13:01,deepseek/deepseek-v4.1-flash-20260910,Parasail,2283,0,838,0.00169
+до,B2,писатель,2026-10-15 21:14:16,deepseek/deepseek-v4-pro-20260813,Novita,4692,0,2141,0.011003
+до,B2,писатель,2026-10-15 21:14:35,deepseek/deepseek-v4-pro-20260813,Novita,19477,6784,7946,0.036389
+до,B2,писатель,2026-10-15 21:15:25,deepseek/deepseek-v4-pro-20260813,Novita,4687,4608,438,0.001531
+до,B2,писатель,2026-10-15 21:15:31,deepseek/deepseek-v4-pro-20260813,Novita,21573,5120,7533,0.03883
+до,B2,писатель,2026-10-15 21:16:23,deepseek/deepseek-v4-pro-20260813,Novita,4686,4608,1060,0.003377
+до,B2,писатель,2026-10-15 21:16:34,deepseek/deepseek-v4-pro-20260813,Novita,19685,5632,4182,0.026518
+после,I*,интервьюер,2026-10-15 21:31:26,deepseek/deepseek-v4.1-flash-20260910,CoreWeave,2614,0,240,0.000548
+после,I*,интервьюер,2026-10-15 21:31:29,deepseek/deepseek-v4.1-flash-20260910,CoreWeave,10491,0,409,0.001839
+после,I*,интервьюер,2026-10-15 21:31:32,deepseek/deepseek-v4.1-flash-20260910,Ionstream,2898,2816,242,0.000302
+после,I*,интервьюер,2026-10-15 21:31:38,deepseek/deepseek-v4.1-flash-20260910,Ionstream,11154,2816,314,0.00261
+после,I*,интервьюер,2026-10-15 21:31:45,deepseek/deepseek-v4.1-flash-20260910,Together,2586,2560,192,0.000253
+после,I*,интервьюер,2026-10-15 21:31:47,deepseek/deepseek-v4.1-flash-20260910,Relace,3093,2816,222,0.000212
+после,I*,интервьюер,2026-10-15 21:31:51,deepseek/deepseek-v4.1-flash-20260910,PrimeIntellect,2598,2560,194,0.000321
+после,I*,интервьюер,2026-10-15 21:31:54,deepseek/deepseek-v4.1-flash-20260910,DigitalOcean,2601,2560,294,0.000289
+после,I*,интервьюер,2026-10-15 21:31:57,deepseek/deepseek-v4.1-flash-20260910,DigitalOcean,10821,0,628,0.002999
+после,B1,писатель,2026-10-15 21:32:01,deepseek/deepseek-v4-pro-20260813,Sail Research,5318,0,1447,0.006195
+после,B1,писатель,2026-10-15 21:32:24,deepseek/deepseek-v4-pro-20260813,Sail Research,5313,5120,198,0.001324
+после,B1,писатель,2026-10-15 21:32:36,deepseek/deepseek-v4-pro-20260813,Sail Research,22064,5120,3235,0.019334
+после,B1,писатель,2026-10-15 21:33:03,deepseek/deepseek-v4-pro-20260813,Sail Research,5312,5120,1303,0.002417
+после,B1,исправление (fixer),2026-10-15 21:33:22,deepseek/deepseek-v4.1-flash-20260910,InferenceNet,2292,0,779,0.000821
+после,B2,писатель,2026-10-15 21:34:38,deepseek/deepseek-v4-pro-20260813,Parasail,4747,0,192,0.007026
+после,B2,писатель,2026-10-15 21:34:44,deepseek/deepseek-v4-pro-20260813,Parasail,21814,4608,2345,0.0322
+после,B2,писатель,2026-10-15 21:35:09,deepseek/deepseek-v4-pro-20260813,Parasail,4742,4608,236,0.001314
+после,B2,писатель,2026-10-15 21:35:14,deepseek/deepseek-v4-pro-20260813,Parasail,21458,4608,3495,0.036284
+после,B2,писатель,2026-10-15 21:35:53,deepseek/deepseek-v4-pro-20260813,Parasail,4741,4608,281,0.001491
+после,B2,писатель,2026-10-15 21:36:12,deepseek/deepseek-v4-pro-20260813,Parasail,21679,4608,1419,0.028355
