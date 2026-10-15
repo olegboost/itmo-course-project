@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {},
-      "id": "f567e5f2-5109-40ba-9e63-24e5aa72838c",
+      "id": "8e67d233-b282-42c2-89fa-f4adbb2a9fbd",
       "name": "Run once",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -98,6 +98,10 @@
             {
               "name": "brd_draft_title",
               "type": "string"
+            },
+            {
+              "name": "brd_md",
+              "type": "string"
             }
           ]
         },
@@ -105,7 +109,7 @@
           "createIfNotExists": true
         }
       },
-      "id": "70a56623-1d90-4820-96e5-1b169f0cf6af",
+      "id": "ca932a2f-6eef-4b19-9d2a-77d179f43b9b",
       "name": "Create brd_sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -168,7 +172,7 @@
           "createIfNotExists": true
         }
       },
-      "id": "04f06308-978b-420e-b241-276f5b032c8f",
+      "id": "654e3884-4893-485a-8553-a10440091cbd",
       "name": "Create kb_files",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -185,7 +189,7 @@
         "height": 170,
         "color": 7
       },
-      "id": "c5b06a28-c204-4b4c-b89e-0d91a634520c",
+      "id": "197f7eb1-e842-43fc-b2af-ea99ab197358",
       "name": "Note 3",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,

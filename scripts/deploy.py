@@ -34,15 +34,16 @@ ORDER = [
     ("BRD-07_manual-queue.json", "__WF_QUEUE__", False),
     ("BRD-04_brd-generator.json", "__WF_BRD_GENERATOR__", False),
     ("BRD-01_kb-sync.json", None, True),
-    ("BRD-03_interview-agent.json", None, True),
+    ("BRD-03_interview-agent.json", "__WF_INTERVIEW__", True),
     ("BRD-05_reminders.json", None, True),
     ("BRD-06_daily-digest.json", None, True),
+    ("BRD-97_eval-suite.json", None, False),
     ("BRD-98_eval-seed.json", None, False),
     ("BRD-99_setup-data-tables.json", None, False),
 ]
 API_FIELDS = ("name", "nodes", "connections", "settings")
 # Ручной импорт (без Public API): переменные .env с ID заранее созданных пустых подворкфлоу.
-WF_ENV = ("ERRORS", "NOTIFY", "QUEUE", "BRD_GENERATOR")
+WF_ENV = ("ERRORS", "NOTIFY", "QUEUE", "BRD_GENERATOR", "INTERVIEW")
 
 
 def load_env(path):

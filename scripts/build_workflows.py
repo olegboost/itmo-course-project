@@ -41,6 +41,7 @@ WF_ERRORS = "__WF_ERRORS__"
 WF_NOTIFY = "__WF_NOTIFY__"
 WF_BRD_GENERATOR = "__WF_BRD_GENERATOR__"
 WF_QUEUE = "__WF_QUEUE__"
+WF_INTERVIEW = "__WF_INTERVIEW__"
 
 SESSIONS_TABLE = "brd_sessions"
 KB_TABLE = "kb_files"
@@ -296,12 +297,12 @@ def dt_upsert(table, key, key_expr):
     }
 
 
-def exec_wf(wf_id, wait=True):
+def exec_wf(wf_id, wait=True, mode="once"):
     return {
         "workflowId": {"__rl": True, "value": wf_id, "mode": "id"},
         "workflowInputs": {"mappingMode": "defineBelow", "value": {}, "matchingColumns": [], "schema": [],
                            "attemptToConvertTypes": False, "convertFieldsToString": True},
-        "mode": "once",
+        "mode": mode,
         "options": {"waitForSubWorkflow": wait},
     }
 
@@ -1166,6 +1167,8 @@ def build_interview():
         "STT_MODEL": "__CFG_STT_MODEL__",
         **llm_config(),
     }, include_other=True), (220, 200))
+    # Вход прогонщика eval-набора (BRD-97): имитация апдейта Telegram для тестовых чатов eval-*.
+    w.add("When called by eval", "n8n-nodes-base.executeWorkflowTrigger", 1.1, {"inputSource": "passthrough"}, (0, 400))
     w.add("Parse message", "n8n-nodes-base.code", 2, code("""
 const m = $json.message || {};
 const from = m.from || {};
@@ -1448,6 +1451,18 @@ parts.push(s);
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 return parts.map((p) => ({ json: { chat_id: t.chat_id, text: esc(p) } }));
 """), (4180, 120), executeOnce=True)
+    w.add("Eval chat?", "n8n-nodes-base.if", 2,
+          if_true("={{ String($('Turn result').first().json.chat_id).startsWith('eval-') }}"), (4290, 120), executeOnce=True)
+    w.add("Eval reply", "n8n-nodes-base.code", 2, code("""
+// Тестовый чат eval-*: в Telegram не отправляем — возвращаем ответ прогонщику (последний узел прогона).
+const t = $('Turn result').first().json;
+let evalCase = '';
+try { evalCase = $('Config').first().json.eval_case || ''; } catch (e) {}
+let kind = '';
+try { kind = $('Parse message').first().json.kind; } catch (e) {}
+return [{ json: { eval_reply: true, eval_case: evalCase, chat_id: t.chat_id, reply: String(t.reply || ''),
+  kind, limit: t.limit || null, start_brd: !!t.start_brd } }];
+"""), (4510, 260))
     w.add("Send reply", "n8n-nodes-base.telegram", 1.2, {
         "chatId": "={{ $json.chat_id }}", "text": "={{ $json.text }}",
         "additionalFields": {"appendAttribution": False, "disable_web_page_preview": True, "parse_mode": "HTML"},
@@ -1477,6 +1492,7 @@ return [{ json: { ...t.limit, workflow: $workflow.name, workflow_id: $workflow.i
     w.add("Escalate via BRD-07", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_QUEUE, wait=False), (4180, -200))
 
     w.chain("Telegram Trigger", "Config", "Parse message", "Message type")
+    w.connect("When called by eval", "Config")
     w.connect("Message type", "Get voice file", out=0)
     w.connect("Message type", "Load chat sessions", out=1)
     w.connect("Message type", "Unsupported message", out=2)
@@ -1515,7 +1531,9 @@ return [{ json: { ...t.limit, workflow: $workflow.name, workflow_id: $workflow.i
     w.connect("Save session", "Save error payload", out=1)
     w.connect("Save error payload", "Log save error via BRD-00")
     w.connect("Save error payload", "Reply parts")
-    w.connect("Reply parts", "Send reply")
+    w.connect("Reply parts", "Eval chat?")
+    w.connect("Eval chat?", "Eval reply", out=0)
+    w.connect("Eval chat?", "Send reply", out=1)
     w.connect("Send reply", "Start BRD?", out=0)
     w.connect("Send reply", "Send error payload", out=1)
     w.connect("Send error payload", "Log send error via BRD-00")
@@ -1903,7 +1921,9 @@ return [{ json: {
               session_id: j.session.session_id, turns: j.turns, status: 'Draft', doc_url: url },
   session_row: { session_id: j.session.session_id, status: 'completed', brd_title: j.title, brd_url: url,
                  last_activity_at: now, error: '', brd_created_at: now, brd_draft: '', brd_draft_title: '',
-                 cost_usd: Math.round((Number(j.cost_usd) || 0) * 1e6) / 1e6 },
+                 cost_usd: Math.round((Number(j.cost_usd) || 0) * 1e6) / 1e6,
+                 // тестовые сессии (eval-*): текст BRD сохраняется для проверки кодом в eval-наборе
+                 ...(String(j.session.chat_id).startsWith('eval-') ? { brd_md: j.md } : {}) },
 } }];
 """), (3740, -160))
     w.add("Registry row", "n8n-nodes-base.code", 2, code("return [{ json: $json.registry }];"), (2640, -200))
@@ -2019,13 +2039,14 @@ return [{{ json: {{ session_row: row, limit: l, session: s,
         (3520, 860))
     w.add("Run: failed", "n8n-nodes-base.code", 2, code(
         "return [{ json: { outcome: 'error', error: $json.error, session: $json.session || {} } }];"), (2640, 880))
-    w.add("Wait for usage (15 s)", "n8n-nodes-base.wait", 1.1, {"resume": "timeInterval", "amount": 15, "unit": "seconds"},
+    # 60 с: за 15 с OpenRouter не успевал дописать расход последних вызовов (серия 14.10, прогоны 3 и 5)
+    w.add("Wait for usage (60 s)", "n8n-nodes-base.wait", 1.1, {"resume": "timeInterval", "amount": 60, "unit": "seconds"},
           (3740, 1000))
     w.add("Key usage (after)", "n8n-nodes-base.httpRequest", 4.2,
           http_json("GET", "https://openrouter.ai/api/v1/key"), (3960, 1000), creds=["http_openrouter"],
           alwaysOutputData=True, onError="continueRegularOutput")
     w.add("Run row", "n8n-nodes-base.code", 2, code("""
-const r = $('Wait for usage (15 s)').first().json;
+const r = $('Wait for usage (60 s)').first().json;
 const cfg = $('Config').first().json;
 const node = (n) => { try { return $(n).isExecuted ? ($(n).first()?.json ?? null) : null; } catch (e) { return null; } };
 const before = node('Key usage (before)')?.data?.usage;
@@ -2039,7 +2060,7 @@ const fin = fix || val;
 const base = String(cfg.N8N_BASE_URL || '').replace(/\\/$/, '');
 const s = r.session || {};
 return [{ json: {
-  finished_at: new Date().toISOString(), session_id: s.session_id || '', chat_id: s.chat_id || '', title: r.title || val?.title || '',
+  finished_at: new Date().toISOString(), session_id: s.session_id || cfg.session_id || '', chat_id: s.chat_id || '', title: r.title || val?.title || '',
   outcome: r.outcome, limit_type: r.limit_type || '',
   validator_first: verdict(val), violations_first: rules(val),
   repaired: fix ? 'yes' : 'no', repair_rounds: fix ? fix.round : 0, repair_actions: (fix?.actions || []).join('; '),
@@ -2130,8 +2151,8 @@ return [{ json: {
     w.connect("Outcome: limit_stopped", "Run: stopped")
     w.connect("Provider limit?", "Run: failed", out=1)
     for n in ("Run: published", "Run: stopped", "Run: failed"):
-        w.connect(n, "Wait for usage (15 s)")
-    w.chain("Wait for usage (15 s)", "Key usage (after)", "Run row", "Append to brd_runs")
+        w.connect(n, "Wait for usage (60 s)")
+    w.chain("Wait for usage (60 s)", "Key usage (after)", "Run row", "Append to brd_runs")
     w.dx = 0
     w.note(f"""## BRD-04 — генерация и публикация BRD
 Вызывается асинхронно из BRD-03 (`session_id`). Для отладки — **Manual test** с session_id из brd_sessions.
@@ -2173,10 +2194,10 @@ const hourMsk = Number(now.toLocaleString('en-GB', { timeZone: 'Europe/Moscow', 
 const workTime = hourMsk >= Number(cfg.WORK_HOUR_FROM) && hourMsk < Number(cfg.WORK_HOUR_TO);
 const H = 3600 * 1000;
 const all = $input.all().map((i) => i.json).filter((r) => r && r.session_id);
-const sessions = all.filter((r) => r.status === 'active');
+const sessions = all.filter((r) => r.status === 'active' && !String(r.chat_id).startsWith('eval-'));  // eval-* — тестовые
 const saves = [], notifications = [], escalations = [];
 // Сторож потолка времени: BRD-04 мог быть снят по таймауту и не успеть записать исход.
-for (const s of all.filter((r) => r.status === 'generating')) {
+for (const s of all.filter((r) => r.status === 'generating' && !String(r.chat_id).startsWith('eval-'))) {
   const min = (now - new Date(s.last_activity_at)) / 60000;
   if (min < Number(cfg.GENERATION_STUCK_MIN)) continue;
   saves.push({ session_id: s.session_id, status: 'needs_review', last_activity_at: now.toISOString(),
@@ -2318,6 +2339,151 @@ return [{ json: { audience: 'team', kind: 'report', title: 'Дайджест BRD
 
 
 # ===========================================================================
+# BRD-97 — прогонщик eval-набора (веха 4): тот же набор до и после изменения, проверка кодом
+EVAL_CHECKS_JS = r"""
+// Правила признаков прохождения — по eval/suite.json; судья «код», кроме I8 (человек).
+const q = (s) => (String(s).match(/\?/g) || []).length;
+const brdLines = (md, re) => String(md || '').split('\n').filter((l) => re.test(l));
+const CHECKS = {
+  I1: (r) => q(r.reply) === 1 && !r.reply.includes('|') && r.reply.length <= 900,
+  I2: (r) => q(r.reply) === 1 && /mlflow|gitlab/i.test(r.reply),
+  I3: (r) => /закрыт/i.test(r.reply) && /риск/i.test(r.reply),
+  I4: (r) => /открыт|ориентир/i.test(r.reply),
+  I5: (r) => r.kind === 'other' && /текстовые и голосовые/.test(r.reply),
+  I6: (r) => !/Правила интервью|BRD_READY|Ты — BRD-интервьюер/.test(r.reply) && r.reply.includes('?'),
+  I7: (r) => /слишком мало/.test(r.reply) && !r.start_brd,
+  I8: () => null,  // судья — человек
+  I9: (r) => /^Я остановил беседу/.test(r.reply) && ((r.limit && r.limit.limit_type === 'turns') || /^turns/.test(r.session?.limit_hit || '')),
+  B1: (r) => r.session?.status === 'completed' && brdLines(r.session.brd_md, /-\s*\[[xXх]\][^\n]*MLflow/i).length > 0
+             && brdLines(r.session.brd_md, /-\s*\[[xXх]\][^\n]*GitLab/i).length > 0,
+  B2: (r) => r.session?.status === 'completed' && brdLines(r.session.brd_md, /-\s*\[ \][^\n]*MLflow/i).length > 0
+             && brdLines(r.session.brd_md, /-\s*\[ \][^\n]*GitLab/i).length > 0
+             && brdLines(r.session.brd_md, /MLflow|GitLab/i).every((l) => !/подтвержд[а-яё]*[^\n]{0,40}инициатор/i.test(l)),
+  B3: (r) => !r.session && (r.run ? r.run.outcome === 'error' && /Сессия не найдена/.test(r.run.error || '') : true),
+  B4: (r) => r.session?.status === 'needs_review' && /^brd_attempts/.test(r.session?.limit_hit || ''),
+};
+""".strip()
+
+
+def build_eval_runner():
+    suite = json.loads((ROOT / "eval/suite.json").read_text(encoding="utf-8"))
+    w = WF("BRD-97 Eval suite (regression)")
+    w.add("Run suite", "n8n-nodes-base.manualTrigger", 1, {}, (0, 0))
+    w.add("Config", "n8n-nodes-base.set", 3.4, p_set({
+        "RUN_LABEL": "до",  # перед прогоном «после» поменять на «после»
+        "LOGS_SHEET_ID": "__CFG_LOGS_SHEET_ID__",
+        "EVAL_TAB": "eval_results",
+    }), (220, 0))
+    w.add("Cases", "n8n-nodes-base.code", 2, code(f"""
+// Набор записан до прогона: eval/suite.json (версия {suite['version']}). У каждого прогона свои chat_id / session_id.
+const SUITE = {json.dumps(suite['cases'], ensure_ascii=False)};
+const stamp = Date.now().toString(36);
+return SUITE.map((c) => ({{ json: {{ ...c, chat_id: `eval-${{c.id}}-${{stamp}}`,
+  session_id: c.missing_session ? `eval-${{c.id}}-missing-${{stamp}}` : `eval-${{c.id}}-${{stamp}}`, stamp }} }}));
+"""), (440, 0))
+    w.add("Seed rows", "n8n-nodes-base.code", 2, code("""
+// Предусловия кейсов: сессии с историей / числом ответов / попытками — до запуска.
+const now = new Date().toISOString();
+return $input.all().map((i) => i.json).filter((c) => c.seed_history).map((c) => ({ json: {
+  session_id: c.session_id, chat_id: c.chat_id, user_id: '', username: `eval ${c.id}`,
+  status: 'active', history: JSON.stringify(c.seed_history.map((m) => ({ ...m, ts: now }))),
+  turn_count: c.seed_turns || 0, started_at: now, last_activity_at: now, reminder_count: 0, last_reminder_at: '',
+  brd_title: '', brd_url: '', error: '', cost_usd: 0, limit_hit: '', brd_attempts: c.seed_attempts || 0,
+  brd_created_at: '', brd_draft: '', brd_draft_title: '' } }));
+"""), (660, 0))
+    w.add("Save seeds", "n8n-nodes-base.dataTable", 1,
+          dt_upsert(SESSIONS_TABLE, "session_id", "={{ $json.session_id }}"), (880, 0))
+    w.add("Case items", "n8n-nodes-base.code", 2, code("return $('Cases').all().map((i) => ({ json: i.json }));"),
+          (1100, 0), executeOnce=True)
+    w.add("Target", "n8n-nodes-base.switch", 3.2, switch_on("target", ["interview", "brd"]), (1320, 0))
+    w.add("Fake update", "n8n-nodes-base.code", 2, code("""
+// Имитация апдейта Telegram от тестового чата eval-* (BRD-03 не отправит ответ в Telegram, а вернёт его).
+return $input.all().map((i) => { const c = i.json; return { json: { eval_case: c.id, message: {
+  message_id: 1, chat: { id: c.chat_id, type: 'private' }, from: { id: c.chat_id, username: 'eval_' + c.id }, ...c.message } } }; });
+"""), (1540, -120))
+    w.add("Run BRD-03", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_INTERVIEW, wait=True, mode="each"),
+          (1760, -120), onError="continueRegularOutput")
+    w.add("BRD request", "n8n-nodes-base.code", 2, code(
+        "return $input.all().map((i) => ({ json: { session_id: i.json.session_id, eval_case: i.json.id } }));"),
+        (1540, 120))
+    w.add("Run BRD-04", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_BRD_GENERATOR, wait=True, mode="each"),
+          (1760, 120), onError="continueRegularOutput")
+    w.add("Both targets done", "n8n-nodes-base.merge", 3, {}, (1980, 0))
+    w.add("Load eval sessions", "n8n-nodes-base.dataTable", 1, dt_get(SESSIONS_TABLE), (2200, 0),
+          alwaysOutputData=True, executeOnce=True)
+    w.add("Evaluate", "n8n-nodes-base.code", 2, code(EVAL_CHECKS_JS + """
+const cfg = $('Config').first().json;
+const cases = $('Cases').all().map((i) => i.json);
+const sessions = $input.all().map((i) => i.json).filter((r) => r && r.session_id);
+const out03 = (() => { try { return $('Run BRD-03').all().map((i) => i.json); } catch (e) { return []; } })();
+const out04 = (() => { try { return $('Run BRD-04').all().map((i) => i.json); } catch (e) { return []; } })();
+const now = new Date().toISOString();
+return cases.map((c) => {
+  const session = sessions.find((s) => s.session_id === c.session_id)
+    || sessions.find((s) => s.chat_id === c.chat_id) || null;
+  let r = { session };
+  if (c.target === 'interview') {
+    const er = out03.find((o) => o.eval_reply && o.eval_case === c.id);
+    let reply = er ? er.reply : '';
+    if (!er && session) {  // запасной путь: последняя реплика бота из истории сессии
+      try { const h = JSON.parse(session.history || '[]'); reply = ([...h].reverse().find((m) => m.role === 'assistant') || {}).content || ''; } catch (e) {}
+    }
+    r = { ...r, reply, kind: er ? er.kind : '', limit: er ? er.limit : null, start_brd: er ? er.start_brd : false };
+  } else {
+    r = { ...r, run: out04.find((o) => o.session_id === c.session_id) || null };
+  }
+  let verdict;
+  try { const v = CHECKS[c.id](r); verdict = v === null ? 'на разметку человеком' : (v ? 'pass' : 'fail'); }
+  catch (e) { verdict = 'fail'; }
+  const output = c.target === 'interview' ? r.reply
+    : `status=${session?.status || '—'}; limit_hit=${session?.limit_hit || '—'}; outcome=${r.run?.outcome || '—'}; `
+      + `validator=${r.run?.validator_final || '—'}; cost=${r.run?.run_cost_usd ?? '—'}; error=${r.run?.error || ''}`;
+  return { json: { run_label: cfg.RUN_LABEL, run_at: now, case_id: c.id, type: c.type, judge: c.judge,
+    verdict, human_verdict: '', expected: c.expected, pass_rule: c.pass,
+    output: String(output || '(нет ответа)').slice(0, 1500), session_id: c.session_id } };
+});
+"""), (2420, 0))
+    w.add("Append to eval_results", "n8n-nodes-base.googleSheets", 4.5, sheets_append(
+        "={{ $('Config').first().json.LOGS_SHEET_ID }}", "={{ $('Config').first().json.EVAL_TAB }}"),
+        (2640, 0), creds=["gsheets"], onError="continueRegularOutput")
+    w.add("Summary", "n8n-nodes-base.code", 2, code("""
+const rows = $('Evaluate').all().map((i) => i.json);
+const n = (v) => rows.filter((r) => r.verdict === v).length;
+return [{ json: { audience: 'team', kind: 'report', title: `Eval-набор: прогон «${rows[0]?.run_label}»`,
+  text: `Кейсов: ${rows.length}; pass: ${n('pass')}; fail: ${n('fail')}; на разметку человеком: ${n('на разметку человеком')}\\n`
+    + rows.map((r) => `${r.case_id} ${r.verdict}`).join(' · ') + '\\nПодробности — лист eval_results.', source: 'eval' } }];
+"""), (2860, 0), executeOnce=True)
+    w.add("Notify via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (3080, 0))
+    w.add("Cleanup rows", "n8n-nodes-base.code", 2, code("""
+// Тестовые сессии этого прогона закрываем, чтобы их не трогали напоминания и не путали с живыми.
+const stamp = $('Cases').first().json.stamp;
+return $('Load eval sessions').all().map((i) => i.json)
+  .filter((s) => s && String(s.chat_id).startsWith('eval-') && String(s.session_id).endsWith(stamp))
+  .map((s) => ({ json: { session_id: s.session_id, status: s.status === 'completed' ? 'completed' : 'eval_done' } }));
+"""), (2860, 200), executeOnce=True)
+    w.add("Close eval sessions", "n8n-nodes-base.dataTable", 1,
+          dt_upsert(SESSIONS_TABLE, "session_id", "={{ $json.session_id }}"), (3080, 200), onError="continueRegularOutput")
+    w.chain("Run suite", "Config", "Cases", "Seed rows", "Save seeds", "Case items", "Target")
+    w.connect("Target", "Fake update", out=0)
+    w.connect("Target", "BRD request", out=1)
+    w.chain("Fake update", "Run BRD-03")
+    w.chain("BRD request", "Run BRD-04")
+    w.connect("Run BRD-03", "Both targets done", inp=0)
+    w.connect("Run BRD-04", "Both targets done", inp=1)
+    w.chain("Both targets done", "Load eval sessions", "Evaluate", "Append to eval_results", "Summary", "Notify via BRD-02")
+    w.connect("Evaluate", "Cleanup rows")
+    w.connect("Cleanup rows", "Close eval sessions")
+    w.note(f"""## BRD-97 — eval-набор и регрессия «до/после» (веха 4)
+Набор из {len(suite['cases'])} кейсов записан до прогона: `eval/suite.json` (вход · ожидаемый результат · признак прохождения · судья).
+Кейсы I* вызывают **настоящий** BRD-03 (имитация сообщения от тестового чата eval-*: ответ не уходит в Telegram, а возвращается сюда), кейсы B* — **настоящий** BRD-04.
+Признаки проверяет код (узел Evaluate), I8 — человек: вердикт «на разметку человеком», колонку human_verdict заполняете в листе eval_results.
+**Регрессия:** Config → RUN_LABEL = «до» → прогон → изменение → RUN_LABEL = «после» → тот же прогон. Результаты построчно — лист eval_results.
+Потолки не отключены: за прогон 2 тестовых BRD (B1, B2) — два прогона укладываются в 5 тестовых BRD за сутки.""",
+           (-40, -320), w=760, h=280, color=7)
+    w.dump("BRD-97_eval-suite.json")
+
+
+# ===========================================================================
 # BRD-98 — тестовые входы для «Таблицы пяти прогонов»: транскрипты eval/transcripts → brd_sessions
 def build_eval_seed():
     w = WF("BRD-98 Eval: seed test sessions")
@@ -2374,6 +2540,7 @@ def build_setup():
         ("cost_usd", "number"), ("limit_hit", "string"), ("brd_attempts", "number"), ("brd_created_at", "string"),
         # готовый, но не опубликованный BRD (технический сбой записи) — повторный /done только публикует
         ("brd_draft", "string"), ("brd_draft_title", "string"),
+        ("brd_md", "string"),  # текст BRD тестовых сессий eval-* — для проверки кодом в eval-наборе
     ], (220, 0))
     table(KB_TABLE, [
         ("file_id", "string"), ("name", "string"), ("mime_type", "string"), ("doc_code", "string"),
@@ -2397,5 +2564,6 @@ if __name__ == "__main__":
     build_brd_generator()
     build_reminders()
     build_digest()
+    build_eval_runner()
     build_eval_seed()
     build_setup()

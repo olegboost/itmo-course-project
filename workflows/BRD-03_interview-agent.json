@@ -8,7 +8,7 @@
         ],
         "additionalFields": {}
       },
-      "id": "289030de-d068-403d-84ef-ae1adc7d4c62",
+      "id": "23ffb867-62bc-4bce-8bb1-0e48711e607d",
       "name": "Telegram Trigger",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.2,
@@ -28,79 +28,79 @@
         "assignments": {
           "assignments": [
             {
-              "id": "ede78783-2725-49f3-8a14-b53b7de22ac7",
+              "id": "df291a1e-b5ee-43b1-8d63-a44ffaee5d64",
               "name": "MIN_TURNS_FOR_DONE",
               "value": 4,
               "type": "number"
             },
             {
-              "id": "a898f1dd-efcb-46ab-bf57-af5c53a1f7f1",
+              "id": "c8278a65-70e5-45dd-a0a0-42f6f41333a7",
               "name": "SOFT_MAX_TURNS",
               "value": 30,
               "type": "number"
             },
             {
-              "id": "f1f31c10-d58c-4c28-a184-ab6061a22827",
+              "id": "0b1b1b1c-ff54-449e-a308-1657c30eae2f",
               "name": "MAX_TURNS",
               "value": 40,
               "type": "number"
             },
             {
-              "id": "64c6cd73-3b46-4deb-9f8f-4bf42d1dba31",
+              "id": "b53c6f98-ae6c-435f-9ee3-e10a0ee0d76d",
               "name": "MAX_ITERATIONS",
               "value": 4,
               "type": "number"
             },
             {
-              "id": "338a3cfd-2c9f-4fab-bd38-df8f75047c28",
+              "id": "ab2f3b18-5ac6-4656-bc78-b3176762d981",
               "name": "ALLOWED_CHAT_IDS",
               "value": "__CFG_ALLOWED_CHAT_IDS__",
               "type": "string"
             },
             {
-              "id": "9cf72e71-501d-4bae-801f-045d93fd7d8a",
+              "id": "e365547b-890f-42c2-9460-404f9d70c9af",
               "name": "HISTORY_LIMIT",
               "value": 60,
               "type": "number"
             },
             {
-              "id": "ce289388-9394-4ea3-b784-868a31d820f2",
+              "id": "783d06be-7172-44bd-85d5-2e2481f912d9",
               "name": "STT_URL",
               "value": "__CFG_STT_URL__",
               "type": "string"
             },
             {
-              "id": "6b9d59cf-14e3-4a70-94a7-f25c558f6ae0",
+              "id": "abb48c4a-43d0-4615-bf0c-8d66c125d33d",
               "name": "STT_MODEL",
               "value": "__CFG_STT_MODEL__",
               "type": "string"
             },
             {
-              "id": "9402c011-2078-430a-b894-34bab1bb0f6f",
+              "id": "d1bdf548-3fc7-410b-a7f5-7bd124bbb1cf",
               "name": "LLM_MODEL",
               "value": "__CFG_LLM_MODEL__",
               "type": "string"
             },
             {
-              "id": "3ee20075-5b63-4eb4-b41a-40645d6c74bc",
+              "id": "d4e6f9d8-f356-49c0-bdfc-07932a4dedbf",
               "name": "LLM_PRICE_IN",
               "value": "__CFG_LLM_PRICE_IN__",
               "type": "string"
             },
             {
-              "id": "1561d436-9c3d-4bb8-9e42-36ce510fe539",
+              "id": "0540bfb8-b14c-45f9-9911-880d50364072",
               "name": "LLM_PRICE_OUT",
               "value": "__CFG_LLM_PRICE_OUT__",
               "type": "string"
             },
             {
-              "id": "711c9f63-c8da-4b6f-ac87-6aafb749605e",
+              "id": "a99369b5-16ef-4bbd-ae31-ce042f8f2fb0",
               "name": "CHARS_PER_TOKEN",
               "value": 2,
               "type": "number"
             },
             {
-              "id": "9b663ef4-fddd-4d90-a2fd-e1d6f839fc48",
+              "id": "5f2304e6-49fc-4338-9cc8-1dc5232ae663",
               "name": "SESSION_BUDGET_USD",
               "value": 1.0,
               "type": "number"
@@ -110,7 +110,7 @@
         "options": {},
         "includeOtherFields": true
       },
-      "id": "a02982af-122f-410a-9b38-b0341983afa1",
+      "id": "557c42e7-18e1-4d77-a9c1-19fea0edc995",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -121,9 +121,22 @@
     },
     {
       "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "bf0a5378-312c-41c3-8f19-230d11a3df87",
+      "name": "When called by eval",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        400
+      ]
+    },
+    {
+      "parameters": {
         "jsCode": "const m = $json.message || {};\nconst from = m.from || {};\nconst chat = m.chat || {};\nconst text = String(m.text || m.caption || '').trim();\nconst cm = text.match(/^\\/(\\w+)/);\nlet kind = (m.voice || m.audio) ? 'voice' : (text ? 'text' : 'other');\nif (chat.type && chat.type !== 'private') kind = 'ignore';   // бот состоит и в чатах команды — там не отвечаем\n// Scope пилота ограничен кодом, а не обещанием: вне списка — отказ без распознавания голоса и без вызова LLM.\nconst allowRaw = String($('Config').first().json.ALLOWED_CHAT_IDS || '');\nconst allow = allowRaw.startsWith('__') ? [] : allowRaw.split(',').map((x) => x.trim()).filter(Boolean);\nif (kind !== 'ignore' && allow.length && !allow.includes(String(chat.id ?? ''))) kind = 'forbidden';\nreturn [{ json: {\n  chat_id: String(chat.id ?? ''),\n  user_id: String(from.id ?? ''),\n  username: from.username ? '@' + from.username : ([from.first_name, from.last_name].filter(Boolean).join(' ') || String(from.id || '')),\n  message_id: m.message_id,\n  text, command: cm ? cm[1].toLowerCase() : '',\n  voice_file_id: (m.voice && m.voice.file_id) || (m.audio && m.audio.file_id) || '',\n  kind, from_voice: false,\n} }];"
       },
-      "id": "58118c97-769a-4b3f-b36e-f70a8066082f",
+      "id": "4e045306-7e99-4138-b3df-3418325c80e5",
       "name": "Parse message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -146,7 +159,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "56cc523d-a3bd-442b-bf43-d6037c6f7567",
+                    "id": "2f9a5ea4-8d0c-49af-9420-661f9e84c8c3",
                     "leftValue": "={{ $json.kind }}",
                     "rightValue": "voice",
                     "operator": {
@@ -170,7 +183,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "fda375c8-1bc5-4050-afc8-561d3ebb1546",
+                    "id": "2c222fb8-d345-413b-a24e-6d0bd5bebf5e",
                     "leftValue": "={{ $json.kind }}",
                     "rightValue": "text",
                     "operator": {
@@ -194,7 +207,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "ee080946-bb15-4967-bee6-f976c8580d67",
+                    "id": "42282a12-6934-4a8b-9159-2baa335346f8",
                     "leftValue": "={{ $json.kind }}",
                     "rightValue": "other",
                     "operator": {
@@ -218,7 +231,7 @@
                 },
                 "conditions": [
                   {
-                    "id": "37a15380-d049-4964-9590-e70e1fba84b8",
+                    "id": "a38a5d08-357a-4aae-9802-caaa1f3ab073",
                     "leftValue": "={{ $json.kind }}",
                     "rightValue": "forbidden",
                     "operator": {
@@ -236,7 +249,7 @@
         },
         "options": {}
       },
-      "id": "d419a374-5342-43cc-88d5-c49711e919f4",
+      "id": "5bea8ad4-829b-4bd9-88a7-a2b80003a1c6",
       "name": "Message type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
@@ -251,7 +264,7 @@
         "fileId": "={{ $json.voice_file_id }}",
         "additionalFields": {}
       },
-      "id": "5864f3c7-d573-4d9d-9673-bbeb448c9bad",
+      "id": "0f00b5aa-4a94-41a5-b9b1-8062cf466fc2",
       "name": "Get voice file",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -305,7 +318,7 @@
           "timeout": 120000
         }
       },
-      "id": "82d90191-d5bb-4dfa-afb1-489a09147e38",
+      "id": "455626ae-eedd-4ecd-88b3-f45412bfd18d",
       "name": "Transcribe (cloud.ru Whisper)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -325,7 +338,7 @@
       "parameters": {
         "jsCode": "const msg = $('Parse message').first().json;\nreturn [{ json: { ...msg, text: String($json.text || '').trim(), from_voice: true, kind: 'text' } }];"
       },
-      "id": "9679b364-a477-4e76-a532-f2b0be1830f8",
+      "id": "3c0f6576-f4ec-4879-a5dd-309a6a0ad52e",
       "name": "Use transcript",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -338,7 +351,7 @@
       "parameters": {
         "jsCode": "const msg = $('Parse message').first().json;\nreturn [{ json: { chat_id: msg.chat_id, reply: 'Не получилось распознать голосовое сообщение. Пожалуйста, повторите его или напишите текстом.',\n                  saves: [], start_brd: false, error: $json.error } }];"
       },
-      "id": "f44bc50a-178b-430d-9baf-4e008a8229f4",
+      "id": "49a9a2c4-4a01-431b-a8fe-1c730ecdee60",
       "name": "Voice failed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -351,7 +364,7 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'interview_stt',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'Transcribe (cloud.ru Whisper)',\n    severity: 'warning',\n    alert: false,\n    chat_id: String(j.chat_id || ''),\n    message: String('Ошибка распознавания голоса: ' + errText(j) || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String('' || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
       },
-      "id": "988825d1-167e-4e75-9e0b-7e56f1cfac12",
+      "id": "77a6b991-a70c-4ef5-8e0f-c542ce99753d",
       "name": "Voice error payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -380,7 +393,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "111e8617-bc0a-4c0c-9e62-20bbea2d23e0",
+      "id": "45339a4f-9f9f-4556-8b6b-92d6e36e4135",
       "name": "Log voice error via BRD-00",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -393,7 +406,7 @@
       "parameters": {
         "jsCode": "const msg = $json;\nreturn [{ json: { chat_id: msg.chat_id, reply: 'Я понимаю текстовые и голосовые сообщения. Напишите, пожалуйста, текстом.\\n\\nЯ собираю требования к задачам по выводу ИИ-моделей и ИИ-сервисов и готовлю по ним BRD.\\n\\n/new — начать новую беседу\\n/status — статус текущей беседы\\n/done — завершить интервью и сформировать BRD\\n/cancel — отменить беседу\\n/help — эта справка\\n\\nМожно писать текстом или отправлять голосовые сообщения.', saves: [], start_brd: false } }];"
       },
-      "id": "e6c29fc9-81b3-43ab-a959-f37e5c336956",
+      "id": "bb96880a-57aa-46f1-9422-94e067611eaa",
       "name": "Unsupported message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -406,7 +419,7 @@
       "parameters": {
         "jsCode": "return [{ json: { chat_id: $json.chat_id, saves: [], start_brd: false,\n  reply: 'Бот работает в пилоте для ограниченного круга заказчиков. Чтобы подключиться, напишите команде AIOps.' } }];"
       },
-      "id": "a23e2fcf-ed00-48f1-9dd3-f1d5cf9f0c4d",
+      "id": "4eac12b4-b3bf-42cb-80e6-ea5f7312ccf0",
       "name": "Not in pilot",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -436,7 +449,7 @@
           ]
         }
       },
-      "id": "76a378e6-f5da-4379-b6f5-5a679a246275",
+      "id": "65c12f50-a2d2-43b9-8151-8b17cfe4af3a",
       "name": "Load chat sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -451,7 +464,7 @@
       "parameters": {
         "jsCode": "// Маршрутизация: команды, активная сессия, ход агента.\nconst cfg = $('Config').first().json;\nconst msg = $('Use transcript').isExecuted ? $('Use transcript').first().json : $('Parse message').first().json;\nconst rows = $input.all().map((i) => i.json).filter((r) => r && r.session_id);\nconst open = rows.filter((r) => ['active', 'generating', 'needs_review'].includes(r.status))\n  .sort((a, b) => String(b.started_at).localeCompare(String(a.started_at)))[0] || null;\nconst now = new Date().toISOString();\nconst GREETING = 'Здравствуйте! Я BRD-ассистент команды развития ИИ-среды. Помогу сформулировать требования к вашей задаче (вывод ИИ-модели или ИИ-сервиса в эксплуатацию) и подготовлю по ним BRD.\\n\\nЯ буду задавать вопросы по одному — отвечать можно текстом или голосовым. Если чего-то не знаете, так и скажите: я зафиксирую это как открытый вопрос.\\n\\nКоманды: /done — завершить и сформировать BRD, /status — статус беседы, /cancel — отменить, /new — начать заново.\\n\\nДля начала расскажите в двух словах: какую задачу вы хотите решить?';\nconst HELP = 'Я собираю требования к задачам по выводу ИИ-моделей и ИИ-сервисов и готовлю по ним BRD.\\n\\n/new — начать новую беседу\\n/status — статус текущей беседы\\n/done — завершить интервью и сформировать BRD\\n/cancel — отменить беседу\\n/help — эта справка\\n\\nМожно писать текстом или отправлять голосовые сообщения.';\nconst hist = (s) => { try { return JSON.parse(s.history || '[]'); } catch (e) { return []; } };\nconst newSession = () => ({\n  session_id: `${msg.chat_id}-${Date.now()}`, chat_id: msg.chat_id, user_id: msg.user_id, username: msg.username,\n  status: 'active', history: '[]', turn_count: 0, started_at: now, last_activity_at: now,\n  reminder_count: 0, last_reminder_at: '', brd_title: '', brd_url: '', error: '',\n  cost_usd: 0, limit_hit: '', brd_attempts: 0, brd_created_at: '',\n});\nconst res = { chat_id: msg.chat_id, username: msg.username, user_text: msg.text, reply: '', saves: [],\n              run_agent: false, start_brd: false, session: null, history: [], prompt: '', limit: null };\nconst cmd = msg.command;\n// Потолок сработал до вызова LLM: сохраняем реплику, замораживаем сессию, отдаём в ручную очередь.\nconst stopByLimit = (s, h, type, value, observed) => {\n  const hh = h.concat([{ role: 'user', content: msg.text, ts: now }]);\n  const st = { ...s, history: JSON.stringify(hh), status: 'needs_review', last_activity_at: now,\n               limit_hit: `${type}: ${observed} / ${value}` };\n  res.saves.push(st); res.session = st;\n  res.limit = { limit_type: type, limit_value: value, observed };\n  res.reply = LIMIT_REPLY;\n};\nconst LIMIT_REPLY = 'Я остановил беседу: сработало ограничение агента. Ваши ответы сохранены, беседа передана команде развития ИИ-среды — с вами свяжутся и решат, как продолжить. Повторять сообщения не нужно.';\n\nif (!msg.text) {\n  res.reply = 'Не получилось разобрать сообщение. Пожалуйста, напишите текстом.';\n} else if (cmd === 'help') {\n  res.reply = HELP;\n} else if (open && open.status === 'needs_review') {\n  // Повтор после предела запрещён: новую беседу не начинаем, пока команда не разберёт очередь.\n  res.reply = 'Беседа остановлена по ограничению агента и передана команде развития ИИ-среды — с вами свяжутся. ' +\n              'Ваши ответы сохранены, повторять их не нужно.';\n} else if (open && open.status === 'generating') {\n  res.reply = 'BRD по вашей задаче уже формируется — пришлю ссылку, как только документ будет готов (обычно 3–5 минут).';\n} else if (cmd === 'start' || cmd === 'new') {\n  if (open) res.saves.push({ ...open, status: 'cancelled', last_activity_at: now });\n  const s = newSession();\n  s.history = JSON.stringify([{ role: 'assistant', content: GREETING, ts: now }]);\n  res.saves.push(s);\n  res.reply = (open ? 'Предыдущая беседа закрыта.\\n\\n' : '') + GREETING;\n} else if (cmd === 'cancel') {\n  if (open) { res.saves.push({ ...open, status: 'cancelled', last_activity_at: now }); res.reply = 'Беседа отменена. Начать новую — /new'; }\n  else res.reply = 'Активной беседы нет. Начать — /new';\n} else if (cmd === 'status') {\n  res.reply = open\n    ? `Идёт беседа (начата ${String(open.started_at).slice(0, 16).replace('T', ' ')} UTC), ваших ответов: ${open.turn_count}.\\n/done — завершить и сформировать BRD, /cancel — отменить.`\n    : 'Активной беседы нет. Начать — /new';\n} else if (cmd === 'done') {\n  if (!open) res.reply = 'Активной беседы нет. Начать — /new';\n  else if (Number(open.turn_count) < Number(cfg.MIN_TURNS_FOR_DONE)) res.reply = 'Пока информации слишком мало для BRD — ответьте ещё на несколько вопросов. Отменить беседу — /cancel.';\n  else {\n    const s = { ...open, status: 'generating', last_activity_at: now };\n    res.saves.push(s); res.session = s; res.start_brd = true;\n    res.reply = 'Принято! Формирую BRD по итогам беседы — это займёт 3–5 минут. Пришлю ссылку на документ.';\n  }\n} else if (cmd) {\n  res.reply = 'Неизвестная команда.\\n\\n' + HELP;\n} else {\n  // Обычная реплика: если активной беседы нет — начинаем новую с этого сообщения.\n  const s = open || newSession();\n  const h = hist(s);\n  const limit = Number(cfg.HISTORY_LIMIT) || 60;\n  const recent = h.slice(-limit);\n  const turn = Number(s.turn_count || 0) + 1;\n  const spent = Number(s.cost_usd) || 0;\n  if (turn > Number(cfg.MAX_TURNS)) {\n    stopByLimit(s, h, 'turns', cfg.MAX_TURNS, turn);\n    return [{ json: res }];\n  }\n  if (spent >= Number(cfg.SESSION_BUDGET_USD)) {\n    stopByLimit(s, h, 'cost_session', cfg.SESSION_BUDGET_USD, '$' + spent.toFixed(3));\n    return [{ json: res }];\n  }\n  const dialog = recent.map((m) => (m.role === 'user' ? 'Заказчик: ' : 'Интервьюер: ') + m.content).join('\\n\\n');\n  res.session = s; res.history = h; res.run_agent = true;\n  res.prompt = [\n    `Служебно: ответ заказчика №${turn}; ориентир по длине интервью — ${cfg.SOFT_MAX_TURNS} ответов` +\n      (turn >= Number(cfg.SOFT_MAX_TURNS) ? ' — ориентир достигнут, переходи к резюме и подтверждению.' : '.') +\n      ` Собеседник в Telegram: ${msg.username}.` + (msg.from_voice ? ' Сообщение распознано из голосового — возможны ошибки распознавания.' : ''),\n    'ИСТОРИЯ ДИАЛОГА:\\n' + (dialog || '(диалог только начался)') + (h.length > recent.length ? '\\n(более ранние реплики опущены)' : ''),\n    'НОВОЕ СООБЩЕНИЕ ЗАКАЗЧИКА:\\n' + msg.text,\n    'Ответь следующей репликой интервьюера.',\n  ].join('\\n\\n');\n}\nreturn [{ json: res }];"
       },
-      "id": "5e6fcf41-3c2c-4904-8525-b035ef7dbb9f",
+      "id": "97d4e6c7-04d9-49f4-8590-35d8fbad42b6",
       "name": "Route",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -471,7 +484,7 @@
           },
           "conditions": [
             {
-              "id": "3f73eca0-b57c-4fa5-85a4-98364583f922",
+              "id": "90ea277d-c032-40a6-a542-4ad6d1fc2826",
               "leftValue": "={{ $json.run_agent }}",
               "rightValue": "",
               "operator": {
@@ -486,7 +499,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "13223398-2f16-4ea7-9a6c-cd43c87bd33e",
+      "id": "5e4f17b2-9518-48ef-8551-92ab2e310ebe",
       "name": "Run agent?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -501,7 +514,7 @@
         "chatId": "={{ $json.chat_id }}",
         "action": "typing"
       },
-      "id": "229a38b4-76fc-46e6-9caa-c3fa641b7ee3",
+      "id": "d8f72461-ded7-4d2b-97a9-b67c8efc87ac",
       "name": "Typing…",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -527,7 +540,7 @@
           "returnIntermediateSteps": true
         }
       },
-      "id": "0ec3ebd2-7880-469f-893d-f6414ea859f3",
+      "id": "4c71985d-0d74-4647-94b8-edfad0f3b4da",
       "name": "Interview agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 2.2,
@@ -547,7 +560,7 @@
           "maxRetries": 2
         }
       },
-      "id": "54ebda80-0bac-4394-a190-33f1b365cbb7",
+      "id": "b92767a7-2a48-428c-9e9b-040d079c3277",
       "name": "LLM (interview)",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
       "typeVersion": 1,
@@ -577,7 +590,7 @@
           "pineconeNamespace": "__CFG_PINECONE_NAMESPACE__"
         }
       },
-      "id": "3803c2cf-2579-4c7e-a8f6-7ff97a9071d2",
+      "id": "a31142fc-487f-4658-9d6e-d26892f9d760",
       "name": "KnowledgeBase",
       "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
       "typeVersion": 1.1,
@@ -599,7 +612,7 @@
           "dimensions": 1536
         }
       },
-      "id": "0ba35dd3-17ed-4ee4-b6d6-ade06e3732e4",
+      "id": "6f12720a-a25f-456e-abb6-e610f0883df0",
       "name": "Embeddings (cloud.ru)",
       "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
       "typeVersion": 1.2,
@@ -618,7 +631,7 @@
       "parameters": {
         "jsCode": "// Агентная нода v2.x при maxIterations завершается УСПЕШНО с этим текстом; v3.x — падает с ошибкой «Max iterations (N) reached».\nconst STOP_RE = /Agent stopped due to (max iterations|iteration limit)|Max iterations \\(\\d+\\) reached/i;\n// Лимит ключа/баланса провайдера: OpenRouter 402/403 (limit_source openrouter_key_limit), DeepSeek 402 Insufficient Balance.\nconst MONEY_RE = /\\b402\\b|insufficient (credits|balance)|payment required|openrouter_key_limit|key limit|budget limit/i;\nconst errStr = (e) => (!e ? '' : typeof e === 'string' ? e : [e.message, e.description, e.httpCode].filter(Boolean).join(' ') || JSON.stringify(e)).slice(0, 800);\n// Оценка стоимости одного прогона агента сверху: каждый вызов LLM получает system + prompt + результаты инструментов.\nconst estimateRun = (sysChars, promptChars, outText, steps, pIn, pOut, cpt) => {\n  steps = Array.isArray(steps) ? steps : [];\n  const calls = steps.length + 1;\n  const obs = steps.reduce((a, s) => a + String(s.observation ?? '').length, 0);\n  const acts = steps.reduce((a, s) => a + JSON.stringify(s.action ?? {}).length, 0);\n  const inChars = calls * (sysChars + promptChars) + obs * calls;\n  const outChars = String(outText || '').length + acts;\n  return { calls, steps: steps.length, usd: (inChars * pIn + outChars * pOut) / cpt / 1e6 };\n};\nconst r = $('Route').first().json;\nconst cfg = $('Config').first().json;\nconst raw = String($json.output ?? $json.text ?? '').trim();\nconst now = new Date().toISOString();\n// Расход прогона (оценка сверху) копится в сессии — это бюджет сессии.\nconst run = estimateRun(6310, String(r.prompt || '').length, raw, $json.intermediateSteps,\n  Number(cfg.LLM_PRICE_IN) || 0, Number(cfg.LLM_PRICE_OUT) || 0, Number(cfg.CHARS_PER_TOKEN) || 2);\nconst spent = (Number(r.session.cost_usd) || 0) + run.usd;\nconst budget = Number(cfg.SESSION_BUDGET_USD);\nconst LIMIT_REPLY = 'Я остановил беседу: сработало ограничение агента. Ваши ответы сохранены, беседа передана команде развития ИИ-среды — с вами свяжутся и решат, как продолжить. Повторять сообщения не нужно.';\n// Предел без исхода — тихая потеря: служебный текст агента заказчику НЕ отправляем.\nlet limit = null;\nif (STOP_RE.test(raw)) limit = { limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: `${run.steps} шагов, ответа нет` };\nelse if (spent >= budget) limit = { limit_type: 'cost_session', limit_value: budget, observed: '$' + spent.toFixed(3) };\nif (limit) {\n  const history = r.history.concat([{ role: 'user', content: r.user_text, ts: now }]);\n  const s = { ...r.session, history: JSON.stringify(history), last_activity_at: now, status: 'needs_review', cost_usd: spent,\n              limit_hit: `${limit.limit_type}: ${limit.observed} / ${limit.limit_value}` };\n  return [{ json: { chat_id: r.chat_id, reply: LIMIT_REPLY, saves: [s], session: s, start_brd: false, limit,\n                     run_cost_usd: run.usd, run_steps: run.steps } }];\n}\nconst ready = raw.includes('<<BRD_READY>>');\nlet out = raw.replace(/<<BRD_READY>>/g, '').replace(/\\*\\*(.+?)\\*\\*/g, '$1').replace(/^#{1,6}\\s+/gm, '').trim();\nif (!out) out = ready ? 'Спасибо!' : 'Извините, не получилось сформулировать ответ. Повторите, пожалуйста, последнее сообщение.';\nconst history = r.history.concat([\n  { role: 'user', content: r.user_text, ts: now },\n  { role: 'assistant', content: out, ts: now },\n]);\nconst s = { ...r.session, history: JSON.stringify(history), turn_count: Number(r.session.turn_count || 0) + 1,\n            last_activity_at: now, reminder_count: 0, status: ready ? 'generating' : 'active', cost_usd: spent };\nconst reply = ready ? out + '\\n\\nФормирую BRD — это займёт 3–5 минут. Пришлю ссылку на документ.' : out;\nreturn [{ json: { chat_id: r.chat_id, reply, saves: [s], session: s, start_brd: ready, limit: null,\n                   run_cost_usd: run.usd, run_steps: run.steps } }];"
       },
-      "id": "e34f473f-d54f-475c-8b25-d4b9af4e1727",
+      "id": "36c853ff-4d1b-4544-8366-38029cd5fa9f",
       "name": "Process answer",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -631,7 +644,7 @@
       "parameters": {
         "jsCode": "// Агентная нода v2.x при maxIterations завершается УСПЕШНО с этим текстом; v3.x — падает с ошибкой «Max iterations (N) reached».\nconst STOP_RE = /Agent stopped due to (max iterations|iteration limit)|Max iterations \\(\\d+\\) reached/i;\n// Лимит ключа/баланса провайдера: OpenRouter 402/403 (limit_source openrouter_key_limit), DeepSeek 402 Insufficient Balance.\nconst MONEY_RE = /\\b402\\b|insufficient (credits|balance)|payment required|openrouter_key_limit|key limit|budget limit/i;\nconst errStr = (e) => (!e ? '' : typeof e === 'string' ? e : [e.message, e.description, e.httpCode].filter(Boolean).join(' ') || JSON.stringify(e)).slice(0, 800);\n// Оценка стоимости одного прогона агента сверху: каждый вызов LLM получает system + prompt + результаты инструментов.\nconst estimateRun = (sysChars, promptChars, outText, steps, pIn, pOut, cpt) => {\n  steps = Array.isArray(steps) ? steps : [];\n  const calls = steps.length + 1;\n  const obs = steps.reduce((a, s) => a + String(s.observation ?? '').length, 0);\n  const acts = steps.reduce((a, s) => a + JSON.stringify(s.action ?? {}).length, 0);\n  const inChars = calls * (sysChars + promptChars) + obs * calls;\n  const outChars = String(outText || '').length + acts;\n  return { calls, steps: steps.length, usd: (inChars * pIn + outChars * pOut) / cpt / 1e6 };\n};\n// Ошибка LLM/инструментов: сохраняем реплику заказчика, чтобы не потерять.\n// Исчерпан лимит ключа (402/403) или агент v3 упал по maxIterations — это предел, а не сбой: в ручную очередь.\nconst r = $('Route').first().json;\nconst cfg = $('Config').first().json;\nconst now = new Date().toISOString();\nconst e = errStr($json.error);\nconst history = r.history.concat([{ role: 'user', content: r.user_text, ts: now }]);\nlet limit = null;\nif (MONEY_RE.test(e)) limit = { limit_type: 'cost_key', limit_value: 'лимит ключа OpenRouter', observed: e.slice(0, 200) };\nelse if (STOP_RE.test(e)) limit = { limit_type: 'steps', limit_value: cfg.MAX_ITERATIONS, observed: e.slice(0, 200) };\nif (limit) {\n  const s = { ...r.session, history: JSON.stringify(history), last_activity_at: now, status: 'needs_review',\n              limit_hit: `${limit.limit_type}: ${limit.observed.slice(0, 80)}` };\n  return [{ json: { chat_id: r.chat_id, saves: [s], session: s, start_brd: false, limit, reply: 'Я остановил беседу: сработало ограничение агента. Ваши ответы сохранены, беседа передана команде развития ИИ-среды — с вами свяжутся и решат, как продолжить. Повторять сообщения не нужно.' } }];\n}\nconst s = { ...r.session, history: JSON.stringify(history), last_activity_at: now, status: 'active' };\nreturn [{ json: { chat_id: r.chat_id, saves: [s], session: s, start_brd: false, error: $json.error, limit: null,\n  reply: 'Извините, у меня технический сбой — ваше сообщение сохранено, команда поддержки уже уведомлена. Попробуйте повторить ответ через пару минут.' } }];"
       },
-      "id": "89bd1a48-f457-4a56-9a67-a9392e783ecc",
+      "id": "84370d6e-dfae-4b1e-8f22-f717f8094104",
       "name": "Agent failed",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -651,7 +664,7 @@
           },
           "conditions": [
             {
-              "id": "6b3ff21a-113a-486a-a2a3-e2015c921ed0",
+              "id": "b383419a-fa17-474e-9f29-4c2fe91e26b9",
               "leftValue": "={{ !$json.limit }}",
               "rightValue": "",
               "operator": {
@@ -666,7 +679,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "617c2694-063b-4a0d-afd2-a34cc9e5db95",
+      "id": "5920f0d0-cb09-412a-9075-2676ef8fb547",
       "name": "Real error?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -679,7 +692,7 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'interview_agent',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'Interview agent',\n    severity: 'error',\n    alert: true,\n    chat_id: String(j.chat_id || ''),\n    message: String('Сбой агента-интервьюера: ' + errText(j) || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String('' || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
       },
-      "id": "b7ae9d8a-a9fb-4588-b0a3-ba32a92af6e8",
+      "id": "c2d4fb26-43e2-4a27-a292-7b16c46a49f7",
       "name": "Agent error payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -708,7 +721,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "3eb9142e-8370-4fbb-af7f-eeb74ff112f1",
+      "id": "3b642fbe-1e16-4623-bf9a-af6d2638061d",
       "name": "Log agent error via BRD-00",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -719,7 +732,7 @@
     },
     {
       "parameters": {},
-      "id": "4bc073f4-7e3e-4421-91e2-b97ac302b35f",
+      "id": "89c1516b-f00d-4cec-ad5e-d8db61c2a00f",
       "name": "Turn result",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
@@ -739,7 +752,7 @@
           },
           "conditions": [
             {
-              "id": "d483145e-037c-4a7a-a9ea-5900772f8946",
+              "id": "18cdf646-d974-44da-8d94-d85661bc6c85",
               "leftValue": "={{ ($json.saves || []).length > 0 }}",
               "rightValue": "",
               "operator": {
@@ -754,7 +767,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "89b25cc6-d964-4e09-967e-dab894bce05e",
+      "id": "b24864bf-2518-4868-b2e8-54ed59953216",
       "name": "Has rows to save?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -767,7 +780,7 @@
       "parameters": {
         "jsCode": "// Убираем служебные поля Data Table и приводим типы.\nreturn $json.saves.map((s) => {\n  const { id, createdAt, updatedAt, ...row } = s;\n  row.turn_count = Number(row.turn_count) || 0;\n  row.reminder_count = Number(row.reminder_count) || 0;\n  row.cost_usd = Math.round((Number(row.cost_usd) || 0) * 1e6) / 1e6;\n  row.brd_attempts = Number(row.brd_attempts) || 0;\n  return { json: row };\n});"
       },
-      "id": "ce95963c-e83c-4b4d-8bde-3fd2d76462cc",
+      "id": "ffa31dbc-0c5f-46bc-9c42-6381b4c1b1e6",
       "name": "Rows to save",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -805,7 +818,7 @@
         },
         "options": {}
       },
-      "id": "df68aed1-07f4-460c-83ef-0ae1c9ca29f6",
+      "id": "d9e58791-20d7-4ef6-8d41-b14f0b77174b",
       "name": "Save session",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -819,7 +832,7 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'interview_state',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'Save session',\n    severity: 'error',\n    alert: true,\n    chat_id: String($('Turn result').first().json.chat_id || ''),\n    message: String('Не удалось сохранить сессию в Data Table: ' + errText(j) || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String('' || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
       },
-      "id": "7a0eb0e0-8a46-43ed-b519-d9ac0a64ccc9",
+      "id": "9ebdde63-313f-4953-ba35-be4d3779d47b",
       "name": "Save error payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -848,7 +861,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "4505de9f-88d0-4085-bebb-2fa4a5bb51cb",
+      "id": "28929705-4c21-49d9-861b-3c0b4de4cbad",
       "name": "Log save error via BRD-00",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -861,7 +874,7 @@
       "parameters": {
         "jsCode": "const t = $('Turn result').first().json;\nconst MAX = 3900;\nlet s = String(t.reply || '').trim() || '…';\nconst parts = [];\nwhile (s.length > MAX) {\n  let c = s.lastIndexOf('\\n', MAX);\n  if (c < MAX * 0.5) c = s.lastIndexOf(' ', MAX);\n  if (c < MAX * 0.5) c = MAX;\n  parts.push(s.slice(0, c)); s = s.slice(c).replace(/^\\s+/, '');\n}\nparts.push(s);\n// parse_mode=HTML: экранируем, чтобы _ * [ в ответах агента не ломали отправку\nconst esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nreturn parts.map((p) => ({ json: { chat_id: t.chat_id, text: esc(p) } }));"
       },
-      "id": "c170ed64-944f-4aa1-9281-5f31d0bd4cf0",
+      "id": "6e309c22-0577-4d11-9216-722a860afc09",
       "name": "Reply parts",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -873,6 +886,55 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7237af91-a008-456f-b5bb-9b5d3889e6c1",
+              "leftValue": "={{ String($('Turn result').first().json.chat_id).startsWith('eval-') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "289971d7-e748-4778-b858-02c0aafc560f",
+      "name": "Eval chat?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4290,
+        120
+      ],
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Тестовый чат eval-*: в Telegram не отправляем — возвращаем ответ прогонщику (последний узел прогона).\nconst t = $('Turn result').first().json;\nlet evalCase = '';\ntry { evalCase = $('Config').first().json.eval_case || ''; } catch (e) {}\nlet kind = '';\ntry { kind = $('Parse message').first().json.kind; } catch (e) {}\nreturn [{ json: { eval_reply: true, eval_case: evalCase, chat_id: t.chat_id, reply: String(t.reply || ''),\n  kind, limit: t.limit || null, start_brd: !!t.start_brd } }];"
+      },
+      "id": "02606e00-72aa-4ef1-82e1-c9550737a98a",
+      "name": "Eval reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4510,
+        260
+      ]
+    },
+    {
+      "parameters": {
         "chatId": "={{ $json.chat_id }}",
         "text": "={{ $json.text }}",
         "additionalFields": {
@@ -881,7 +943,7 @@
           "parse_mode": "HTML"
         }
       },
-      "id": "919f4dfc-b187-4802-b486-948fc5d882ee",
+      "id": "dd2df6f6-845b-4600-8a96-1e5e46eb17f6",
       "name": "Send reply",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -901,7 +963,7 @@
       "parameters": {
         "jsCode": "const items = $input.all();\nconst errText = (j) => {\n  const e = j && j.error;\n  if (!e) return '';\n  if (typeof e === 'string') return e;\n  return e.message || e.description || JSON.stringify(e).slice(0, 500);\n};\nreturn items.map((it) => {\n  const j = it.json || {};\n  return { json: {\n    component: 'interview_reply',\n    workflow: $workflow.name,\n    workflow_id: $workflow.id,\n    node: 'Send reply',\n    severity: 'error',\n    alert: true,\n    chat_id: String($('Turn result').first().json.chat_id || ''),\n    message: String('Не удалось отправить ответ заказчику в Telegram: ' + errText(j) || errText(j) || 'Unknown error').slice(0, 1000),\n    details: String('' || '').slice(0, 1500),\n    execution_id: $execution.id,\n  } };\n});"
       },
-      "id": "3d9783af-0963-4861-81fe-70c2e305587a",
+      "id": "b697c029-e792-4c25-8739-982a71e6984a",
       "name": "Send error payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -930,7 +992,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "9c47718b-4085-4f76-a487-871730f424e9",
+      "id": "61ed59a5-4a10-469d-919f-caa1aa24ace8",
       "name": "Log send error via BRD-00",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -950,7 +1012,7 @@
           },
           "conditions": [
             {
-              "id": "89347a5f-f86c-426b-bcf8-8888993f55f0",
+              "id": "81c31e6c-5089-4038-89d6-abcd5d2a1e0a",
               "leftValue": "={{ $('Turn result').first().json.start_brd === true }}",
               "rightValue": "",
               "operator": {
@@ -965,7 +1027,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "cb62f39a-06a1-4b90-abdf-7f37197e7f0a",
+      "id": "2ecbcaff-4e51-41aa-b479-ada6f0a78467",
       "name": "Start BRD?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -979,7 +1041,7 @@
       "parameters": {
         "jsCode": "const t = $('Turn result').first().json;\nreturn [{ json: { session_id: t.session.session_id, chat_id: t.chat_id } }];"
       },
-      "id": "2507949a-b716-48b6-a1c1-932a993572f8",
+      "id": "6239a38c-c738-47de-a797-35660b4890b4",
       "name": "BRD job",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1008,7 +1070,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "d2a8b58d-0cde-4ff5-b168-eb312f1cc2f8",
+      "id": "5767a177-61f5-429d-a616-d77fa424ecb0",
       "name": "Start BRD-04 (async)",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -1028,7 +1090,7 @@
           ]
         }
       },
-      "id": "2296f391-4bf3-4ff0-b254-03c8ff9711af",
+      "id": "391c7623-f161-4e11-9b1d-8b39a75f6541",
       "name": "Mark outcome",
       "type": "n8n-nodes-base.executionData",
       "typeVersion": 1.1,
@@ -1048,7 +1110,7 @@
           },
           "conditions": [
             {
-              "id": "5d92129d-6d96-472d-9e4b-615c3a65d4f5",
+              "id": "667fc3b6-7d28-4f1b-b78d-1fccf7ff983f",
               "leftValue": "={{ !!$json.limit }}",
               "rightValue": "",
               "operator": {
@@ -1063,7 +1125,7 @@
         "looseTypeValidation": true,
         "options": {}
       },
-      "id": "2759e634-e5c2-4257-b91f-d68b1e766142",
+      "id": "60d977fb-d007-46a6-82ca-352c2c52eae4",
       "name": "Limit hit?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
@@ -1076,7 +1138,7 @@
       "parameters": {
         "jsCode": "const t = $json;\nreturn [{ json: { ...t.limit, workflow: $workflow.name, workflow_id: $workflow.id, execution_id: $execution.id,\n  session_id: t.session?.session_id || '', chat_id: t.chat_id, username: t.session?.username || '',\n  details: `Сессия заморожена (needs_review), ответов: ${t.session?.turn_count ?? '—'}, расход (оценка): $${(Number(t.session?.cost_usd) || 0).toFixed(3)}` } }];"
       },
-      "id": "118fa14f-7335-4ed9-b020-79106a6d85af",
+      "id": "6e2f4db7-9871-4fbc-8a7b-72de1779ae4d",
       "name": "Queue payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1105,7 +1167,7 @@
           "waitForSubWorkflow": false
         }
       },
-      "id": "0f87d30b-faa5-489b-98c3-5512f9a5a1a5",
+      "id": "6be8378f-2442-4bef-b8d5-db6ab858cd93",
       "name": "Escalate via BRD-07",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -1121,8 +1183,8 @@
         "height": 500,
         "color": 6
       },
-      "id": "25027523-b103-4573-bf32-4c70d2f4f3a2",
-      "name": "Note 42",
+      "id": "c1ce2c4e-1c20-4668-a520-0fc41acebb40",
+      "name": "Note 45",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
@@ -1159,6 +1221,17 @@
         [
           {
             "node": "Message type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When called by eval": {
+      "main": [
+        [
+          {
+            "node": "Config",
             "type": "main",
             "index": 0
           }
@@ -1558,6 +1631,24 @@
     },
     "Reply parts": {
       "main": [
+        [
+          {
+            "node": "Eval chat?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eval chat?": {
+      "main": [
+        [
+          {
+            "node": "Eval reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "Send reply",
