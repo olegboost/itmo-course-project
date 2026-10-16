@@ -1,0 +1,495 @@
+{
+  "name": "BRD-08 Approve BRD (HITL)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "601b1adc-f886-4467-a9ce-3286167cb229",
+      "name": "Run by reviewer",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1ac09241-b426-40f5-9212-12797e373b3a",
+              "name": "session_id",
+              "value": "PASTE_SESSION_ID_FROM_TEAM_CHAT",
+              "type": "string"
+            },
+            {
+              "id": "f46cd7e2-4ac9-48ed-b758-555f0d96cf8f",
+              "name": "action",
+              "value": "approve",
+              "type": "string"
+            },
+            {
+              "id": "1d885f28-0204-43e1-ac00-8a5989edb729",
+              "name": "comment",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "20581d7e-aeac-43d0-9bec-fab5d8d39d2e",
+      "name": "Decision",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5a93cd98-9167-4d8d-a3b1-48e1e46aa7b0",
+              "name": "BRD_FOLDER_ID",
+              "value": "__CFG_BRD_FOLDER_ID__",
+              "type": "string"
+            },
+            {
+              "id": "f19f7fc1-b872-4ab9-ae09-81f01b4a90ab",
+              "name": "REVIEW_FOLDER_ID",
+              "value": "__CFG_REVIEW_FOLDER_ID__",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {},
+        "includeOtherFields": true
+      },
+      "id": "b213ff18-3b6d-400e-84b6-07ace53ade68",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "brd_sessions"
+        },
+        "returnAll": true,
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.session_id }}"
+            }
+          ]
+        }
+      },
+      "id": "3f537089-deb6-4a35-8b9d-fb9b0dea5d61",
+      "name": "Load session",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        660,
+        0
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Решение принимает человек; система только исполняет его. Повторный запуск безопасен: файл уже в wiki — move ничего не меняет.\nconst d = $('Config').first().json;\nconst s = $input.all().map((i) => i.json).find((r) => r && r.session_id);\nif (!s) throw new Error('Сессия не найдена: ' + d.session_id);\nif (s.status !== 'awaiting_review') throw new Error(`Сессия ${s.session_id} не ждёт утверждения (статус ${s.status})`);\nconst action = String(d.action || '').trim().toLowerCase();\nif (!['approve', 'return'].includes(action)) throw new Error('action должен быть approve или return');\nif (action === 'return' && !String(d.comment || '').trim()) throw new Error('Для return заполните comment: что уточнить у заказчика');\nconst docId = (String(s.brd_url || '').match(/\\/d\\/([^/?#]+)/) || [])[1] || '';\nif (action === 'approve' && !docId) throw new Error('Не найден ID документа в brd_url сессии');\nreturn [{ json: { action, comment: String(d.comment || '').trim(), doc_id: docId, session: s } }];"
+      },
+      "id": "528ae727-f31d-43f3-9c54-b6b280702d88",
+      "name": "Plan decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "01dfb47e-af56-40e6-bf67-a391f1ea3e9b",
+              "leftValue": "={{ $json.action === 'approve' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "f0ab6bc9-c4cd-4f46-b14b-51637119e5bc",
+      "name": "Approve?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://www.googleapis.com/drive/v3/files/' + $json.doc_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "addParents",
+              "value": "={{ $('Config').first().json.BRD_FOLDER_ID }}"
+            },
+            {
+              "name": "removeParents",
+              "value": "={{ $('Config').first().json.REVIEW_FOLDER_ID }}"
+            },
+            {
+              "name": "supportsAllDrives",
+              "value": "true"
+            },
+            {
+              "name": "fields",
+              "value": "id,webViewLink"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "bda36387-99eb-431f-bed6-814522d75a8d",
+      "name": "Move to wiki folder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1320,
+        -100
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "__CRED_GDRIVE__",
+          "name": "Google Drive OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const p = $('Plan decision').first().json;\nconst s = p.session;\nconst url = $json.webViewLink || s.brd_url;\nreturn [{ json: {\n  row: { session_id: s.session_id, status: 'completed', brd_url: url, last_activity_at: new Date().toISOString() },\n  notes: [\n    { audience: 'customer', chat_id: s.chat_id, kind: 'success', title: 'BRD утверждён',\n      text: `Документ «${s.brd_title}» проверен командой AIOps и опубликован:\\n${url}\\n\\nДальше — согласование архитектуры. Начать новую беседу — /new`, source: 'approve' },\n    { audience: 'team', kind: 'success', title: 'BRD утверждён (HITL)', text: `«${s.brd_title}» — перенесён в wiki, заказчику отправлена ссылка.\\n${url}`, source: 'approve' },\n  ] } }];"
+      },
+      "id": "01855cda-e00e-4448-bcab-179d499935db",
+      "name": "Approved rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        -100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Петля возврата: сессия снова открыта, заказчик отвечает на вопросы в той же беседе; следующий /done — вторая попытка генерации.\nconst p = $json;\nconst s = p.session;\nreturn [{ json: {\n  row: { session_id: s.session_id, status: 'active', last_activity_at: new Date().toISOString(), error: 'Возвращён проверяющим: ' + p.comment },\n  notes: [\n    { audience: 'customer', chat_id: s.chat_id, kind: 'warning', title: 'Нужны уточнения по BRD',\n      text: `Команда AIOps просит уточнить: ${p.comment}\\n\\nОтветьте, пожалуйста, в этой беседе, а когда закончите — отправьте /done, и я обновлю документ.`, source: 'approve' },\n    { audience: 'team', kind: 'info', title: 'BRD возвращён заказчику (HITL)', text: `«${s.brd_title}» — возвращён с вопросами: ${p.comment}`, source: 'approve' },\n  ] } }];"
+      },
+      "id": "fc0e0fb3-b74f-4f6c-ae5e-71f449b928c6",
+      "name": "Returned rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $json.row }];"
+      },
+      "id": "1b1810b3-c174-4551-a2d1-9a7859821d11",
+      "name": "Session row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "brd_sessions"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "session_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.session_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "fed2da69-ba02-44b0-8cef-b1a0686c2ad0",
+      "name": "Save session",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        1980,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const j = $('Session row').first().json;\nconst src = $('Approved rows').isExecuted ? $('Approved rows').first().json : $('Returned rows').first().json;\nreturn src.notes.filter((n) => !(n.audience === 'customer' && String(n.chat_id).startsWith('eval-'))).map((n) => ({ json: n }));"
+      },
+      "id": "e9968e04-a6c1-49e9-a3b0-96f83bbbc5eb",
+      "name": "Messages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "__WF_NOTIFY__",
+          "mode": "id"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "id": "958e2826-1cea-493c-8bac-fbe96cc5c92d",
+      "name": "Notify via BRD-02",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2420,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## BRD-08 — утверждение BRD на стадии HITL\nТочка контроля стадии HITL (docs/operations.md): BRD-04 положил документ в папку проверки AIOps, заказчик ждёт.\nПроверяющий открывает BRD по ссылке из чата команды, затем здесь: **Decision** → `session_id`, `action` = `approve` или `return` (+ `comment`) → **Execute workflow**.\n• **approve** — документ переносится в папку-wiki, заказчику уходит ссылка, сессия `completed`.\n• **return** — сессия снова `active`, заказчик получает вопросы и отвечает в той же беседе; следующий /done — вторая попытка генерации (потолок — 2).",
+        "width": 700,
+        "height": 260,
+        "color": 6
+      },
+      "id": "da06f1ce-6478-44e2-9820-85851aed1d47",
+      "name": "Note 13",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -40,
+        -300
+      ]
+    }
+  ],
+  "connections": {
+    "Run by reviewer": {
+      "main": [
+        [
+          {
+            "node": "Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Decision": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Load session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load session": {
+      "main": [
+        [
+          {
+            "node": "Plan decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Plan decision": {
+      "main": [
+        [
+          {
+            "node": "Approve?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approve?": {
+      "main": [
+        [
+          {
+            "node": "Move to wiki folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Returned rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move to wiki folder": {
+      "main": [
+        [
+          {
+            "node": "Approved rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved rows": {
+      "main": [
+        [
+          {
+            "node": "Session row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Returned rows": {
+      "main": [
+        [
+          {
+            "node": "Session row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Session row": {
+      "main": [
+        [
+          {
+            "node": "Save session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save session": {
+      "main": [
+        [
+          {
+            "node": "Messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Messages": {
+      "main": [
+        [
+          {
+            "node": "Notify via BRD-02",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Moscow",
+    "saveManualExecutions": true,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "__WF_ERRORS__"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

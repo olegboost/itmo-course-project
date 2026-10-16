@@ -33,6 +33,7 @@ ORDER = [
     ("BRD-02_notify.json", "__WF_NOTIFY__", False),
     ("BRD-07_manual-queue.json", "__WF_QUEUE__", False),
     ("BRD-04_brd-generator.json", "__WF_BRD_GENERATOR__", False),
+    ("BRD-08_approve-brd.json", None, False),
     ("BRD-01_kb-sync.json", None, True),
     ("BRD-03_interview-agent.json", "__WF_INTERVIEW__", True),
     ("BRD-05_reminders.json", None, True),

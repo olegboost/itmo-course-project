@@ -1162,6 +1162,8 @@ def build_interview():
         "MAX_ITERATIONS": LIMITS["INTERVIEW_MAX_ITERATIONS"],  # справочно; сам потолок — в узле Interview agent
         # Scope пилота кодом: через запятую chat_id разрешённых пользователей; пусто — без ограничения (демо)
         "ALLOWED_CHAT_IDS": "__CFG_ALLOWED_CHAT_IDS__",
+        # Kill-switch: true — бот отвечает «временно недоступен», агент и генерация BRD не запускаются
+        "MAINTENANCE": "__CFG_MAINTENANCE__",
         "HISTORY_LIMIT": 60,
         "STT_URL": "__CFG_STT_URL__",
         "STT_MODEL": "__CFG_STT_MODEL__",
@@ -1181,6 +1183,8 @@ if (chat.type && chat.type !== 'private') kind = 'ignore';   // бот сост�
 const allowRaw = String($('Config').first().json.ALLOWED_CHAT_IDS || '');
 const allow = allowRaw.startsWith('__') ? [] : allowRaw.split(',').map((x) => x.trim()).filter(Boolean);
 if (kind !== 'ignore' && allow.length && !allow.includes(String(chat.id ?? ''))) kind = 'forbidden';
+// Kill-switch (план эксплуатации): режим обслуживания — никаких вызовов модели и генерации, только сообщение.
+if (kind !== 'ignore' && String($('Config').first().json.MAINTENANCE || '').trim().toLowerCase() === 'true') kind = 'maintenance';
 return [{ json: {
   chat_id: String(chat.id ?? ''),
   user_id: String(from.id ?? ''),
@@ -1199,7 +1203,8 @@ return [{ json: {
             "combinator": "and"},
         "renameOutput": True, "outputKey": key}
     w.add("Message type", "n8n-nodes-base.switch", 3.2,
-          {"rules": {"values": [rule("voice"), rule("text"), rule("other"), rule("forbidden")]}, "options": {}}, (660, 200))
+          {"rules": {"values": [rule("voice"), rule("text"), rule("other"), rule("forbidden"), rule("maintenance")]},
+           "options": {}}, (660, 200))
     w.add("Get voice file", "n8n-nodes-base.telegram", 1.2, {
         "resource": "file", "fileId": "={{ $json.voice_file_id }}", "additionalFields": {},
     }, (880, 0), creds=["telegram"], onError="continueErrorOutput")
@@ -1237,6 +1242,10 @@ return [{{ json: {{ chat_id: msg.chat_id, reply: 'Я понимаю тексто
 return [{ json: { chat_id: $json.chat_id, saves: [], start_brd: false,
   reply: 'Бот работает в пилоте для ограниченного круга заказчиков. Чтобы подключиться, напишите команде AIOps.' } }];
 """), (880, 600))
+    w.add("Maintenance reply", "n8n-nodes-base.code", 2, code("""
+return [{ json: { chat_id: $json.chat_id, saves: [], start_brd: false,
+  reply: 'Сервис временно недоступен: идут технические работы. Ваша беседа сохранена — продолжим, как только сервис вернётся. Если срочно — напишите команде AIOps.' } }];
+"""), (880, 780))
     w.add("Load chat sessions", "n8n-nodes-base.dataTable", 1,
           dt_get(SESSIONS_TABLE, [("chat_id", "={{ $json.chat_id }}")]), (1540, 120),
           alwaysOutputData=True, executeOnce=True)
@@ -1498,6 +1507,8 @@ return [{ json: { ...t.limit, workflow: $workflow.name, workflow_id: $workflow.i
     w.connect("Message type", "Unsupported message", out=2)
     w.connect("Message type", "Not in pilot", out=3)
     w.connect("Not in pilot", "Turn result")
+    w.connect("Message type", "Maintenance reply", out=4)
+    w.connect("Maintenance reply", "Turn result")
     w.connect("Get voice file", "Transcribe (cloud.ru Whisper)", out=0)
     w.connect("Get voice file", "Voice failed", out=1)
     w.connect("Transcribe (cloud.ru Whisper)", "Use transcript", out=0)
@@ -1573,6 +1584,10 @@ def build_brd_generator():
         "LOGS_SHEET_ID": "__CFG_LOGS_SHEET_ID__",
         "BRD_REGISTRY_TAB": "brd_registry",
         "RUNS_TAB": "brd_runs",
+        # Стадия rollout (docs/operations.md): shadow | hitl | autonomous; пусто — autonomous (демо).
+        # shadow и hitl публикуют в папку проверки AIOps (REVIEW_FOLDER_ID), заказчику ссылка не уходит.
+        "ROLLOUT_STAGE": "__CFG_ROLLOUT_STAGE__",
+        "REVIEW_FOLDER_ID": "__CFG_REVIEW_FOLDER_ID__",
         "N8N_BASE_URL": "__CFG_N8N_BASE_URL__",
         "MAX_ITERATIONS": LIMITS["BRD_MAX_ITERATIONS"],  # справочно; сам потолок — в узле BRD writer
         "MAX_REPAIRS": LIMITS["BRD_REPAIR_ATTEMPTS"],     # справочно; одно исправление заложено в саму цепочку
@@ -1860,12 +1875,18 @@ const html = md2html(j.md);
 // Ключ документа: сессия + номер попытки генерации. По нему перед повтором ищем, не создан ли документ уже.
 const brd_key = `${{j.session.session_id}}#${{$('Check limits').first().json.attempt}}`;
 const boundary = 'brd_' + Date.now().toString(36);
-const meta = {{ name, mimeType: 'application/vnd.google-apps.document', parents: [cfg.BRD_FOLDER_ID],
+// Стадия rollout: shadow / hitl — в папку проверки AIOps, autonomous — сразу в папку-wiki.
+const rawStage = String(cfg.ROLLOUT_STAGE || '').trim().toLowerCase();
+const stage = ['shadow', 'hitl'].includes(rawStage) ? rawStage : 'autonomous';
+const review = String(cfg.REVIEW_FOLDER_ID || '');
+if (stage !== 'autonomous' && (!review || review.startsWith('__'))) throw new Error(`Стадия ${{stage}}: не задана папка проверки REVIEW_FOLDER_ID`);
+const folder = stage === 'autonomous' ? cfg.BRD_FOLDER_ID : review;
+const meta = {{ name, mimeType: 'application/vnd.google-apps.document', parents: [folder],
                appProperties: {{ brd_key }},
                description: `BRD по интервью в Telegram. Session ID: ${{j.session.session_id}}` }};
 const body = `--${{boundary}}\\r\\nContent-Type: application/json; charset=UTF-8\\r\\n\\r\\n${{JSON.stringify(meta)}}\\r\\n` +
              `--${{boundary}}\\r\\nContent-Type: text/html; charset=UTF-8\\r\\n\\r\\n${{html}}\\r\\n--${{boundary}}--`;
-return [{{ json: {{ ...j, brd_key, doc_name: name, body, content_type: `multipart/related; boundary=${{boundary}}` }} }}];
+return [{{ json: {{ ...j, brd_key, stage, doc_name: name, body, content_type: `multipart/related; boundary=${{boundary}}` }} }}];
 """), (2420, -160))
     upload = lambda: {
         "method": "POST",
@@ -1917,9 +1938,13 @@ const now = new Date().toISOString();
 return [{ json: {
   doc_id: $json.id, doc_url: url, doc_name: j.doc_name, title: j.title, session: j.session, turns: j.turns,
   from_draft: !!j.from_draft, found_existing: !!$json.found_existing,
+  stage: j.stage,
   registry: { created_at: now, title: j.title, customer: j.session.username || '', chat_id: j.session.chat_id,
-              session_id: j.session.session_id, turns: j.turns, status: 'Draft', doc_url: url },
-  session_row: { session_id: j.session.session_id, status: 'completed', brd_title: j.title, brd_url: url,
+              session_id: j.session.session_id, turns: j.turns,
+              status: { autonomous: 'Draft', shadow: 'Shadow', hitl: 'HITL: на проверке' }[j.stage], doc_url: url },
+  // hitl: BRD ждёт утверждения проверяющим AIOps (BRD-08); shadow и autonomous — шаг завершён
+  session_row: { session_id: j.session.session_id, status: j.stage === 'hitl' ? 'awaiting_review' : 'completed',
+                 brd_title: j.title, brd_url: url,
                  last_activity_at: now, error: '', brd_created_at: now, brd_draft: '', brd_draft_title: '',
                  cost_usd: Math.round((Number(j.cost_usd) || 0) * 1e6) / 1e6,
                  // тестовые сессии (eval-*): текст BRD сохраняется для проверки кодом в eval-наборе
@@ -1939,11 +1964,21 @@ return [{ json: {
 const p = $('Published').first().json;
 // Тестовые сессии (eval-*) заказчика в Telegram не имеют — им не пишем.
 const isEval = String(p.session.chat_id).startsWith('eval-');
+const who = `Инициатор: ${p.session.username || p.session.chat_id}\\nОтветов в интервью: ${p.turns}`;
+// Сообщения зависят от стадии rollout (docs/operations.md).
+const CUSTOMER = {
+  autonomous: { title: 'BRD готов', text: `Документ «${p.title}» сформирован и опубликован:\\n${p.doc_url}\\n\\nКоманда развития ИИ-среды получила уведомление и свяжется с вами для согласования. Начать новую беседу — /new` },
+  shadow: { title: 'Спасибо!', text: 'Ваши ответы сохранены и переданы команде AIOps. Дальше с вами работает аналитик, как обычно. Начать новую беседу — /new' },
+  hitl: { title: 'BRD на проверке', text: `Документ «${p.title}» сформирован и передан на проверку команде AIOps. Пришлём ссылку, как только его утвердят.` },
+}[p.stage];
+const TEAM = {
+  autonomous: { title: isEval ? 'Новый BRD (тестовый прогон)' : 'Новый BRD', text: `«${p.title}»\\n${who}\\nСтатус: Draft\\n${p.doc_url}` },
+  shadow: { title: 'BRD в тени — сравнить с BRD аналитика', text: `«${p.title}»\\n${who}\\nЗаказчику не отправлен (стадия shadow).\\n${p.doc_url}\\nSession ID: ${p.session.session_id}` },
+  hitl: { title: 'BRD ждёт утверждения', text: `«${p.title}»\\n${who}\\nПроверьте документ и запустите BRD-08: session_id = ${p.session.session_id}, действие approve или return.\\n${p.doc_url}` },
+}[p.stage];
 return [
-  ...(isEval ? [] : [{ json: { audience: 'customer', chat_id: p.session.chat_id, kind: 'success', title: 'BRD готов',
-            text: `Документ «${p.title}» сформирован и опубликован:\\n${p.doc_url}\\n\\nКоманда развития ИИ-среды получила уведомление и свяжется с вами для согласования. Начать новую беседу — /new`, source: 'brd_generator' } }]),
-  { json: { audience: 'team', kind: 'info', title: isEval ? 'Новый BRD (тестовый прогон)' : 'Новый BRD',
-            text: `«${p.title}»\\nИнициатор: ${p.session.username || p.session.chat_id}\\nОтветов в интервью: ${p.turns}\\nСтатус: Draft\\n${p.doc_url}`, source: 'brd_generator' } },
+  ...(isEval ? [] : [{ json: { audience: 'customer', chat_id: p.session.chat_id, kind: 'success', ...CUSTOMER, source: 'brd_generator' } }]),
+  { json: { audience: 'team', kind: p.stage === 'hitl' ? 'warning' : 'info', ...TEAM, source: 'brd_generator' } },
 ];
 """), (3520, -200))
     w.add("Notify via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (3740, -200))
@@ -2031,7 +2066,7 @@ return [{{ json: {{ session_row: row, limit: l, session: s,
     w.add("Escalate via BRD-07", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_QUEUE, wait=False), (3740, 700))
     # Журнал прогонов паттерна (лист brd_runs): исход, вердикт валидатора, запросы к KB, фактическая цена.
     w.add("Run: published", "n8n-nodes-base.code", 2, code(
-        "const p = $('Published').first().json;\nreturn [{ json: { outcome: 'published', session: p.session, title: p.title, doc_url: p.doc_url,\n"
+        "const p = $('Published').first().json;\nreturn [{ json: { outcome: 'published', session: p.session, title: p.title, doc_url: p.doc_url, stage: p.stage,\n"
         "  from_draft: !!p.from_draft, found_existing: !!p.found_existing } }];"),
         (2640, -480))
     w.add("Run: stopped", "n8n-nodes-base.code", 2, code(
@@ -2061,7 +2096,7 @@ const base = String(cfg.N8N_BASE_URL || '').replace(/\\/$/, '');
 const s = r.session || {};
 return [{ json: {
   finished_at: new Date().toISOString(), session_id: s.session_id || cfg.session_id || '', chat_id: s.chat_id || '', title: r.title || val?.title || '',
-  outcome: r.outcome, limit_type: r.limit_type || '',
+  outcome: r.outcome, limit_type: r.limit_type || '', rollout_stage: r.stage || '',
   validator_first: verdict(val), violations_first: rules(val),
   repaired: fix ? 'yes' : 'no', repair_rounds: fix ? fix.round : 0, repair_actions: (fix?.actions || []).join('; '),
   validator_final: verdict(fin), violations_final: rules(fin),
@@ -2296,6 +2331,7 @@ const abandoned = sessions.filter((s) => s.status === 'abandoned' && inPeriod(s.
 const active = sessions.filter((s) => s.status === 'active');
 const generating = sessions.filter((s) => s.status === 'generating');
 const review = sessions.filter((s) => s.status === 'needs_review');
+const awaiting = sessions.filter((s) => s.status === 'awaiting_review');  // HITL: BRD ждёт утверждения (BRD-08)
 let key = null;
 try { key = $('OpenRouter key usage').first().json.data || null; } catch (e) {}
 
@@ -2313,6 +2349,10 @@ if (completed.length) {
 if (review.length) {
   lines.push('', `Остановлено по пределу, ждут решения команды (needs_review, лист manual_queue): ${review.length}`);
   for (const s of review.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ${s.limit_hit || 'предел'}`);
+}
+if (awaiting.length) {
+  lines.push('', `Ждут утверждения проверяющим (HITL, BRD-08): ${awaiting.length}`);
+  for (const s of awaiting.slice(0, 10)) lines.push(`• ${s.brd_title || 'Без названия'} — ${s.username || s.chat_id}, session_id ${s.session_id}`);
 }
 if (active.length) {
   lines.push('', 'Активные беседы:');
@@ -2336,6 +2376,99 @@ return [{ json: { audience: 'team', kind: 'report', title: 'Дайджест BRD
 Сводка за 24 ч в чат команды: начатые, завершённые и брошенные интервью, ссылки на новые BRD, сессии, остановленные по пределу (`needs_review`), активные беседы, расход и лимит ключа OpenRouter, состояние базы знаний, ошибки по воркфлоу (лист errors).""",
            (-40, -240), w=620, h=180, color=2)
     w.dump("BRD-06_daily-digest.json")
+
+
+# ===========================================================================
+# BRD-08 — точка контроля стадии HITL: проверяющий AIOps утверждает или возвращает BRD
+def build_approve():
+    w = WF("BRD-08 Approve BRD (HITL)")
+    w.add("Run by reviewer", "n8n-nodes-base.manualTrigger", 1, {}, (0, 0))
+    w.add("Decision", "n8n-nodes-base.set", 3.4, p_set({
+        "session_id": "PASTE_SESSION_ID_FROM_TEAM_CHAT",
+        "action": "approve",   # approve — перенести в wiki и отправить ссылку; return — вернуть заказчику с вопросами
+        "comment": "",         # для return: что уточнить у заказчика
+    }), (220, 0))
+    w.add("Config", "n8n-nodes-base.set", 3.4, p_set({
+        "BRD_FOLDER_ID": "__CFG_BRD_FOLDER_ID__",
+        "REVIEW_FOLDER_ID": "__CFG_REVIEW_FOLDER_ID__",
+    }, include_other=True), (440, 0))
+    w.add("Load session", "n8n-nodes-base.dataTable", 1,
+          dt_get(SESSIONS_TABLE, [("session_id", "={{ $json.session_id }}")]), (660, 0),
+          alwaysOutputData=True, executeOnce=True)
+    w.add("Plan decision", "n8n-nodes-base.code", 2, code("""
+// Решение принимает человек; система только исполняет его. Повторный запуск безопасен: файл уже в wiki — move ничего не меняет.
+const d = $('Config').first().json;
+const s = $input.all().map((i) => i.json).find((r) => r && r.session_id);
+if (!s) throw new Error('Сессия не найдена: ' + d.session_id);
+if (s.status !== 'awaiting_review') throw new Error(`Сессия ${s.session_id} не ждёт утверждения (статус ${s.status})`);
+const action = String(d.action || '').trim().toLowerCase();
+if (!['approve', 'return'].includes(action)) throw new Error('action должен быть approve или return');
+if (action === 'return' && !String(d.comment || '').trim()) throw new Error('Для return заполните comment: что уточнить у заказчика');
+const docId = (String(s.brd_url || '').match(/\\/d\\/([^/?#]+)/) || [])[1] || '';
+if (action === 'approve' && !docId) throw new Error('Не найден ID документа в brd_url сессии');
+return [{ json: { action, comment: String(d.comment || '').trim(), doc_id: docId, session: s } }];
+"""), (880, 0))
+    w.add("Approve?", "n8n-nodes-base.if", 2, if_true("={{ $json.action === 'approve' }}"), (1100, 0))
+    w.add("Move to wiki folder", "n8n-nodes-base.httpRequest", 4.2, {
+        "method": "PATCH",
+        "url": "={{ 'https://www.googleapis.com/drive/v3/files/' + $json.doc_id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendQuery": True,
+        "queryParameters": {"parameters": [
+            {"name": "addParents", "value": "={{ $('Config').first().json.BRD_FOLDER_ID }}"},
+            {"name": "removeParents", "value": "={{ $('Config').first().json.REVIEW_FOLDER_ID }}"},
+            {"name": "supportsAllDrives", "value": "true"},
+            {"name": "fields", "value": "id,webViewLink"},
+        ]},
+        "options": {"timeout": 60000},
+    }, (1320, -100), creds=["gdrive"])
+    w.add("Approved rows", "n8n-nodes-base.code", 2, code("""
+const p = $('Plan decision').first().json;
+const s = p.session;
+const url = $json.webViewLink || s.brd_url;
+return [{ json: {
+  row: { session_id: s.session_id, status: 'completed', brd_url: url, last_activity_at: new Date().toISOString() },
+  notes: [
+    { audience: 'customer', chat_id: s.chat_id, kind: 'success', title: 'BRD утверждён',
+      text: `Документ «${s.brd_title}» проверен командой AIOps и опубликован:\\n${url}\\n\\nДальше — согласование архитектуры. Начать новую беседу — /new`, source: 'approve' },
+    { audience: 'team', kind: 'success', title: 'BRD утверждён (HITL)', text: `«${s.brd_title}» — перенесён в wiki, заказчику отправлена ссылка.\\n${url}`, source: 'approve' },
+  ] } }];
+"""), (1540, -100))
+    w.add("Returned rows", "n8n-nodes-base.code", 2, code("""
+// Петля возврата: сессия снова открыта, заказчик отвечает на вопросы в той же беседе; следующий /done — вторая попытка генерации.
+const p = $json;
+const s = p.session;
+return [{ json: {
+  row: { session_id: s.session_id, status: 'active', last_activity_at: new Date().toISOString(), error: 'Возвращён проверяющим: ' + p.comment },
+  notes: [
+    { audience: 'customer', chat_id: s.chat_id, kind: 'warning', title: 'Нужны уточнения по BRD',
+      text: `Команда AIOps просит уточнить: ${p.comment}\\n\\nОтветьте, пожалуйста, в этой беседе, а когда закончите — отправьте /done, и я обновлю документ.`, source: 'approve' },
+    { audience: 'team', kind: 'info', title: 'BRD возвращён заказчику (HITL)', text: `«${s.brd_title}» — возвращён с вопросами: ${p.comment}`, source: 'approve' },
+  ] } }];
+"""), (1540, 100))
+    w.add("Session row", "n8n-nodes-base.code", 2, code("return [{ json: $json.row }];"), (1760, 0))
+    w.add("Save session", "n8n-nodes-base.dataTable", 1, dt_upsert(SESSIONS_TABLE, "session_id", "={{ $json.session_id }}"),
+          (1980, 0))
+    w.add("Messages", "n8n-nodes-base.code", 2, code(
+        "const j = $('Session row').first().json;\n"
+        "const src = $('Approved rows').isExecuted ? $('Approved rows').first().json : $('Returned rows').first().json;\n"
+        "return src.notes.filter((n) => !(n.audience === 'customer' && String(n.chat_id).startsWith('eval-'))).map((n) => ({ json: n }));"),
+        (2200, 0))
+    w.add("Notify via BRD-02", "n8n-nodes-base.executeWorkflow", 1.2, exec_wf(WF_NOTIFY), (2420, 0))
+    w.chain("Run by reviewer", "Decision", "Config", "Load session", "Plan decision", "Approve?")
+    w.connect("Approve?", "Move to wiki folder", out=0)
+    w.connect("Approve?", "Returned rows", out=1)
+    w.chain("Move to wiki folder", "Approved rows", "Session row")
+    w.connect("Returned rows", "Session row")
+    w.chain("Session row", "Save session", "Messages", "Notify via BRD-02")
+    w.note("""## BRD-08 — утверждение BRD на стадии HITL
+Точка контроля стадии HITL (docs/operations.md): BRD-04 положил документ в папку проверки AIOps, заказчик ждёт.
+Проверяющий открывает BRD по ссылке из чата команды, затем здесь: **Decision** → `session_id`, `action` = `approve` или `return` (+ `comment`) → **Execute workflow**.
+• **approve** — документ переносится в папку-wiki, заказчику уходит ссылка, сессия `completed`.
+• **return** — сессия снова `active`, заказчик получает вопросы и отвечает в той же беседе; следующий /done — вторая попытка генерации (потолок — 2).""",
+           (-40, -300), w=700, h=260, color=6)
+    w.dump("BRD-08_approve-brd.json")
 
 
 # ===========================================================================
@@ -2564,6 +2697,7 @@ if __name__ == "__main__":
     build_brd_generator()
     build_reminders()
     build_digest()
+    build_approve()
     build_eval_runner()
     build_eval_seed()
     build_setup()

@@ -12,7 +12,7 @@
           ]
         }
       },
-      "id": "84a816d5-5b4c-4bf4-a20e-6d75ebf7de0e",
+      "id": "2b7c51e1-a167-4d70-9feb-956742338f75",
       "name": "Daily 09:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
@@ -23,7 +23,7 @@
     },
     {
       "parameters": {},
-      "id": "907a2d41-c50c-46c1-a46b-4e100e62cf9f",
+      "id": "a3bb77e7-9c18-452e-87e6-187e820306f2",
       "name": "Manual run",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
@@ -37,19 +37,19 @@
         "assignments": {
           "assignments": [
             {
-              "id": "f60aff96-5388-45a2-a63d-41814879dd4c",
+              "id": "14332b8e-7c8c-4171-b7bb-9413e588cbd5",
               "name": "LOGS_SHEET_ID",
               "value": "__CFG_LOGS_SHEET_ID__",
               "type": "string"
             },
             {
-              "id": "66658ccb-2da8-47e5-a0eb-fd26661594b2",
+              "id": "af9e3c30-bc1f-4a3e-9a73-9fba2c0b1ce2",
               "name": "ERRORS_SHEET_TAB",
               "value": "errors",
               "type": "string"
             },
             {
-              "id": "7a836121-8b7e-45f2-944f-065379cf1265",
+              "id": "aa1f3504-50c0-4cc0-8c26-31fec927c12b",
               "name": "PERIOD_HOURS",
               "value": 24,
               "type": "number"
@@ -58,7 +58,7 @@
         },
         "options": {}
       },
-      "id": "cab1d918-7b8d-4eb0-b8a7-d829a4928787",
+      "id": "c8ce5519-ffff-46fd-903a-1010def4acf7",
       "name": "Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
@@ -78,7 +78,7 @@
         },
         "returnAll": true
       },
-      "id": "de0fd0fe-051a-4e10-9750-c12c919b20ae",
+      "id": "32fa2084-2e4f-495e-945d-fb6e904338db",
       "name": "Load sessions",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -100,7 +100,7 @@
         },
         "returnAll": true
       },
-      "id": "019eacce-35e7-47ec-bd50-628630367bfb",
+      "id": "e5d0e147-7b23-4568-8eeb-88a6cca2f49f",
       "name": "Load KB state",
       "type": "n8n-nodes-base.dataTable",
       "typeVersion": 1,
@@ -127,7 +127,7 @@
         },
         "options": {}
       },
-      "id": "c0028df5-a527-4448-8b06-204dbce54bad",
+      "id": "1688a7d6-df18-4a35-98dc-386bbac70c6c",
       "name": "Load errors",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.5,
@@ -153,7 +153,7 @@
         "genericAuthType": "httpHeaderAuth",
         "options": {}
       },
-      "id": "663ffb57-01a2-48a5-920e-7c5899e49b66",
+      "id": "2bb13dc2-e1b1-4770-8253-7e5f51779da0",
       "name": "OpenRouter key usage",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -173,9 +173,9 @@
     },
     {
       "parameters": {
-        "jsCode": "const cfg = $('Config').first().json;\nconst since = Date.now() - (Number(cfg.PERIOD_HOURS) || 24) * 3600 * 1000;\nconst inPeriod = (t) => t && new Date(t).getTime() >= since;\nconst sessions = $('Load sessions').all().map((i) => i.json).filter((r) => r && r.session_id);\nconst kb = $('Load KB state').all().map((i) => i.json).filter((r) => r && r.file_id);\nconst errors = $('Load errors').all().map((i) => i.json).filter((r) => r && r.timestamp && inPeriod(r.timestamp));\n\nconst started = sessions.filter((s) => inPeriod(s.started_at));\nconst completed = sessions.filter((s) => s.status === 'completed' && inPeriod(s.last_activity_at));\nconst abandoned = sessions.filter((s) => s.status === 'abandoned' && inPeriod(s.last_activity_at));\nconst active = sessions.filter((s) => s.status === 'active');\nconst generating = sessions.filter((s) => s.status === 'generating');\nconst review = sessions.filter((s) => s.status === 'needs_review');\nlet key = null;\ntry { key = $('OpenRouter key usage').first().json.data || null; } catch (e) {}\n\nconst byWf = {};\nfor (const e of errors) { const k = e.workflow || e.component || '—'; byWf[k] = (byWf[k] || 0) + 1; }\nconst kbOk = kb.filter((r) => r.status === 'ok');\nconst kbErr = kb.filter((r) => r.status === 'error');\n\nconst lines = [];\nlines.push(`Интервью: начато ${started.length}, завершено BRD ${completed.length}, брошено ${abandoned.length}; сейчас активно ${active.length}` + (generating.length ? `, формируется ${generating.length}` : ''));\nif (completed.length) {\n  lines.push('', 'Новые BRD:');\n  for (const s of completed) lines.push(`• ${s.brd_title || 'Без названия'} — ${s.username || s.chat_id}\\n  ${s.brd_url}`);\n}\nif (review.length) {\n  lines.push('', `Остановлено по пределу, ждут решения команды (needs_review, лист manual_queue): ${review.length}`);\n  for (const s of review.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ${s.limit_hit || 'предел'}`);\n}\nif (active.length) {\n  lines.push('', 'Активные беседы:');\n  for (const s of active.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ответов ${s.turn_count}, последняя активность ${String(s.last_activity_at).slice(0, 16).replace('T', ' ')} UTC`);\n}\nlines.push('', `База знаний: документов в индексе ${kbOk.length}, фрагментов ${kbOk.reduce((x, r) => x + (Number(r.chunk_count) || 0), 0)}` + (kbErr.length ? `, с ошибкой ${kbErr.length} (${kbErr.map((r) => r.name).join(', ')})` : ''));\nif (key) {\n  const usd = (v) => (v == null ? '—' : '$' + Number(v).toFixed(2));\n  lines.push('', `OpenRouter: расход за сутки ${usd(key.usage_daily)}, за неделю ${usd(key.usage_weekly)}; лимит ключа ${usd(key.limit)}` +\n    (key.limit_reset ? ` (${key.limit_reset})` : '') + (key.limit_remaining != null ? `, осталось ${usd(key.limit_remaining)}` : ''));\n}\nlines.push('', errors.length ? `Ошибки за сутки: ${errors.length} — ` + Object.entries(byWf).map(([k, v]) => `${k}: ${v}`).join('; ') : 'Ошибок за сутки нет.');\nreturn [{ json: { audience: 'team', kind: 'report', title: 'Дайджест BRD-агента за сутки', text: lines.join('\\n'), source: 'digest' } }];"
+        "jsCode": "const cfg = $('Config').first().json;\nconst since = Date.now() - (Number(cfg.PERIOD_HOURS) || 24) * 3600 * 1000;\nconst inPeriod = (t) => t && new Date(t).getTime() >= since;\nconst sessions = $('Load sessions').all().map((i) => i.json).filter((r) => r && r.session_id);\nconst kb = $('Load KB state').all().map((i) => i.json).filter((r) => r && r.file_id);\nconst errors = $('Load errors').all().map((i) => i.json).filter((r) => r && r.timestamp && inPeriod(r.timestamp));\n\nconst started = sessions.filter((s) => inPeriod(s.started_at));\nconst completed = sessions.filter((s) => s.status === 'completed' && inPeriod(s.last_activity_at));\nconst abandoned = sessions.filter((s) => s.status === 'abandoned' && inPeriod(s.last_activity_at));\nconst active = sessions.filter((s) => s.status === 'active');\nconst generating = sessions.filter((s) => s.status === 'generating');\nconst review = sessions.filter((s) => s.status === 'needs_review');\nconst awaiting = sessions.filter((s) => s.status === 'awaiting_review');  // HITL: BRD ждёт утверждения (BRD-08)\nlet key = null;\ntry { key = $('OpenRouter key usage').first().json.data || null; } catch (e) {}\n\nconst byWf = {};\nfor (const e of errors) { const k = e.workflow || e.component || '—'; byWf[k] = (byWf[k] || 0) + 1; }\nconst kbOk = kb.filter((r) => r.status === 'ok');\nconst kbErr = kb.filter((r) => r.status === 'error');\n\nconst lines = [];\nlines.push(`Интервью: начато ${started.length}, завершено BRD ${completed.length}, брошено ${abandoned.length}; сейчас активно ${active.length}` + (generating.length ? `, формируется ${generating.length}` : ''));\nif (completed.length) {\n  lines.push('', 'Новые BRD:');\n  for (const s of completed) lines.push(`• ${s.brd_title || 'Без названия'} — ${s.username || s.chat_id}\\n  ${s.brd_url}`);\n}\nif (review.length) {\n  lines.push('', `Остановлено по пределу, ждут решения команды (needs_review, лист manual_queue): ${review.length}`);\n  for (const s of review.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ${s.limit_hit || 'предел'}`);\n}\nif (awaiting.length) {\n  lines.push('', `Ждут утверждения проверяющим (HITL, BRD-08): ${awaiting.length}`);\n  for (const s of awaiting.slice(0, 10)) lines.push(`• ${s.brd_title || 'Без названия'} — ${s.username || s.chat_id}, session_id ${s.session_id}`);\n}\nif (active.length) {\n  lines.push('', 'Активные беседы:');\n  for (const s of active.slice(0, 10)) lines.push(`• ${s.username || s.chat_id}: ответов ${s.turn_count}, последняя активность ${String(s.last_activity_at).slice(0, 16).replace('T', ' ')} UTC`);\n}\nlines.push('', `База знаний: документов в индексе ${kbOk.length}, фрагментов ${kbOk.reduce((x, r) => x + (Number(r.chunk_count) || 0), 0)}` + (kbErr.length ? `, с ошибкой ${kbErr.length} (${kbErr.map((r) => r.name).join(', ')})` : ''));\nif (key) {\n  const usd = (v) => (v == null ? '—' : '$' + Number(v).toFixed(2));\n  lines.push('', `OpenRouter: расход за сутки ${usd(key.usage_daily)}, за неделю ${usd(key.usage_weekly)}; лимит ключа ${usd(key.limit)}` +\n    (key.limit_reset ? ` (${key.limit_reset})` : '') + (key.limit_remaining != null ? `, осталось ${usd(key.limit_remaining)}` : ''));\n}\nlines.push('', errors.length ? `Ошибки за сутки: ${errors.length} — ` + Object.entries(byWf).map(([k, v]) => `${k}: ${v}`).join('; ') : 'Ошибок за сутки нет.');\nreturn [{ json: { audience: 'team', kind: 'report', title: 'Дайджест BRD-агента за сутки', text: lines.join('\\n'), source: 'digest' } }];"
       },
-      "id": "2eb89b29-f8ec-45d2-b833-7daf7dda8666",
+      "id": "a0cb8a2b-f958-4385-9189-23b6822ce00d",
       "name": "Build digest",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -204,7 +204,7 @@
           "waitForSubWorkflow": true
         }
       },
-      "id": "1a21ad32-c0c6-4d16-985a-fa1a9db1abf7",
+      "id": "bc45d2e4-5ac3-46d8-91db-2176a6099210",
       "name": "Notify via BRD-02",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.2,
@@ -220,7 +220,7 @@
         "height": 180,
         "color": 2
       },
-      "id": "68bcc1c9-2bcb-4f0d-9c51-2d1454fe65a6",
+      "id": "dcec65e2-9026-47bf-982c-3df29ea00005",
       "name": "Note 9",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
